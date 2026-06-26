@@ -1,0 +1,95 @@
+<div id="vistaTablaInventario" class="container-fluid p-0">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold m-0" style="color: var(--azul);">📦 Control de Inventario y Almacén</h4>
+    <button class="btn text-white fw-bold px-4 shadow-sm" style="background-color: var(--dorado);" onclick="window.toggleVistaInv('form')">
+      + Ingresar Refacciones
+    </button>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-4">
+
+      <div class="row mb-4 align-items-center">
+        <div class="col-md-4">
+          <label class="small fw-bold text-muted mb-1">Filtrar por Fecha</label>
+          <input type="date" id="filtroFechaInv" class="form-control bg-light border-0" onchange="window.filtrarTablaInv()">
+        </div>
+        <div class="col-md-8">
+          <label class="small fw-bold text-muted mb-1">Buscar por Ticket o Producto</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-0">🔍</span>
+            <input type="text" id="buscadorTablaInv" class="form-control bg-light border-0" placeholder="Ej. 1235, LLANTAS, MOBIL..." onkeyup="window.filtrarTablaInv()">
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-borderless align-middle">
+          <thead class="table-dark" style="background-color: var(--azul);">
+            <tr>
+              <th onclick="window.ordenarTabla('cuerpoTablaInv', 0)" style="cursor:pointer;">Ticket ↕</th>
+              <th onclick="window.ordenarTabla('cuerpoTablaInv', 1)" style="cursor:pointer;">Folio CPP ↕</th>
+              <th onclick="window.ordenarTabla('cuerpoTablaInv', 2)" style="cursor:pointer;">Producto / Marca ↕</th>
+              <th onclick="window.ordenarTabla('cuerpoTablaInv', 3)" style="cursor:pointer;">Vehículo Asignado ↕</th>
+              <th onclick="window.ordenarTabla('cuerpoTablaInv', 4)" style="cursor:pointer;">Cantidad ↕</th>
+              <th onclick="window.ordenarTabla('cuerpoTablaInv', 5)" style="cursor:pointer;">Costo Unitario ↕</th>
+              <th onclick="window.ordenarTabla('cuerpoTablaInv', 6)" style="cursor:pointer;">Costo Total ↕</th>
+              <th onclick="window.ordenarTabla('cuerpoTablaInv', 7)" style="cursor:pointer;">Estatus ↕</th>
+              <th onclick="window.ordenarTabla('cuerpoTablaInv', 8)" style="cursor:pointer;">Quien Registra ↕</th>
+              <th onclick="window.ordenarTabla('cuerpoTablaInv', 9)" style="cursor:pointer;">Fecha ↕</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaInv">
+            <tr><td colspan="11" class="text-center py-4 text-muted">Cargando base de datos del almacén...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="vistaFormInventario" class="container-fluid p-0" style="display: none;">
+  <div class="mb-4">
+    <button class="btn btn-sm btn-outline-secondary fw-bold shadow-sm" onclick="window.toggleVistaInv('tabla')">← Regresar a la tabla</button>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3" style="border-bottom: 3px solid var(--dorado);">
+      <h4 class="m-0 fw-bold text-center" style="color: var(--azul);">Registro de Refacciones</h4>
+    </div>
+    <div class="card-body bg-white p-4">
+
+      <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Ticket *</label>
+          <input type="text" id="ticket" class="form-control" placeholder="Ej. 12345">
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Folio CPP *</label>
+          <input type="text" id="folioCpp" class="form-control" placeholder="Ej. CPP-26-01">
+        </div>
+        <div class="col-md-12 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Observaciones del Ticket</label>
+          <input type="text" id="obsTicket" class="form-control" placeholder="EJ. COMPRA URGENTE">
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3 mt-4" style="border-bottom: 2px solid var(--dorado); padding-bottom: 10px;">
+        <h6 class="fw-bold m-0" style="color: var(--azul);">REGISTRO DE REFACCIONES ADQUIRIDAS</h6>
+        <button class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: var(--azul);" onclick="window.agregarArticuloInventario()">
+          + Agregar Artículo
+        </button>
+      </div>
+
+      <div id="contenedor-articulos-inventario"></div>
+
+      <div class="mt-5 text-center">
+        <button id="btnGI" class="btn text-white fw-bold py-3 shadow-sm w-100" style="background-color: var(--azul); font-size: 1.1rem; border-radius: 6px;" onclick="window.procesarInventario()">
+          Registrar Refacción en Almacén
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
