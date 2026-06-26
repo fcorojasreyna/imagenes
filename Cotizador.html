@@ -1,0 +1,261 @@
+<div id="vistaTablaOC" class="container-fluid p-0">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold m-0" style="color: var(--azul);">Historial de Cotizaciones y Órdenes de Compra</h4>
+    <button class="btn text-dark fw-bold px-4 shadow-sm" style="background-color: var(--dorado);" onclick="window.toggleVistaOC('form')">
+      + Nueva Cotización / OC
+    </button>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-4">
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <label class="small fw-bold text-muted mb-1">Buscar por Ticket</label>
+          <input type="text" id="filtroTicket" class="form-control bg-light border-0" placeholder="Ej. 1235" onkeyup="window.filtrarTablaOC()">
+        </div>
+        <div class="col-md-6">
+          <label class="small fw-bold text-muted mb-1">Buscar por NUCO</label>
+          <input type="text" id="filtroNuco" class="form-control bg-light border-0" placeholder="Ej. 100" onkeyup="window.filtrarTablaOC()">
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-borderless align-middle">
+          <thead class="table-light" style="border-bottom: 2px solid var(--dorado);">
+            <tr>
+              <th style="color: var(--azul);">Folio OC</th>
+              <th style="color: var(--azul);">Ticket Base</th>
+              <th style="color: var(--azul);">NUCO</th>
+              <th style="color: var(--azul);">Razón Social Compra</th>
+              <th style="color: var(--azul);">Fecha Registro</th>
+              <th style="color: var(--azul); text-align: center;">Formatos PDF</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaOC">
+            <tr><td colspan="6" class="text-center py-4 text-muted">Cargando bitácora central...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="vistaFormOC" class="container-fluid p-0" style="display: none;">
+  <div class="mb-4">
+    <button class="btn btn-sm btn-outline-secondary fw-bold shadow-sm" onclick="window.toggleVistaOC('tabla')">← Regresar al Historial</button>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3" style="border-bottom: 3px solid var(--dorado);">
+      <h5 class="m-0 fw-bold" style="color: var(--azul);">Generador de Cotizaciones y Órdenes de Compra</h5>
+    </div>
+    <div class="card-body bg-white p-4">
+      <h6 class="fw-bold mb-3 pb-2" style="color: var(--dorado); border-bottom: 1px solid #eaeaea;">1. Datos Generales del Servicio</h6>
+
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Ticket *</label>
+          <input type="text" id="oc_ticket" class="form-control" placeholder="Ej. 12345">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">NUCO *</label>
+          <input type="text" id="oc_nuco" class="form-control border-primary" placeholder="Autocompleta..."
+                 onblur="window.autocompletarNuco(this.value, 'oc')">
+          <input type="hidden" id="oc_oficina" value="">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Placas</label>
+          <input type="text" id="oc_placas" class="form-control bg-light" readonly>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Línea</label>
+          <input type="text" id="oc_linea" class="form-control bg-light" readonly>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Modelo</label>
+          <input type="text" id="oc_modelo" class="form-control bg-light" readonly>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Odómetro Actual (KM)</label>
+          <input type="text" id="oc_odoact" class="form-control" placeholder="Ej. 150,000">
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Odómetro Últ. Servicio</label>
+          <input type="text" id="oc_odoult" class="form-control" placeholder="Ej. 140,000">
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Departamento</label>
+          <input type="text" id="oc_departamento" class="form-control bg-light" readonly tabindex="-1">
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Sede / Oficina</label>
+          <input type="text" id="oc_sede" class="form-control bg-light" readonly tabindex="-1">
+        </div>
+      </div>
+
+      <h6 class="fw-bold mb-3 pb-2" style="color: var(--dorado); border-bottom: 1px solid #eaeaea;">B) Clasificación del Servicio a Realizar</h6>
+
+      <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tipo de Solicitud</label>
+          <select id="oc_tsol" class="form-select">
+            <option value="SINIESTRO">SINIESTRO</option>
+            <option value="INSPECCIONES">INSPECCIONES</option>
+            <option value="SOLICITUD DEPARTAMENTO">SOLICITUD DEPARTAMENTO</option>
+            <option value="EQUIPAMIENTO">EQUIPAMIENTO</option>
+            <option value="REVISION SV">REVISIÓN SV</option>
+          </select>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tipo de Servicio</label>
+          <select id="oc_tser" class="form-select">
+            <option value="SERVICIO PREVENTIVO">SERVICIO PREVENTIVO</option>
+            <option value="SERVICIO CORRECTIVO">SERVICIO CORRECTIVO</option>
+          </select>
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tipo de Partida</label>
+          <select id="oc_tpart" class="form-select">
+            <option value="INSUMO AUTOMOTRIZ">INSUMO AUTOMOTRIZ</option>
+            <option value="HERRAMIENTAS">HERRAMIENTAS</option>
+            <option value="SERVICIO AUTOMOTRIZ">SERVICIO AUTOMOTRIZ</option>
+            <option value="MANO DE OBRA AUTOMOTRIZ">MANO DE OBRA AUTOMOTRIZ</option>
+            <option value="HOJALATERIA Y PINTURA">HOJALATERÍA Y PINTURA</option>
+            <option value="CRISTALERIA AUTOMOTRIZ">CRISTALERÍA AUTOMOTRIZ</option>
+            <option value="ACCESORIO AUTOMOTRIZ">ACCESORIO AUTOMOTRIZ</option>
+            <option value="SERVICIO DE GRUA">SERVICIO DE GRÚA</option>
+            <option value="ARTICULOS DE LIMPIEZA AUTOMOTRIZ">ARTÍCULOS DE LIMPIEZA AUTOMOTRIZ</option>
+          </select>
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tiempo Vida Est.</label>
+          <input type="text" id="oc_tvida" class="form-control" placeholder="Ej. 6 MESES">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Realizado por</label>
+          <select id="oc_intext" class="form-select">
+            <option value="INTERNO">INTERNO</option>
+            <option value="EXTERNO" selected>EXTERNO</option>
+            <option value="AMBOS">AMBOS</option>
+          </select>
+        </div>
+      </div>
+
+      <h6 class="fw-bold mb-3 pb-2" style="color: var(--dorado); border-bottom: 1px solid #eaeaea;">C) Condiciones Comerciales y Facturación</h6>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Razón Social (A nombre de quién se compra)</label>
+          <input type="text" id="oc_rz" class="form-control border-warning" style="background-color: #fffdf8;">
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Motivo de Compra</label>
+          <input type="text" id="oc_motivo" class="form-control" placeholder="Justificación breve...">
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold text-success" style="font-size: 0.85rem;">Folio CPP</label>
+          <input type="text" id="oc_foliocpp" class="form-control border-success" placeholder="Ej. CPP-26-01">
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Forma de Pago (OC)</label>
+          <select id="oc_fp" class="form-select">
+            <option value="CPP">CPP</option>
+            <option value="Crédito 30 días">Crédito 30 días</option>
+            <option value="Crédito 45 días">Crédito 45 días</option>
+            <option value="Reembolso">Reembolso</option>
+            <option value="TDC (física)">TDC (física)</option>
+            <option value="TDC (línea)">TDC (línea)</option>
+            <option value="TDD">TDD</option>
+          </select>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Método de Pago (SAT)</label>
+          <select id="oc_mpago" class="form-select">
+            <option value="PUE - PAGO EN UNA SOLA EXHIBICION">PUE - PAGO EN UNA SOLA EXHIBICIÓN</option>
+            <option value="PPD - PAGO EN PARCIALIDADES O DIFERIDO">PPD - PAGO EN PARCIALIDADES O DIFERIDO</option>
+          </select>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Uso CFDI (SAT)</label>
+          <input type="text" id="oc_cfdi" class="form-control" placeholder="Ej. G03 GASTOS EN GENERAL">
+        </div>
+      </div>
+
+      <h6 class="fw-bold mb-3 pb-2" style="color: var(--dorado); border-bottom: 1px solid #eaeaea;">D) Observaciones Finales y Correo</h6>
+
+      <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Comentarios Generales</label>
+          <textarea id="oc_coment" class="form-control" rows="2" placeholder="Información adicional del servicio..."></textarea>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Puntos a Considerar</label>
+          <textarea id="oc_puntos" class="form-control" rows="2" placeholder="Especificaciones o notas operativas..."></textarea>
+        </div>
+      </div>
+
+      <div class="row p-3 rounded mb-4" style="background-color: #f8f9fa; border-left: 4px solid var(--dorado);">
+        <div class="col-md-12">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Configuración de Correo al Proveedor</label>
+          <select id="oc_config_correo" class="form-select">
+            <option value="AMBOS">Sí - Enviar Comparativa y OC al correo registrado</option>
+            <option value="SOLO_OC">Sí - Enviar SOLO la Orden de Compra</option>
+            <option value="NINGUNO">No - Solo guardar los PDFs en el Drive</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-4" id="panel-definicion-proveedores">
+    <div class="card-header bg-white" style="border-bottom: 2px solid var(--dorado);">
+      <h6 class="m-0 fw-bold" style="color: var(--azul);">2. Participantes del Concurso (Buscador Inteligente)</h6>
+    </div>
+    <div class="card-body p-4">
+      <div class="row mb-3">
+        <div class="col-md-8">
+          <input type="text" id="buscadorProvCotizador" list="datalistProveedores" class="form-control"
+                 placeholder="Escribe el nombre o RFC del proveedor y selecciónalo...">
+          <datalist id="datalistProveedores"></datalist>
+        </div>
+        <div class="col-md-4">
+          <button class="btn text-white w-100 fw-bold" style="background-color: var(--dorado);"
+                  onclick="window.agregarProvAConcurso()">+ Agregar a la Lista</button>
+        </div>
+      </div>
+
+      <div id="provs-seleccionados-container" class="d-flex flex-wrap gap-2 mb-4 p-3 bg-light rounded border" style="min-height: 50px;">
+        <span class="text-muted small">No hay proveedores en el concurso.</span>
+      </div>
+
+      <div class="d-flex gap-3">
+        <button class="btn text-white fw-bold px-4 shadow-sm" style="background-color: var(--azul);"
+                onclick="window.fijarProveedores()">Confirmar Proveedores y Continuar</button>
+        <button class="btn btn-outline-secondary fw-bold px-4"
+                onclick="window.soloAgencia()">Cotización Única (Agencia)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-productos" style="display: none;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-bold m-0" style="color: var(--azul);">3. Carga de Refacciones y Matriz de Precios</h5>
+      <button class="btn text-white fw-bold shadow-sm" style="background-color: var(--dorado);"
+              onclick="window.agregarProductoMatrix()">+ Agregar Partida</button>
+    </div>
+    <div id="contenedor-productos"></div>
+    <div class="text-center mt-5 mb-5 pb-5">
+      <button id="btnGOC" class="btn text-white fw-bold py-3 shadow-lg"
+              style="background-color: var(--azul); font-size: 1.15rem; width: 60%; border-radius: 8px;"
+              onclick="window.procesarOC()">
+        ✅ Registrar Cotización y Generar PDFs
+      </button>
+    </div>
+  </div>
+</div>
