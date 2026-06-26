@@ -1,0 +1,106 @@
+<style>
+  .card-modulo { border-radius: 10px; padding: 25px; background: white; border-top: 5px solid #B4A169; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+  .seccion-titulo { font-weight: bold; color: #1E252B; border-bottom: 2px solid #f0f0f0; margin: 20px 0 10px 0; padding-bottom: 5px;}
+  .btn-guardar { background: #1E252B; color: white; width: 100%; padding: 12px; font-weight: bold; border: none; border-radius: 5px; transition: 0.3s; margin-top: 15px;}
+  .btn-guardar:hover { background: #B4A169; color: #1E252B; cursor: pointer; }
+  .btn-accion { background: #B4A169; color: #1E252B; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; transition: 0.3s; width: 100%;}
+  .btn-accion:hover { background: #1E252B; color: white; }
+  label { font-weight: bold; margin-bottom: 5px; display: block; font-size: 0.9rem;}
+  .table td, .table th { white-space: nowrap; vertical-align: middle; }
+  .tabla-container { overflow-x: auto; max-height: 450px; margin-top: 20px; border: 1px solid #eee; border-radius: 5px;}
+  .table thead th { background-color: #1E252B; color: white; position: sticky; top: 0; z-index: 1; cursor: pointer; user-select: none; transition: 0.2s;}
+  .table thead th:hover { background-color: #B4A169; color: #1E252B; }
+</style>
+
+<div id="vistaTablaConsumos" class="card-modulo">
+  <div class="row align-items-center mb-4">
+    <div class="col-md-4 mb-2">
+      <div class="input-group">
+        <span class="input-group-text">📅</span>
+        <input type="date" id="filtroFechaConsumos" class="form-control"
+               onchange="window.filtrarTablaConsumos()" style="border: 2px solid #B4A169;">
+      </div>
+    </div>
+    <div class="col-md-4 mb-2">
+      <input type="text" id="buscadorTablaConsumos" class="form-control"
+             placeholder="🔍 Buscar por Ticket..." onkeyup="window.filtrarTablaConsumos()"
+             style="border: 2px solid #B4A169;">
+    </div>
+    <div class="col-md-4 mb-2">
+      <button class="btn-accion" onclick="window.toggleVistaConsumos('form')">+ Descontar Refacción</button>
+    </div>
+  </div>
+
+  <div class="tabla-container">
+    <table class="table table-hover align-middle table-sm" id="tablaConsumosControl">
+      <thead>
+        <tr>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 0)">Ticket Origen ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 1)">Refacción Instalada ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 2)">Vehículo ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 3)">Cant. ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 4)">Costo Salida ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 5)">Quien Registra ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 6)">Fecha ↕</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="cuerpoTablaConsumos">
+        <tr><td colspan="8" class="text-center py-4">Cargando consumos...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="vistaFormConsumos" class="card-modulo" style="display: none;">
+  <button class="btn btn-sm mb-3" style="background:#eee; color:#333; font-weight:bold;"
+          onclick="window.toggleVistaConsumos('tabla')">← Regresar al historial</button>
+  <h3 class="text-center" style="color: #1E252B;">Registro de Consumo (Salida)</h3>
+
+  <div id="formConsumo">
+    <div class="alert alert-primary mb-4" role="alert"
+         style="background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; font-weight: bold; border-radius: 5px;">
+      ℹ️ Ingrese el número de ticket de inventario para desplegar sus refacciones y descontarlas del almacén.
+    </div>
+
+    <div class="row mt-3">
+      <div class="col-md-4 mb-3">
+        <label>Buscar Ticket de Inventario *</label>
+        <div class="input-group">
+          <input type="text" id="ticketBuscar" class="form-control"
+                 placeholder="Escribe y da Enter"
+                 style="border: 2px solid #B4A169; background-color: #fffdf5;"
+                 onkeydown="if(event.key === 'Enter') window.buscarTicketConsumo()">
+          <button class="btn btn-sm text-white fw-bold" style="background-color: #B4A169; color: #1E252B !important;"
+                  onclick="window.buscarTicketConsumo()">🔍</button>
+        </div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label>Fecha de Consumo *</label>
+        <input type="date" id="fechaConsumo" class="form-control">
+      </div>
+      <div class="col-md-4 mb-3">
+        <label>Quien Registra</label>
+        <input type="text" id="quienRegistraVista" class="form-control" readonly
+               style="background:#eee; font-weight:bold;">
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label>Link de Evidencia Fotográfica *</label>
+      <input type="url" id="evidenciaConsumo" class="form-control" placeholder="https://...">
+    </div>
+
+    <div class="seccion-titulo d-flex justify-content-between align-items-center">
+      <span>REFACCIONES A DESCONTAR</span>
+      <button type="button" class="btn btn-sm btn-dark" id="btn-add-consumo"
+              onclick="window.agregarArticuloConsumo()" disabled>+ Agregar Artículo a Descontar</button>
+    </div>
+
+    <div id="contenedor-articulos-consumo"></div>
+
+    <button type="button" class="btn-guardar" id="btnGC"
+            onclick="window.procesarConsumo()">Registrar Consumo y Actualizar Inventario</button>
+    <div id="mensajeConsumo" class="mt-3 text-center" style="font-size: 1.1rem;"></div>
+  </div>
+</div>
