@@ -1,0 +1,72 @@
+<style>
+  .card-modulo { border-radius: 10px; padding: 25px; background: white; border-top: 5px solid #B4A169; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+  .seccion-titulo { font-weight: bold; color: #1E252B; border-bottom: 2px solid #f0f0f0; margin: 20px 0 10px 0; padding-bottom: 5px;}
+  .btn-guardar { background: #1E252B; color: white; width: 100%; padding: 12px; font-weight: bold; border: none; border-radius: 5px; transition: 0.3s; margin-top: 15px;}
+  .btn-guardar:hover { background: #B4A169; color: #1E252B; }
+  .btn-accion { background: #B4A169; color: #1E252B; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; width: 100%;}
+  .tabla-container { max-height: 450px; overflow-y: auto; margin-top: 20px; border: 1px solid #eee; border-radius: 5px;}
+  .table thead th { background-color: #1E252B; color: white; position: sticky; top: 0;}
+  input[type="text"] { text-transform: uppercase; }
+</style>
+
+<div id="vistaTablaProv" class="card-modulo">
+  <div class="row align-items-center mb-4">
+    <div class="col-md-8 mb-2">
+      <input type="text" id="buscadorProv" class="form-control" placeholder="🔍 Buscar Proveedor o RFC..."
+             onkeyup="window.filtrarTablaProv()" style="border: 2px solid #B4A169;">
+    </div>
+    <div class="col-md-4 mb-2">
+      <button class="btn-accion" onclick="window.toggleVistaProv('form')">+ Nuevo Proveedor</button>
+    </div>
+  </div>
+  <div class="tabla-container">
+    <table class="table table-hover align-middle table-sm" id="tablaProv">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Proveedor</th>
+          <th>Razón Social</th>
+          <th>RFC</th>
+          <th>Contacto</th>
+          <th>Teléfono</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="cuerpoTablaProv">
+        <tr><td colspan="7" class="text-center py-4">Cargando proveedores...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="vistaFormProv" class="card-modulo" style="display: none;">
+  <button class="btn btn-sm mb-3" style="background:#eee; font-weight:bold;" onclick="window.toggleVistaProv('tabla')">← Regresar a la lista</button>
+  <h3 class="text-center" style="color: #1E252B;">Registro de Proveedor</h3>
+
+  <div class="row">
+    <div class="col-md-6 mb-3"><label>Proveedor (Nombre Comercial) *</label><input type="text" id="p_proveedor" class="form-control"></div>
+    <div class="col-md-6 mb-3"><label>Razón Social *</label><input type="text" id="p_razonsocial" class="form-control"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-4 mb-3"><label>RFC</label><input type="text" id="p_rfc" class="form-control"></div>
+    <div class="col-md-4 mb-3"><label>Estado</label><input type="text" id="p_estado" class="form-control"></div>
+    <div class="col-md-4 mb-3"><label>Dirección</label><input type="text" id="p_direccion" class="form-control"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-4 mb-3"><label>Nombre del Contacto</label><input type="text" id="p_contacto" class="form-control"></div>
+    <div class="col-md-4 mb-3"><label>Número de Contacto</label><input type="text" id="p_numero" class="form-control"></div>
+    <div class="col-md-4 mb-3"><label>Correo Electrónico</label><input type="email" id="p_correo" class="form-control" style="text-transform:lowercase;"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3"><label>Segmentación de Servicio</label><input type="text" id="p_segmentacion" class="form-control"></div>
+    <div class="col-md-6 mb-3"><label>Servicio</label><input type="text" id="p_servicio" class="form-control"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-4 mb-3"><label>Días de Crédito</label><input type="number" id="p_diascredito" class="form-control"></div>
+    <div class="col-md-4 mb-3"><label>Total de Crédito</label><input type="number" id="p_totalcredito" class="form-control"></div>
+    <div class="col-md-4 mb-3"><label>Razones Sociales Compatibles</label><input type="text" id="p_razonessociales" class="form-control" placeholder="EJ. CIB, FRO..."></div>
+  </div>
+
+  <button type="button" class="btn-guardar" id="btnGP" onclick="window.guardarProveedor()">Guardar Proveedor</button>
+  <div id="msjProv" class="mt-3 text-center fw-bold"></div>
+</div>
