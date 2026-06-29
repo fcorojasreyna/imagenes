@@ -304,7 +304,7 @@ function registrarOC(datosGenerales, todasLasCotizaciones, configuracionCorreo, 
         prod.tiempoEntrega, prod.precioUnitario, prod.subtotal, prod.intercambio, prod.costoIntercambio,
         prod.total, datosGenerales.razonSocialCompra, datosGenerales.odometroActual,
         datosGenerales.odometroUltimo, datosGenerales.formaPago, datosGenerales.comentarios,
-        datosGenerales.motivoCompra, datosGenerales.metodoPagoF, datosGenerales.usoCFDI,
+        datosGenerales.metodoPagoF, datosGenerales.usoCFDI,
         datosGenerales.puntosConsiderar, datosGenerales.tipoServicioPartida, datosGenerales.tipoSolicitud,
         datosGenerales.tipoServicio, datosGenerales.tiempoVida, datosGenerales.servicioIntExt
       ]);
@@ -364,7 +364,6 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   hojaComp.createTextFinder("{{CHECK_INTERNO}}").replaceAllWith(marcaInterno);
   hojaComp.createTextFinder("{{CHECK_EXTERNO}}").replaceAllWith(marcaExterno);
   hojaComp.createTextFinder("{{COMENTARIOS}}").replaceAllWith(datosGenerales.comentarios);
-  hojaComp.createTextFinder("{{MOTIVO DE COMPRA}}").replaceAllWith(datosGenerales.motivoCompra);
   hojaComp.createTextFinder("{{TIPO SERVICIO PARTIDA}}").replaceAllWith(datosGenerales.tipoServicioPartida);
   hojaComp.createTextFinder("{{TIEMPO VIDA ESTIMADO}}").replaceAllWith(datosGenerales.tiempoVida);
   hojaComp.createTextFinder("{{TIPO SOLICITUD}}").replaceAllWith(datosGenerales.tipoSolicitud);
@@ -443,7 +442,7 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     let pDir    = pD[4]  ? pD[4].toString().toUpperCase()  : "";
     let pCont   = pD[6]  ? pD[6].toString().toUpperCase() + " / " + pD[9].toString().toLowerCase() : "";
     let pCorreo = pD[9]  ? pD[9].toString().toLowerCase()  : "";
-    let pCred   = pD[10] ? pD[10].toString()               : "";
+    let pCred   = pD[11] ? pD[11].toString()               : "";
     let lLeg    = "Mediante la aceptación vía correo electrónico de la presente orden de compra, el proveedor " + nombreProv + " asume de manera exclusiva y total la responsabilidad sobre la calidad, el estado y la integridad del producto hasta el momento en que se efectúe la entrega física y se firme por escrito la misma y conforme en el lugar estipulado en este documento.\n\nEn el supuesto de que la Orden de Compra sea cancelada, el proveedor " + nombreProv + " será responsable de cubrir todos los costos y gastos que se deriven de dicha cancelación en un plazo máximo de 5 días hábiles.";
     let pGTotal = 0; let pAhorro = 0;
     let cItm=[],cNom=[],cFam=[],cCant=[],cUM=[],cDes=[],cPU=[],cInt=[],cSub=[],cCInt=[],cTot=[];
