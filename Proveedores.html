@@ -66,6 +66,27 @@
     <div class="col-md-4 mb-3"><label>Total de Crédito</label><input type="number" id="p_totalcredito" class="form-control"></div>
     <div class="col-md-4 mb-3"><label>Razones Sociales Compatibles</label><input type="text" id="p_razonessociales" class="form-control" placeholder="EJ. CIB, FRO..."></div>
   </div>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label>Régimen Fiscal</label>
+      <select id="p_regimenfiscal" class="form-select">
+        <option value="">-- Selecciona --</option>
+        <option value="GENERAL DE LEY PM">GENERAL DE LEY PM (601)</option>
+        <option value="RESICO PM">RESICO PM (626)</option>
+        <option value="GENERAL DE LEY PF">GENERAL DE LEY PF</option>
+        <option value="RESICO PF">RESICO PF (625)</option>
+        <option value="ACTIVIDAD EMPRESARIAL PF">ACTIVIDAD EMPRESARIAL PF (612)</option>
+        <option value="SIN OBLIGACIONES FISCALES">SIN OBLIGACIONES FISCALES (616)</option>
+      </select>
+    </div>
+    <div class="col-md-6 mb-3">
+      <label>¿Acepta Intercambio 2?</label>
+      <select id="p_intercambio2" class="form-select">
+        <option value="NO">NO</option>
+        <option value="SI">SÍ</option>
+      </select>
+    </div>
+  </div>
 
   <button type="button" class="btn-guardar" id="btnGP" onclick="window.guardarProveedor()">Guardar Proveedor</button>
   <div id="msjProv" class="mt-3 text-center fw-bold"></div>

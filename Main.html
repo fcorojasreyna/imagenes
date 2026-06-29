@@ -436,11 +436,11 @@
         google.script.run.withSuccessHandler(function(res) {
           if (res.exito) {
             var tbody = document.getElementById('cuerpoTablaConsumos'); tbody.innerHTML = '';
-            if (res.datos.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">No hay salidas registradas.</td></tr>'; return; }
+            if (res.datos.length === 0) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4">No hay salidas registradas.</td></tr>'; return; }
             res.datos.forEach(function(fila) {
               var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.editarConsumoModal(\''+fila.idConsumo+'\', \''+fila.ticketNuevo+'\', \''+fila.producto+'\', \''+fila.vehiculo+'\', \''+fila.fecha+'\', \''+fila.cantidad+'\', \''+fila.costoTotal+'\')">✏️</button>';
               var btnEliminar = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'¿Eliminar salida?\', function(){ window.ejecutarEliminar(\'Consumos\', \''+fila.idConsumo+'\'); })">🗑️</button>';
-              tbody.innerHTML += '<tr><td><b>'+fila.ticketNuevo+'</b></td><td>'+fila.producto+'</td><td>'+fila.vehiculo+'</td><td>'+fila.cantidad+'</td><td class="fw-bold text-danger">$'+parseFloat(fila.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+fila.quienRegistra+'</td><td>'+fila.fecha+'</td><td class="text-center">'+btnEditar+btnEliminar+'</td></tr>';
+              tbody.innerHTML += '<tr><td><b>'+fila.ticketNuevo+'</b></td><td>'+fila.producto+'</td><td>'+fila.vehiculo+'</td><td>'+fila.cantidad+'</td><td class="fw-bold text-danger">$'+parseFloat(fila.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+fila.quienRegistra+'</td><td>'+fila.fecha+'</td><td>'+(fila.folioCpp||'—')+'</td><td>'+(fila.importeDescuento ? '$'+parseFloat(fila.importeDescuento).toLocaleString('es-MX') : '—')+'</td><td class="text-center">'+btnEditar+btnEliminar+'</td></tr>';
             });
           }
         }).obtenerDatosConsumos();
@@ -655,7 +655,7 @@
         if (provsSeleccionadosPre.find(function(p){ return p.id === prov.id; })) {
           window.mostrarAlerta('Este proveedor ya está en el concurso.'); return;
         }
-        provsSeleccionadosPre.push({ id: prov.id, rfc: prov.rfc, nombre: prov.proveedor });
+        provsSeleccionadosPre.push({ id: prov.id, rfc: prov.rfc, nombre: prov.proveedor, regimenFiscal: prov.regimenFiscal || "" });
         input.value = '';
         window.renderizarProvsPre();
       };
@@ -695,7 +695,7 @@
       };
 
       window.soloAgencia = function() {
-        proveedoresFijados = [{ id: 'AGENCIA', rfc: '', nombre: 'AGENCIA' }];
+        proveedoresFijados = [{ id: 'AGENCIA', rfc: '', nombre: 'AGENCIA', regimenFiscal: '' }];
         document.getElementById('contenedor-productos').innerHTML = '';
         numBloquesCotizador = 0;
         var panelProv = document.getElementById('panel-definicion-proveedores');
@@ -896,13 +896,14 @@
         var filasProveedores = '';
 
         proveedoresFijados.forEach(function(p) {
-          filasProveedores += '<tr><td class="text-center align-middle"><input type="radio" name="ganador_' + idProd + '" class="prod-radio-ganador" value="' + p.rfc + '" data-nombre="' + p.nombre + '"></td><td class="fw-bold align-middle">' + p.nombre + '</td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-pu" placeholder="0.00" oninput="window.recalcularMatriz(\'' + idProd + '\', this)"></div></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-sub bg-light" readonly placeholder="0.00"></div></td><td><select class="form-select form-select-sm prov-inter" onchange="window.recalcularMatriz(\'' + idProd + '\', this)"><option value="NO">NO</option><option value="SI">SÍ</option></select></td><td><input type="text" class="form-control form-control-sm prov-entrega" placeholder="EJ. 2 DIAS"></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-tot text-danger fw-bold bg-light" readonly placeholder="0.00"></div></td></tr>';
+          var esResico = p.regimenFiscal && p.regimenFiscal.toUpperCase().indexOf('RESICO') > -1;
+          filasProveedores += '<tr><td class="text-center align-middle"><input type="radio" name="ganador_' + idProd + '" class="prod-radio-ganador" value="' + p.rfc + '" data-nombre="' + p.nombre + '"></td><td class="fw-bold align-middle">' + p.nombre + (esResico ? ' <span class="badge bg-warning text-dark" style="font-size:0.65rem;">RESICO</span>' : '') + '</td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-pu" placeholder="0.00" oninput="window.recalcularMatriz(\'' + idProd + '\', this)"></div></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-sub bg-light" readonly placeholder="0.00"></div></td><td><select class="form-select form-select-sm prov-inter" onchange="window.recalcularMatriz(\'' + idProd + '\', this)"><option value="NO">NO</option><option value="SI">SÍ</option></select></td><td class="text-center"><input type="checkbox" class="form-check-input prov-resico" title="Marcar si aplica RESICO (IVA=0)" onchange="window.recalcularMatriz(\'' + idProd + '\', this)" ' + (esResico ? 'checked' : '') + '></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-iva bg-light text-info" readonly placeholder="0.00"></div></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-tot text-danger fw-bold bg-light" readonly placeholder="0.00"></div></td><td><input type="text" class="form-control form-control-sm prov-entrega" placeholder="EJ. 2 DIAS"></td></tr>';
         });
 
         var opFam = '<option value="AFINACION MAYOR">AFINACIÓN MAYOR</option><option value="AFINACION MENOR">AFINACIÓN MENOR</option><option value="SISTEMA DE FRENOS">SISTEMA DE FRENOS</option><option value="SISTEMA DE SUSPENSION">SISTEMA DE SUSPENSIÓN</option><option value="SISTEMA DE DIRECCION">SISTEMA DE DIRECCIÓN</option><option value="SISTEMA DE MOTOR">SISTEMA DE MOTOR</option><option value="SISTEMA DE ENFRIAMIENTO">SISTEMA DE ENFRIAMIENTO</option><option value="SISTEMA DE ILUMINACION">SISTEMA DE ILUMINACIÓN</option><option value="CLUTCH">CLUTCH</option><option value="BATERIA">BATERÍA</option><option value="LLANTAS">LLANTAS</option><option value="SISTEMA ELECTRICO">SISTEMA ELÉCTRICO</option><option value="HOJALATERIA Y PINTURA">HOJALATERÍA Y PINTURA</option><option value="REVISION SV">REVISIÓN SV</option><option value="OTRO" selected>OTRO</option>';
         var opUM = '<option value="Caja(s)">Caja(s)</option><option value="Juego(kit)">Juego(kit)</option><option value="Kg">Kg</option><option value="Litro(s)">Litro(s)</option><option value="m2">m2</option><option value="m3">m3</option><option value="Metro(s)">Metro(s)</option><option value="Ml">Ml</option><option value="Otro">Otro</option><option value="Paquete(s)">Paquete(s)</option><option value="Par">Par</option><option value="Pieza(s)" selected>Pieza(s)</option><option value="Servicio(s)">Servicio(s)</option>';
 
-        var bloqueHtml = '<div class="card mb-4 shadow-sm border-0 bloque-producto" id="' + idProd + '"><div class="card-header bg-white d-flex justify-content-between align-items-center" style="border-bottom: 2px solid var(--dorado);"><h6 class="m-0 fw-bold" style="color: var(--azul);">📦 Partida / Producto Recambio</h6><button class="btn btn-sm btn-danger fw-bold" onclick="document.getElementById(\'' + idProd + '\').remove()">X Quitar</button></div><div class="card-body bg-light"><div class="row"><div class="col-md-3 mb-2"><label class="fw-bold text-muted small">Nombre / Refacción *</label><input type="text" class="form-control prod-nombre"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Familia *</label><select class="form-select prod-familia">' + opFam + '</select></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Marca *</label><input type="text" class="form-control prod-marca"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Descripción Técnica</label><input type="text" class="form-control prod-desc"></div><div class="col-md-1 mb-2"><label class="fw-bold text-muted small">Cant</label><input type="number" class="form-control prod-cant" value="1" min="1" oninput="window.recalcularTodoBloque(\'' + idProd + '\')"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">UM</label><select class="form-select prod-um">' + opUM + '</select></div></div><table class="table table-bordered table-sm mt-3 bg-white"><thead class="table-dark"><tr><th>Ganador</th><th>Proveedor</th><th>P. Unitario</th><th>Subtotal</th><th>¿Intercambio?</th><th>Entrega</th><th>Total</th></tr></thead><tbody>' + filasProveedores + '</tbody></table></div></div>';
+        var bloqueHtml = '<div class="card mb-4 shadow-sm border-0 bloque-producto" id="' + idProd + '"><div class="card-header bg-white d-flex justify-content-between align-items-center" style="border-bottom: 2px solid var(--dorado);"><h6 class="m-0 fw-bold" style="color: var(--azul);">📦 Partida / Producto Recambio</h6><button class="btn btn-sm btn-danger fw-bold" onclick="document.getElementById(\'' + idProd + '\').remove()">X Quitar</button></div><div class="card-body bg-light"><div class="row"><div class="col-md-3 mb-2"><label class="fw-bold text-muted small">Nombre / Refacción *</label><input type="text" class="form-control prod-nombre"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Familia *</label><select class="form-select prod-familia">' + opFam + '</select></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Marca *</label><input type="text" class="form-control prod-marca"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Descripción Técnica</label><input type="text" class="form-control prod-desc"></div><div class="col-md-1 mb-2"><label class="fw-bold text-muted small">Cant</label><input type="number" class="form-control prod-cant" value="1" min="1" oninput="window.recalcularTodoBloque(\'' + idProd + '\')"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">UM</label><select class="form-select prod-um">' + opUM + '</select></div></div><table class="table table-bordered table-sm mt-3 bg-white"><thead class="table-dark"><tr><th>Ganador</th><th>Proveedor</th><th>P. Unitario</th><th>Subtotal</th><th>¿Intercambio?</th><th title="Marcar si el proveedor es RESICO (IVA=0)">RESICO</th><th>IVA (16%)</th><th>Total c/IVA</th><th>Entrega</th></tr></thead><tbody>' + filasProveedores + '</tbody></table></div></div>';
 
         document.getElementById("contenedor-productos").insertAdjacentHTML('beforeend', bloqueHtml);
       };
@@ -912,8 +913,12 @@
         var cant = window.sanitizarNumero(bloque.querySelector('.prod-cant').value) || 1; if(cant < 1) cant = 1;
         var pu = window.sanitizarNumero(fila.querySelector('.prov-pu').value);
         var inter = fila.querySelector('.prov-inter').value;
+        var esResico = fila.querySelector('.prov-resico') ? fila.querySelector('.prov-resico').checked : false;
         var sub = cant * pu; fila.querySelector('.prov-sub').value = sub.toFixed(2);
-        var tot = inter === "SI" ? sub * 0.70 : sub; fila.querySelector('.prov-tot').value = tot.toFixed(2);
+        var base = inter === "SI" ? sub * 0.70 : sub;
+        var iva = esResico ? 0 : base * 0.16;
+        if(fila.querySelector('.prov-iva')) fila.querySelector('.prov-iva').value = iva.toFixed(2);
+        var tot = base + iva; fila.querySelector('.prov-tot').value = tot.toFixed(2);
       };
 
       window.recalcularTodoBloque = function(idProd) {
@@ -949,10 +954,13 @@
             var pu = window.sanitizarNumero(fila.querySelector('.prov-pu').value);
             if(pu > 0 || esG) {
               var sub = window.sanitizarNumero(fila.querySelector('.prov-sub').value); var inter = fila.querySelector('.prov-inter').value;
+              var ivaVal = window.sanitizarNumero(fila.querySelector('.prov-iva') ? fila.querySelector('.prov-iva').value : "0");
+              var esResico = fila.querySelector('.prov-resico') ? fila.querySelector('.prov-resico').checked : false;
               cots.push({
                 nombreProducto: nom, familia: fam, descripcion: b.querySelector('.prod-desc').value.toUpperCase().trim(),
                 cantidad: cant, unidadMedida: um, marca: marca, rfc: radio.value, nombreProveedor: radio.getAttribute('data-nombre'),
                 precioUnitario: pu, subtotal: sub, intercambio: inter, costoIntercambio: (inter === "SI" ? sub * 0.30 : 0),
+                iva: ivaVal, esResico: esResico,
                 tiempoEntrega: fila.querySelector('.prov-entrega').value.toUpperCase().trim(), total: window.sanitizarNumero(fila.querySelector('.prov-tot').value), esGanador: esG
               });
             }
@@ -1084,7 +1092,7 @@
 
       window.procesarConsumo = function() {
         var btn = document.getElementById("btnGC");
-        var gen = { ticketInsumo: document.getElementById("ticketBuscar").value.trim(), fechaConsumo: document.getElementById("fechaConsumo").value, evidencia: document.getElementById("evidenciaConsumo").value.trim(), quienRegistra: document.getElementById("quienRegistraGlobal").value };
+        var gen = { ticketInsumo: document.getElementById("ticketBuscar").value.trim(), fechaConsumo: document.getElementById("fechaConsumo").value, evidencia: document.getElementById("evidenciaConsumo").value.trim(), quienRegistra: document.getElementById("quienRegistraGlobal").value, folioCpp: document.getElementById("folioCppConsumo") ? document.getElementById("folioCppConsumo").value.trim() : "", importeDescuento: document.getElementById("importeDescuentoConsumo") ? document.getElementById("importeDescuentoConsumo").value.trim() : "" };
         if(!gen.ticketInsumo || !gen.fechaConsumo || !gen.evidencia) { window.mostrarAlerta("Por favor completa los campos generales obligatorios."); return; }
         var cons = []; var errSel = false; var errCant = false;
         document.querySelectorAll('#contenedor-articulos-consumo .row').forEach(function(r) {
@@ -1113,7 +1121,9 @@
           contacto: document.getElementById("p_contacto").value.toUpperCase().trim(), numero: document.getElementById("p_numero").value.trim(),
           correo: document.getElementById("p_correo").value.toLowerCase().trim(), segmentacion: document.getElementById("p_segmentacion").value.toUpperCase().trim(),
           servicio: document.getElementById("p_servicio").value.toUpperCase().trim(), diasCredito: document.getElementById("p_diascredito").value,
-          totalCredito: document.getElementById("p_totalcredito").value.trim(), razonesSociales: document.getElementById("p_razonessociales").value.toUpperCase().trim()
+          totalCredito: document.getElementById("p_totalcredito").value.trim(), razonesSociales: document.getElementById("p_razonessociales").value.toUpperCase().trim(),
+          regimenFiscal: document.getElementById("p_regimenfiscal") ? document.getElementById("p_regimenfiscal").value : "",
+          intercambio2: document.getElementById("p_intercambio2") ? document.getElementById("p_intercambio2").value : "NO"
         };
         google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r.msj || r); setTimeout(function() { window.toggleVistaProv('tabla'); btn.disabled = false; btn.innerText = "Guardar Proveedor"; }, 2000); }).registrarProveedor(window.formatearDatos(d));
       };
@@ -1156,9 +1166,65 @@
         }
       };
 
-      window.filtrarTablaTaller    = function() { window.filtrarTablaDoble("buscadorTablaTaller",   "filtroFechaTaller",   "cuerpoTablaTaller",   8, 0, 'Taller'); };
-      window.filtrarTablaInv       = function() { window.filtrarTablaDoble("buscadorTablaInv",      "filtroFechaInv",      "cuerpoTablaInv",      9, 0, 'Inventario'); };
-      window.filtrarTablaConsumos  = function() { window.filtrarTablaDoble("buscadorTablaConsumos", "filtroFechaConsumos", "cuerpoTablaConsumos", 6, 0, 'Consumos'); };
+      window.filtrarTablaTaller = function() {
+        var tk = document.getElementById("filtroTicketTaller") ? document.getElementById("filtroTicketTaller").value.toUpperCase().trim() : "";
+        var nc = document.getElementById("filtroNucoTaller") ? document.getElementById("filtroNucoTaller").value.toUpperCase().trim() : "";
+        var qr = document.getElementById("filtroQuienTaller") ? document.getElementById("filtroQuienTaller").value.toUpperCase().trim() : "";
+        var fec = document.getElementById("filtroFechaTaller") ? document.getElementById("filtroFechaTaller").value : "";
+        var fBus = fec ? fec.split('-').reverse().join('/') : "";
+        var tbody = document.getElementById("cuerpoTallaTaller") || document.getElementById("cuerpoTablaTaller"); if(!tbody) return;
+        var trs = tbody.getElementsByTagName("tr");
+        for(var j=0; j<trs.length; j++) {
+          if(trs[j].cells.length > 1) {
+            var c0 = trs[j].cells[0].innerText.toUpperCase();
+            var c1 = trs[j].cells[1].innerText.toUpperCase();
+            var c7 = trs[j].cells[7].innerText.toUpperCase();
+            var c8 = trs[j].cells[8].innerText;
+            trs[j].style.display = (!tk || c0.includes(tk)) && (!nc || c1.includes(nc)) && (!qr || c7.includes(qr)) && (!fBus || c8.includes(fBus)) ? "" : "none";
+          }
+        }
+      };
+      window.filtrarTablaInv = function() {
+        var tk = document.getElementById("filtroTicketInv") ? document.getElementById("filtroTicketInv").value.toUpperCase().trim() : "";
+        var pr = document.getElementById("filtroProductoInv") ? document.getElementById("filtroProductoInv").value.toUpperCase().trim() : "";
+        var qr = document.getElementById("filtroQuienInv") ? document.getElementById("filtroQuienInv").value.toUpperCase().trim() : "";
+        var fec = document.getElementById("filtroFechaInv") ? document.getElementById("filtroFechaInv").value : "";
+        var fBus = fec ? fec.split('-').reverse().join('/') : "";
+        var tbody = document.getElementById("cuerpoTablaInv"); if(!tbody) return;
+        var trs = tbody.getElementsByTagName("tr"); var sum = 0;
+        for(var j=0; j<trs.length; j++) {
+          if(trs[j].cells.length > 1) {
+            var c0 = trs[j].cells[0].innerText.toUpperCase();
+            var c2 = trs[j].cells[2].innerText.toUpperCase();
+            var c8 = trs[j].cells[8].innerText.toUpperCase();
+            var c9 = trs[j].cells[9].innerText;
+            var vis = (!tk || c0.includes(tk)) && (!pr || c2.includes(pr)) && (!qr || c8.includes(qr)) && (!fBus || c9.includes(fBus));
+            trs[j].style.display = vis ? "" : "none";
+            if(vis && trs[j].cells[7].innerText.toUpperCase().includes("DISPONIBLE")) {
+              sum += parseFloat(trs[j].cells[6].innerText.replace(/[^0-9.-]+/g,"")) || 0;
+            }
+          }
+        }
+        if(document.getElementById('totalInventarioValor')) document.getElementById('totalInventarioValor').innerText = "$" + sum.toLocaleString('es-MX', {minimumFractionDigits:2});
+      };
+      window.filtrarTablaConsumos = function() {
+        var tk = document.getElementById("filtroTicketConsumos") ? document.getElementById("filtroTicketConsumos").value.toUpperCase().trim() : "";
+        var pr = document.getElementById("filtroProductoConsumos") ? document.getElementById("filtroProductoConsumos").value.toUpperCase().trim() : "";
+        var qr = document.getElementById("filtroQuienConsumos") ? document.getElementById("filtroQuienConsumos").value.toUpperCase().trim() : "";
+        var fec = document.getElementById("filtroFechaConsumos") ? document.getElementById("filtroFechaConsumos").value : "";
+        var fBus = fec ? fec.split('-').reverse().join('/') : "";
+        var tbody = document.getElementById("cuerpoTablaConsumos"); if(!tbody) return;
+        var trs = tbody.getElementsByTagName("tr");
+        for(var j=0; j<trs.length; j++) {
+          if(trs[j].cells.length > 1) {
+            var c0 = trs[j].cells[0].innerText.toUpperCase();
+            var c1 = trs[j].cells[1].innerText.toUpperCase();
+            var c5 = trs[j].cells[5].innerText.toUpperCase();
+            var c6 = trs[j].cells[6].innerText;
+            trs[j].style.display = (!tk || c0.includes(tk)) && (!pr || c1.includes(pr)) && (!qr || c5.includes(qr)) && (!fBus || c6.includes(fBus)) ? "" : "none";
+          }
+        }
+      };
       window.filtrarTablaProv      = function() {
         var b = (document.getElementById("buscadorProv") ? document.getElementById("buscadorProv").value.toUpperCase().trim() : "");
         var tb = document.getElementById("cuerpoTablaProv"); if(!tb) return;

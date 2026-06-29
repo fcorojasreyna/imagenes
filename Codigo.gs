@@ -215,7 +215,7 @@ function registrarConsumoMultiple(g, arr) {
         if (cons > 0) {
           let nC = it.c - cons;
           it.c = nC;
-          hc.appendRow([ generarIdIncremental("Consumos", "CONS"), d.idPieza, it.p, g.quienRegistra, g.ticketInsumo, it.v, limpiarHoraLectura(g.fechaConsumo), cons, (cons * it.cu), d.evidencia ]);
+          hc.appendRow([ generarIdIncremental("Consumos", "CONS"), d.idPieza, it.p, g.quienRegistra, g.ticketInsumo, it.v, limpiarHoraLectura(g.fechaConsumo), cons, (cons * it.cu), d.evidencia, g.folioCpp || "", g.importeDescuento || "", nC ]);
           hi.getRange(it.fila, 10).setValue(nC);
           hi.getRange(it.fila, 11).setValue(nC * it.cu);
           if (nC <= 0) hi.getRange(it.fila, 13).setValue("CONSUMIDO");
@@ -231,7 +231,7 @@ function registrarProveedor(d) {
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proveedores");
     const idGenerado = generarIdIncremental("Proveedores", "PROV");
-    hoja.appendRow([ idGenerado, d.proveedor, d.razonSocial, d.rfc, d.direccion, d.estado, d.contacto, d.numero, d.correo, d.segmentacion, d.diasCredito, d.totalCredito, d.servicio, d.razonesSociales ]);
+    hoja.appendRow([ idGenerado, d.proveedor, d.razonSocial, d.rfc, d.direccion, d.estado, d.contacto, d.numero, d.correo, d.segmentacion, d.diasCredito, d.totalCredito, d.servicio, d.razonesSociales, d.regimenFiscal || "", d.intercambio2 || "NO" ]);
     SpreadsheetApp.flush();
     return { msj: "Proveedor registrado con éxito." };
   } catch(e) { return { msj: "Error: " + e.message }; }
@@ -369,10 +369,11 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   hojaComp.createTextFinder("{{TIPO SOLICITUD}}").replaceAllWith(datosGenerales.tipoSolicitud);
   hojaComp.createTextFinder("{{TIPO SERVICIO}}").replaceAllWith(datosGenerales.tipoServicio);
   hojaComp.createTextFinder("{{QUIEN REGISTRA}}").replaceAllWith(datosGenerales.usuario || "");
-  let compGranTotal = 0; let compAhorroIntercambio = 0; let totalProveedorContado = 0;
+  let compGranTotal = 0; let compAhorroIntercambio = 0; let totalProveedorContado = 0; let compIvaTotal = 0;
   partidasGanadoras.forEach(p => {
-    let sub = parseFloat(p.subtotal) || 0; let tot = parseFloat(p.total) || 0;
+    let sub = parseFloat(p.subtotal) || 0; let tot = parseFloat(p.total) || 0; let iva = parseFloat(p.iva) || 0;
     compGranTotal += tot;
+    compIvaTotal += iva;
     if (p.intercambio === "SI") compAhorroIntercambio += (sub * 0.30);
     totalProveedorContado += sub;
   });
@@ -394,10 +395,10 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
       let nombreP   = todasLasCotizaciones.find(p => p.rfc === rfcActual).nombreProveedor.toUpperCase();
       let provData  = datosProv.find(d => d[3].toString().toUpperCase().trim() === rfcActual) || [];
       let rzP       = provData[2] ? provData[2].toString().toUpperCase() : "";
-      let colDesc_P = [], colSub_P = []; let tot_P = 0; let fp_P = datosGenerales.formaPago; let te_P = "";
+      let colDesc_P = [], colSub_P = []; let tot_P = 0; let ivaP = 0; let fp_P = datosGenerales.formaPago; let te_P = "";
       productosUnicos.forEach(u => {
         let pItem = todasLasCotizaciones.find(p => p.rfc === rfcActual && p.nombreProducto === u.nombre);
-        if (pItem) { colDesc_P.push(pItem.descripcion); colSub_P.push("$" + parseFloat(pItem.subtotal).toLocaleString('es-MX',{minimumFractionDigits:2})); te_P = pItem.tiempoEntrega; tot_P += parseFloat(pItem.total); }
+        if (pItem) { colDesc_P.push(pItem.descripcion); colSub_P.push("$" + parseFloat(pItem.subtotal).toLocaleString('es-MX',{minimumFractionDigits:2})); te_P = pItem.tiempoEntrega; tot_P += parseFloat(pItem.total); ivaP += parseFloat(pItem.iva)||0; }
         else { colDesc_P.push("-"); colSub_P.push("-"); }
       });
       hojaComp.createTextFinder("{{PROVEEDOR_P"+pIdx+"}}").replaceAllWith(nombreP);
@@ -406,11 +407,14 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
       hojaComp.createTextFinder("{{TIEMPO ENTREGA_P"+pIdx+"}}").replaceAllWith(te_P);
       hojaComp.createTextFinder("{{DESCRIPCION_P"+pIdx+"}}").replaceAllWith(colDesc_P.join('\n'));
       hojaComp.createTextFinder("{{SUBTOTAL_P"+pIdx+"}}").replaceAllWith(colSub_P.join('\n'));
+      hojaComp.createTextFinder("{{TOTAL_IVA_P"+pIdx+"}}").replaceAllWith("$" + ivaP.toLocaleString('es-MX',{minimumFractionDigits:2}));
       hojaComp.createTextFinder("{{TOTAL_P"+pIdx+"}}").replaceAllWith("$" + tot_P.toLocaleString('es-MX',{minimumFractionDigits:2}));
     } else {
       ["PROVEEDOR_P","RAZON SOCIAL_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","DESCRIPCION_P","SUBTOTAL_P","TOTAL_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
     }
   }
+  hojaComp.createTextFinder("{{TOTAL_SIN_IVA}}").replaceAllWith("$" + (compGranTotal - compIvaTotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
+  hojaComp.createTextFinder("{{IVA_TOTAL_COMP}}").replaceAllWith("$" + compIvaTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
   hojaComp.createTextFinder("{{GRAN_TOTAL_COMPRA}}").replaceAllWith("$" + compGranTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
   hojaComp.createTextFinder("{{AHORRO_INTERCAMBIO}}").replaceAllWith(compAhorroIntercambio > 0 ? "$" + compAhorroIntercambio.toLocaleString('es-MX',{minimumFractionDigits:2}) : "$0.00");
   hojaComp.createTextFinder("{{TOTAL_CON_DESCUENTO}}").replaceAllWith("$" + (compGranTotal - compAhorroIntercambio).toLocaleString('es-MX',{minimumFractionDigits:2}));
@@ -444,16 +448,17 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     let pCorreo = pD[9]  ? pD[9].toString().toLowerCase()  : "";
     let pCred   = pD[11] ? pD[11].toString()               : "";
     let lLeg    = "Mediante la aceptación vía correo electrónico de la presente orden de compra, el proveedor " + nombreProv + " asume de manera exclusiva y total la responsabilidad sobre la calidad, el estado y la integridad del producto hasta el momento en que se efectúe la entrega física y se firme por escrito la misma y conforme en el lugar estipulado en este documento.\n\nEn el supuesto de que la Orden de Compra sea cancelada, el proveedor " + nombreProv + " será responsable de cubrir todos los costos y gastos que se deriven de dicha cancelación en un plazo máximo de 5 días hábiles.";
-    let pGTotal = 0; let pAhorro = 0;
-    let cItm=[],cNom=[],cFam=[],cCant=[],cUM=[],cDes=[],cPU=[],cInt=[],cSub=[],cCInt=[],cTot=[];
+    let pGTotal = 0; let pAhorro = 0; let pIvaTotal = 0;
+    let cItm=[],cNom=[],cFam=[],cCant=[],cUM=[],cDes=[],cPU=[],cInt=[],cSub=[],cCInt=[],cIva=[],cTot=[];
     pGanadores.forEach((p, idx) => {
       let sub=parseFloat(p.subtotal)||0; let tot=parseFloat(p.total)||0; let ci=parseFloat(p.costoIntercambio)||0;
-      pGTotal+=tot; pAhorro+=ci;
+      let iva=parseFloat(p.iva)||0;
+      pGTotal+=tot; pAhorro+=ci; pIvaTotal+=iva;
       cItm.push(idx+1); cNom.push(p.nombreProducto); cFam.push(p.familia);
       cCant.push(p.cantidad); cUM.push(p.unidadMedida); cDes.push(p.descripcion);
       cPU.push("$"+parseFloat(p.precioUnitario).toLocaleString('es-MX'));
       cInt.push(p.intercambio); cSub.push("$"+sub.toLocaleString('es-MX'));
-      cCInt.push("$"+ci.toLocaleString('es-MX')); cTot.push("$"+tot.toLocaleString('es-MX'));
+      cCInt.push("$"+ci.toLocaleString('es-MX')); cIva.push("$"+iva.toLocaleString('es-MX',{minimumFractionDigits:2})); cTot.push("$"+tot.toLocaleString('es-MX'));
     });
     tempOC.createTextFinder("{{FOLIO}}").replaceAllWith(folioOC);
     tempOC.createTextFinder("{{FECHA}}").replaceAllWith(formatoDDMMYYYY(new Date()));
@@ -487,8 +492,10 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     tempOC.createTextFinder("{{PRECIO UNITARIO}}").replaceAllWith(cPU.join('\n'));
     tempOC.createTextFinder("{{¿INTERCAMBIO?}}").replaceAllWith(cInt.join('\n'));
     tempOC.createTextFinder("{{SUBTOTAL}}").replaceAllWith(cSub.join('\n'));
-    tempOC.createTextFinder("{{SUBTOTAL_OC}}").replaceAllWith("$"+(pGTotal-pAhorro).toLocaleString('es-MX',{minimumFractionDigits:2}));
+    tempOC.createTextFinder("{{IVA_UNITARIO}}").replaceAllWith(cIva.join('\n'));
+    tempOC.createTextFinder("{{SUBTOTAL_OC}}").replaceAllWith("$"+(pGTotal-pAhorro-pIvaTotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
     tempOC.createTextFinder("{{INTERCAMBIO_OC}}").replaceAllWith("$"+pAhorro.toLocaleString('es-MX',{minimumFractionDigits:2}));
+    tempOC.createTextFinder("{{IVA_TOTAL_OC}}").replaceAllWith("$"+pIvaTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
     tempOC.createTextFinder("{{TOTAL_OC}}").replaceAllWith("$"+pGTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
     tempOC.createTextFinder("{{PROVEEDOR_GANADOR}}").replaceAllWith(nombreProv);
     tempOC.createTextFinder("{{LEYENDA_LEGAL_OC}}").replaceAllWith(lLeg);
@@ -594,7 +601,7 @@ function obtenerDatosConsumos() {
       if (!d[i][1].toString().trim()) continue;
       let ct = parseFloat(d[i][8].replace(/[^0-9.-]+/g,"")) || 0;
       tot += ct;
-      filas.push({ idConsumo: d[i][0], producto: d[i][2], quienRegistra: d[i][3], ticketNuevo: d[i][4], vehiculo: d[i][5], fecha: limpiarHoraLectura(d[i][6]), cantidad: d[i][7], costoTotal: d[i][8] });
+      filas.push({ idConsumo: d[i][0], producto: d[i][2], quienRegistra: d[i][3], ticketNuevo: d[i][4], vehiculo: d[i][5], fecha: limpiarHoraLectura(d[i][6]), cantidad: d[i][7], costoTotal: d[i][8], evidencia: d[i][9] || "", folioCpp: d[i][10] || "", importeDescuento: d[i][11] || "", refaccionStock: d[i][12] || "" });
     }
     return { exito: true, datos: filas.reverse(), total: tot };
   } catch(e) { return { exito: false, error: "Error de lectura de consumos." }; }
@@ -606,7 +613,7 @@ function obtenerDatosProveedores() {
     let f = [];
     for (let i = 1; i < d.length; i++) {
       if (d[i][1].toString().trim()) {
-        f.push({ id: d[i][0], proveedor: d[i][1], razonSocial: d[i][2], rfc: d[i][3], direccion: d[i][4], estado: d[i][5], contacto: d[i][6], telefono: d[i][7], correo: d[i][8], segmentacion: d[i][9], diasCredito: d[i][10], totalCredito: d[i][11], servicio: d[i][12], razonesSociales: d[i][13] });
+        f.push({ id: d[i][0], proveedor: d[i][1], razonSocial: d[i][2], rfc: d[i][3], direccion: d[i][4], estado: d[i][5], contacto: d[i][6], telefono: d[i][7], correo: d[i][8], segmentacion: d[i][9], diasCredito: d[i][10], totalCredito: d[i][11], servicio: d[i][12], razonesSociales: d[i][13], regimenFiscal: d[i][14] || "", intercambio2: d[i][15] || "NO" });
       }
     }
     return { exito: true, datos: f.reverse() };
@@ -770,6 +777,8 @@ function actualizarProveedorCompleto(d) {
         hoja.getRange(f, 12).setValue(d.totalCredito);
         hoja.getRange(f, 13).setValue(d.servicio);
         hoja.getRange(f, 14).setValue(d.razonesSociales);
+        hoja.getRange(f, 15).setValue(d.regimenFiscal || "");
+        hoja.getRange(f, 16).setValue(d.intercambio2 || "NO");
         SpreadsheetApp.flush();
         return { exito: true, msj: "Proveedor actualizado con éxito." };
       }

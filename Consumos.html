@@ -13,20 +13,30 @@
 </style>
 
 <div id="vistaTablaConsumos" class="card-modulo">
-  <div class="row align-items-center mb-4">
-    <div class="col-md-4 mb-2">
+  <div class="row align-items-center mb-4 g-2">
+    <div class="col-md-2 mb-2">
+      <input type="text" id="filtroTicketConsumos" class="form-control"
+             placeholder="🔍 Ticket..." onkeyup="window.filtrarTablaConsumos()"
+             style="border: 2px solid #B4A169;">
+    </div>
+    <div class="col-md-3 mb-2">
+      <input type="text" id="filtroProductoConsumos" class="form-control"
+             placeholder="🔍 Refacción..." onkeyup="window.filtrarTablaConsumos()"
+             style="border: 2px solid #B4A169;">
+    </div>
+    <div class="col-md-2 mb-2">
+      <input type="text" id="filtroQuienConsumos" class="form-control"
+             placeholder="🔍 Quien Registra..." onkeyup="window.filtrarTablaConsumos()"
+             style="border: 2px solid #B4A169;">
+    </div>
+    <div class="col-md-2 mb-2">
       <div class="input-group">
         <span class="input-group-text">📅</span>
         <input type="date" id="filtroFechaConsumos" class="form-control"
                onchange="window.filtrarTablaConsumos()" style="border: 2px solid #B4A169;">
       </div>
     </div>
-    <div class="col-md-4 mb-2">
-      <input type="text" id="buscadorTablaConsumos" class="form-control"
-             placeholder="🔍 Buscar por Ticket..." onkeyup="window.filtrarTablaConsumos()"
-             style="border: 2px solid #B4A169;">
-    </div>
-    <div class="col-md-4 mb-2">
+    <div class="col-md-3 mb-2">
       <button class="btn-accion" onclick="window.toggleVistaConsumos('form')">+ Descontar Refacción</button>
     </div>
   </div>
@@ -35,18 +45,20 @@
     <table class="table table-hover align-middle table-sm" id="tablaConsumosControl">
       <thead>
         <tr>
-          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 0)">Ticket Origen ↕</th>
-          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 1)">Refacción Instalada ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 0)">Ticket ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 1)">Refacción ↕</th>
           <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 2)">Vehículo ↕</th>
           <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 3)">Cant. ↕</th>
-          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 4)">Costo Salida ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 4)">Costo ↕</th>
           <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 5)">Quien Registra ↕</th>
           <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 6)">Fecha ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 7)">Folio CPP ↕</th>
+          <th onclick="window.ordenarTabla('cuerpoTablaConsumos', 8)">Imp. Descuento ↕</th>
           <th class="text-center">Acciones</th>
         </tr>
       </thead>
       <tbody id="cuerpoTablaConsumos">
-        <tr><td colspan="8" class="text-center py-4">Cargando consumos...</td></tr>
+        <tr><td colspan="10" class="text-center py-4">Cargando consumos...</td></tr>
       </tbody>
     </table>
   </div>
@@ -86,9 +98,22 @@
       </div>
     </div>
 
-    <div class="mb-3">
-      <label>Link de Evidencia Fotográfica *</label>
-      <input type="url" id="evidenciaConsumo" class="form-control" placeholder="https://...">
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label>Folio CPP</label>
+        <input type="text" id="folioCppConsumo" class="form-control" placeholder="Ej. CPP-26-01" style="border: 2px solid #28a745;">
+      </div>
+      <div class="col-md-4 mb-3">
+        <label>Importe Descuento CPP ($)</label>
+        <div class="input-group">
+          <span class="input-group-text">$</span>
+          <input type="text" id="importeDescuentoConsumo" class="form-control" placeholder="0.00">
+        </div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label>Link de Evidencia Fotográfica *</label>
+        <input type="url" id="evidenciaConsumo" class="form-control" placeholder="https://...">
+      </div>
     </div>
 
     <div class="seccion-titulo d-flex justify-content-between align-items-center">

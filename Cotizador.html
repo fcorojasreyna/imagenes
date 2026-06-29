@@ -159,27 +159,23 @@
 
       <div class="row mb-4">
         <div class="col-md-4 mb-3">
-          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Forma de Pago (OC)</label>
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Forma de Pago (SAT)</label>
           <select id="oc_fp" class="form-select">
-            <option value="CPP">CPP</option>
-            <option value="Crédito 30 días">Crédito 30 días</option>
-            <option value="Crédito 45 días">Crédito 45 días</option>
-            <option value="Reembolso">Reembolso</option>
-            <option value="TDC (física)">TDC (física)</option>
-            <option value="TDC (línea)">TDC (línea)</option>
-            <option value="TDD">TDD</option>
+            <option value="03 (TRANSFERENCIA ELECTRÓNICA)">03 (TRANSFERENCIA ELECTRÓNICA)</option>
+            <option value="04 (TARJETA DE CRÉDITO)">04 (TARJETA DE CRÉDITO)</option>
+            <option value="99 (POR DEFINIR)">99 (POR DEFINIR)</option>
           </select>
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Método de Pago (SAT)</label>
           <select id="oc_mpago" class="form-select">
-            <option value="PUE - PAGO EN UNA SOLA EXHIBICION">PUE - PAGO EN UNA SOLA EXHIBICIÓN</option>
-            <option value="PPD - PAGO EN PARCIALIDADES O DIFERIDO">PPD - PAGO EN PARCIALIDADES O DIFERIDO</option>
+            <option value="PUE">PUE</option>
+            <option value="PPD">PPD</option>
           </select>
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Uso CFDI (SAT)</label>
-          <input type="text" id="oc_cfdi" class="form-control" placeholder="Ej. G03 GASTOS EN GENERAL">
+          <input type="text" id="oc_cfdi" class="form-control bg-light fw-bold" readonly value="G03 (GASTOS EN GENERAL)">
         </div>
       </div>
 
