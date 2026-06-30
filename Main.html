@@ -715,16 +715,58 @@
         window.mostrarAlerta('✅ ' + proveedoresFijados.length + ' proveedor(es) confirmados. Agrega las partidas a cotizar.');
       };
 
-      window.soloAgencia = function() {
-        proveedoresFijados = [{ id: 'AGENCIA', rfc: '', nombre: 'AGENCIA', regimenFiscal: '' }];
+      window.abrirModalCotizacionUnica = function() {
+        var lista = window.catalogoProveedoresCache || [];
+        if (lista.length === 0) { window.mostrarAlerta('No hay proveedores cargados. Regresa e intenta de nuevo.'); return; }
+        var filas = lista.map(function(p) {
+          var nom = (p.proveedor||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          return '<tr style="cursor:pointer;" onclick="window.confirmarCotizacionUnica(\'' + p.id + '\',\'' + (p.rfc||'') + '\',\'' + nom + '\',\'' + (p.regimenFiscal||'') + '\')">' +
+            '<td><b>' + (p.proveedor||'') + '</b></td><td class="text-muted small">' + (p.razonSocial||'') + '</td><td class="text-muted small">' + (p.rfc||'') + '</td></tr>';
+        }).join('');
+
+        var cuerpo = document.getElementById('cuerpoEdicionDinamica');
+        var titulo = document.getElementById('tituloEdicionDinamica');
+        if (!cuerpo || !titulo) return;
+        titulo.innerText = 'Seleccionar Proveedor Único';
+        cuerpo.innerHTML =
+          '<input type="text" class="form-control mb-3" placeholder="🔍 Buscar proveedor..." oninput="window.filtrarCotUnica(this.value)">' +
+          '<div class="table-responsive" style="max-height:350px;overflow-y:auto;">' +
+          '<table class="table table-hover table-sm mb-0"><thead style="background:var(--azul);color:white;"><tr><th>Proveedor</th><th>Razón Social</th><th>RFC</th></tr></thead>' +
+          '<tbody id="tbodyCotUnica">' + filas + '</tbody></table></div>';
+
+        window._cotUnicaFilas = filas;
+        document.getElementById('btnGuardarEdicionDinamica').style.display = 'none';
+        new bootstrap.Modal(document.getElementById('modalEdicionDinamica')).show();
+      };
+
+      window.filtrarCotUnica = function(q) {
+        var f = (q||'').toUpperCase().trim();
+        var tbody = document.getElementById('tbodyCotUnica');
+        if (!tbody) return;
+        var lista = window.catalogoProveedoresCache || [];
+        var filtrados = f ? lista.filter(function(p){ return (p.proveedor||'').toUpperCase().includes(f) || (p.rfc||'').toUpperCase().includes(f); }) : lista;
+        tbody.innerHTML = filtrados.map(function(p) {
+          var nom = (p.proveedor||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          return '<tr style="cursor:pointer;" onclick="window.confirmarCotizacionUnica(\'' + p.id + '\',\'' + (p.rfc||'') + '\',\'' + nom + '\',\'' + (p.regimenFiscal||'') + '\')">' +
+            '<td><b>' + (p.proveedor||'') + '</b></td><td class="text-muted small">' + (p.razonSocial||'') + '</td><td class="text-muted small">' + (p.rfc||'') + '</td></tr>';
+        }).join('');
+      };
+
+      window.confirmarCotizacionUnica = function(id, rfc, nombre, regFisc) {
+        var modalEl = document.getElementById('modalEdicionDinamica');
+        if (modalEl) { var m = bootstrap.Modal.getInstance(modalEl); if(m) m.hide(); }
+        document.getElementById('btnGuardarEdicionDinamica').style.display = '';
+        proveedoresFijados = [{ id: id, rfc: rfc, nombre: nombre, regimenFiscal: regFisc }];
         document.getElementById('contenedor-productos').innerHTML = '';
         numBloquesCotizador = 0;
         var panelProv = document.getElementById('panel-definicion-proveedores');
         var panelProd = document.getElementById('panel-productos');
         if (panelProv) panelProv.style.opacity = '0.5';
         if (panelProd) panelProd.style.display = 'block';
-        window.mostrarAlerta('✅ Modo agencia única. Agrega las partidas a cotizar.');
+        window.mostrarAlerta('✅ Proveedor único: ' + nombre + '. Agrega las partidas a cotizar.');
       };
+
+      window.soloAgencia = window.abrirModalCotizacionUnica;
 
       // ============================================================================
       // 11. VENTANAS MODALES DINÁMICAS (EDICIÓN AVANZADA DE CAMPOS)
