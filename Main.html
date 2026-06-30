@@ -398,7 +398,8 @@
           if (n === 'Proveedores')   window.cargarDatosProv();
           if (n === 'Herramientas')  { window.cargarDatosHerramientas(); var qH = document.getElementById('quienRegistraGlobal'); if(qH && document.getElementById('herr_quien')) document.getElementById('herr_quien').value = qH.value; }
           if (n === 'Cronograma')    window.cargarDatosCronograma();
-          if (n === 'Cotizador')     { window.cargarDatosHistorialOC(); google.script.run.withSuccessHandler(function(r){ if(r.exito){ listaProveedoresCotizador=r.datos; window.cargarSelectProveedores(); } }).obtenerDatosProveedores(); }
+          if (n === 'Cotizador')        { window.cargarDatosHistorialOC(); google.script.run.withSuccessHandler(function(r){ if(r.exito){ listaProveedoresCotizador=r.datos; window.cargarSelectProveedores(); } }).obtenerDatosProveedores(); }
+          if (n === 'Notificaciones')   window.cargarDatosNotificaciones();
         }).incluir(n);
       };
 
@@ -1152,8 +1153,8 @@
       // 14. MOTORES DE FILTRADO EN TIEMPO REAL
       // ============================================================================
       window.filtrarTablaOC = function() {
-        var tk  = document.getElementById("filtroTicket")  ? document.getElementById("filtroTicket").value.toUpperCase().trim() : "";
-        var nc  = document.getElementById("filtroNuco")    ? document.getElementById("filtroNuco").value.toUpperCase().trim() : "";
+        var tk  = document.getElementById("filtroTicketOC")  ? document.getElementById("filtroTicketOC").value.toUpperCase().trim() : "";
+        var nc  = document.getElementById("filtroNucoOC")    ? document.getElementById("filtroNucoOC").value.toUpperCase().trim() : "";
         var pv  = document.getElementById("filtroProvOC")  ? document.getElementById("filtroProvOC").value.toUpperCase().trim() : "";
         var qr  = document.getElementById("filtroQuienOC") ? document.getElementById("filtroQuienOC").value.toUpperCase().trim() : "";
         var fec = document.getElementById("filtroFechaOC") ? document.getElementById("filtroFechaOC").value : "";
@@ -1519,6 +1520,74 @@
             var c6=trs[i].cells[6].innerText.toUpperCase(), c8=trs[i].cells[8].innerText.toUpperCase();
             var c11=trs[i].cells[11].innerText.toUpperCase();
             trs[i].style.display = (!tk||c5.includes(tk)) && (!nc||c6.includes(nc)) && (!mc||c8.includes(mc)) && (!es||c11.includes(es)) && (!fBus||c4.includes(fBus)) ? '' : 'none';
+          }
+        }
+      };
+
+      // ============================================================================
+      // NOTIFICACIONES / AUTORIZACIONES
+      // ============================================================================
+      window.cargarDatosNotificaciones = function() {
+        var tbody = document.getElementById('cuerpoTablaNotif'); if(!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm" style="color:var(--dorado)"></div> Cargando...</td></tr>';
+        google.script.run
+          .withSuccessHandler(function(res) {
+            var tbody = document.getElementById('cuerpoTablaNotif'); if(!tbody) return;
+            tbody.innerHTML = '';
+            if (!res.exito || !res.datos || res.datos.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No hay registros pendientes de autorización.</td></tr>';
+              window.actualizarBadgeNotif(0); return;
+            }
+            window.actualizarBadgeNotif(res.datos.length);
+            res.datos.forEach(function(f) {
+              var btnAut = '<button class="btn btn-sm btn-success me-1 fw-bold" onclick="window.procesarAutorizacion(\''+f.id+'\',\''+f.tipo+'\',\'AUTORIZADO\')">✔ Autorizar</button>';
+              var btnRec = '<button class="btn btn-sm btn-danger fw-bold" onclick="window.procesarAutorizacion(\''+f.id+'\',\''+f.tipo+'\',\'RECHAZADO\')">✖ Rechazar</button>';
+              tbody.innerHTML += '<tr><td class="fw-bold text-muted small">'+f.id+'</td><td><span class="badge" style="background:var(--azul)">'+f.tipo+'</span></td><td>'+f.ticket+'</td><td>'+f.nuco+'</td><td class="small">'+f.descripcion+'</td><td>'+f.quienRegistro+'</td><td>'+f.fecha+'</td><td class="text-center">'+btnAut+btnRec+'</td></tr>';
+            });
+          })
+          .withFailureHandler(function(e) {
+            var tbody = document.getElementById('cuerpoTablaNotif'); if(!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Error al cargar: '+e.message+'</td></tr>';
+          })
+          .obtenerPendientesAutorizacion();
+      };
+
+      window.actualizarBadgeNotif = function(n) {
+        var badge = document.getElementById('badgeNotif');
+        if (!badge) return;
+        badge.innerText = n;
+        badge.style.display = n > 0 ? 'inline-block' : 'none';
+      };
+
+      window.procesarAutorizacion = function(id, tipo, decision) {
+        var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
+        var comentario = decision === 'RECHAZADO' ? (prompt('Motivo del rechazo (opcional):') || '') : '';
+        window.mostrarConfirmacion(
+          decision === 'AUTORIZADO' ? '¿Autorizar este registro?' : '¿Rechazar este registro?',
+          function() {
+            google.script.run
+              .withSuccessHandler(function(r) {
+                window.mostrarAlerta(r.msj || r);
+                window.cargarDatosNotificaciones();
+              })
+              .withFailureHandler(function(e) { window.mostrarAlerta('Error: ' + e.message); })
+              .procesarAutorizacion(id, tipo, decision, comentario, quien);
+          }
+        );
+      };
+
+      window.filtrarTablaNotif = function() {
+        var tk = document.getElementById('filtroTicketNotif') ? document.getElementById('filtroTicketNotif').value.toUpperCase().trim() : '';
+        var nc = document.getElementById('filtroNucoNotif')   ? document.getElementById('filtroNucoNotif').value.toUpperCase().trim() : '';
+        var tp = document.getElementById('filtroTipoNotif')   ? document.getElementById('filtroTipoNotif').value.toUpperCase().trim() : '';
+        var tbody = document.getElementById('cuerpoTablaNotif'); if(!tbody) return;
+        var trs = tbody.getElementsByTagName('tr');
+        for(var i=0; i<trs.length; i++) {
+          if(trs[i].cells.length > 1) {
+            var c2 = trs[i].cells[2].innerText.toUpperCase();
+            var c3 = trs[i].cells[3].innerText.toUpperCase();
+            var c1 = trs[i].cells[1].innerText.toUpperCase();
+            trs[i].style.display = (!tk||c2.includes(tk)) && (!nc||c3.includes(nc)) && (!tp||c1.includes(tp)) ? '' : 'none';
           }
         }
       };

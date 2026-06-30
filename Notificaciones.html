@@ -1,0 +1,53 @@
+<div id="vistaNotificaciones" class="container-fluid p-0">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold m-0" style="color: var(--azul);">🔔 Autorizaciones Pendientes</h4>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-3">
+      <div class="row g-2 mb-3 align-items-center">
+        <div class="col-md-3">
+          <input type="text" id="filtroTicketNotif" class="form-control" placeholder="🔍 Ticket..." onkeyup="window.filtrarTablaNotif()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="filtroNucoNotif" class="form-control" placeholder="🔍 NUCO..." onkeyup="window.filtrarTablaNotif()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-3">
+          <select id="filtroTipoNotif" class="form-select" onchange="window.filtrarTablaNotif()" style="border: 2px solid #B4A169;">
+            <option value="">Todos los módulos</option>
+            <option value="TALLER">TALLER</option>
+            <option value="INVENTARIO">INVENTARIO</option>
+            <option value="OC">COTIZADOR / OC</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button class="btn w-100 fw-bold text-white" style="background-color: var(--azul);" onclick="window.cargarDatosNotificaciones()">↻ Actualizar</button>
+        </div>
+      </div>
+
+      <div class="alert mb-3" style="background-color: #fff8e1; border-left: 4px solid var(--dorado); color: #5a4a00; font-size: 0.88rem;">
+        ⚠️ Los registros aquí listados fueron marcados como <strong>PENDIENTE AUTORIZACIÓN</strong> y requieren aprobación del Gerente antes de procesarse.
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead style="background-color: var(--azul); color: white;">
+            <tr>
+              <th style="white-space:nowrap;">ID</th>
+              <th style="white-space:nowrap;">Módulo</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaNotif', 2)">Ticket ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaNotif', 3)">NUCO ↕</th>
+              <th style="white-space:nowrap;">Descripción / Concepto</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaNotif', 5)">Solicitante ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaNotif', 6)">Fecha ↕</th>
+              <th class="text-center" style="white-space:nowrap;">Decisión</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaNotif">
+            <tr><td colspan="8" class="text-center py-4 text-muted">Cargando autorizaciones pendientes...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
