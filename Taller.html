@@ -89,12 +89,16 @@
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Modelo</label>
           <input type="text" id="modelo" class="form-control bg-light" readonly tabindex="-1">
         </div>
-        <div class="col-md-3 mb-3">
-          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Sede / Oficina</label>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Sede</label>
           <input type="text" id="sede" class="form-control bg-light" readonly tabindex="-1">
         </div>
-        <div class="col-md-3 mb-3">
-          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Departamento</label>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Oficina</label>
+          <input type="text" id="oficina" class="form-control bg-light" readonly tabindex="-1">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Departamento</label>
           <input type="text" id="departamento" class="form-control bg-light" readonly tabindex="-1">
         </div>
       </div>
@@ -151,14 +155,14 @@
           </select>
         </div>
         <div class="col-md-2 mb-3" id="divInterno">
-          <label class="fw-bold" style="color: var(--dorado); font-size: 0.85rem;">M. de Obra Interna</label>
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">M. de Obra Interna</label>
           <div class="input-group">
             <span class="input-group-text bg-white">$</span>
-            <input type="text" id="servInterno" class="form-control border-warning" oninput="window.calcularTotalTaller()" placeholder="0.00">
+            <input type="text" id="servInterno" class="form-control border-dark" oninput="window.calcularTotalTaller()" placeholder="0.00">
           </div>
         </div>
         <div class="col-md-2 mb-3" id="divExterno" style="display:none;">
-          <label class="fw-bold text-success" style="font-size: 0.85rem;">M. de Obra Externa</label>
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">M. de Obra Externa</label>
           <div class="input-group">
             <span class="input-group-text bg-white">$</span>
             <input type="text" id="servExterno" class="form-control border-success" oninput="window.calcularTotalTaller()" placeholder="0.00">

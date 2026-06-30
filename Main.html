@@ -621,7 +621,8 @@
               set('linea',        d.linea);
               set('modelo',       d.modelo);
               set('departamento', d.departamento);
-              set('sede',         [d.sede, d.oficina].filter(Boolean).join(' / '));
+              set('sede',         d.sede);
+              set('oficina',      d.oficina);
 
             } else if (contexto === 'oc') {
               set('oc_placas',       d.placa);
