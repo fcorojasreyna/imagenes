@@ -188,6 +188,8 @@
           <a class="nav-pill" id="btnCon" onclick="window.cargarModulo('Consumos', this)">Consumos</a>
           <a class="nav-pill nav-pill-azul" id="btnProv" onclick="window.cargarModulo('Proveedores', this)">Proveedores</a>
           <a class="nav-pill nav-pill-azul" id="btnCot" onclick="window.cargarModulo('Cotizador', this)">Cotizaciones / OC</a>
+          <a class="nav-pill" id="btnHerr" onclick="window.cargarModulo('Herramientas', this)">Herramientas</a>
+          <a class="nav-pill" id="btnCron" onclick="window.cargarModulo('Cronograma', this)">Cronograma</a>
         </div>
 
         <div class="logo-derecho" style="display: flex; align-items: center; gap: 15px;">
@@ -390,11 +392,13 @@
         google.script.run.withSuccessHandler(function(h) {
           document.getElementById('contenedor').innerHTML = h;
           if(document.getElementById("quienRegistraVista")) document.getElementById("quienRegistraVista").value = document.getElementById("quienRegistraGlobal").value;
-          if (n === 'Taller')      window.cargarDatosTaller();
-          if (n === 'Inventario')  { numArticulosInventario = 0; window.cargarDatosInventario(); window.agregarArticuloInventario(); }
-          if (n === 'Consumos')    { numArticulosConsumo = 0; window.cargarDatosConsumos(); }
-          if (n === 'Proveedores') window.cargarDatosProv();
-          if (n === 'Cotizador')   { window.cargarDatosHistorialOC(); google.script.run.withSuccessHandler(function(r){ if(r.exito){ listaProveedoresCotizador=r.datos; window.cargarSelectProveedores(); } }).obtenerDatosProveedores(); }
+          if (n === 'Taller')        window.cargarDatosTaller();
+          if (n === 'Inventario')    { numArticulosInventario = 0; window.cargarDatosInventario(); window.agregarArticuloInventario(); }
+          if (n === 'Consumos')      { numArticulosConsumo = 0; window.cargarDatosConsumos(); }
+          if (n === 'Proveedores')   window.cargarDatosProv();
+          if (n === 'Herramientas')  { window.cargarDatosHerramientas(); var qH = document.getElementById('quienRegistraGlobal'); if(qH && document.getElementById('herr_quien')) document.getElementById('herr_quien').value = qH.value; }
+          if (n === 'Cronograma')    window.cargarDatosCronograma();
+          if (n === 'Cotizador')     { window.cargarDatosHistorialOC(); google.script.run.withSuccessHandler(function(r){ if(r.exito){ listaProveedoresCotizador=r.datos; window.cargarSelectProveedores(); } }).obtenerDatosProveedores(); }
         }).incluir(n);
       };
 
@@ -454,7 +458,7 @@
             res.datos.forEach(function(f) {
               var btnEliminar = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'¿Eliminar?\', function(){ window.ejecutarEliminar(\'Proveedores\', \''+f.id+'\'); })">🗑️</button>';
               var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.abrirEdicionProveedorCompleta(\''+f.id+'\')">✏️</button>';
-              tbody.innerHTML += '<tr><td class="fw-bold text-muted">'+f.id+'</td><td>'+f.proveedor+'</td><td>'+f.razonSocial+'</td><td>'+f.rfc+'</td><td>'+f.contacto+'</td><td>'+f.telefono+'</td><td class="text-center">' + btnEditar + btnEliminar + '</td></tr>';
+              tbody.innerHTML += '<tr><td class="fw-bold text-muted">'+f.id+'</td><td>'+f.proveedor+'</td><td>'+f.razonSocial+'</td><td>'+f.rfc+'</td><td>'+f.contacto+'</td><td>'+f.telefono+'</td><td>'+(f.quienRegistro||'')+'</td><td class="text-center">' + btnEditar + btnEliminar + '</td></tr>';
             });
           }
         }).obtenerDatosProveedores();
@@ -544,6 +548,7 @@
                 '<td><b>' + (f.nuco||'') + '</b></td>' +
                 '<td>' + (f.razonSocial||'') + '</td>' +
                 '<td>' + (f.fecha||'') + '</td>' +
+                '<td>' + (f.quienRegistro||'') + '</td>' +
                 '<td class="text-center"></td>';
               var btn = document.createElement('button');
               btn.className = 'btn btn-sm fw-bold border-0';
@@ -552,13 +557,13 @@
               btn.addEventListener('click', (function(fo, ti) {
                 return function() { window.verDocumentosOC(fo, ti); };
               })(folio, ticket));
-              tr.cells[5].appendChild(btn);
+              tr.cells[6].appendChild(btn);
               tbody.appendChild(tr);
             });
           })
           .withFailureHandler(function(e) {
             var tbody = document.getElementById('cuerpoTablaOC');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-danger text-center">' + e.message + '</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-danger text-center">' + e.message + '</td></tr>';
           })
           .obtenerHistorialGlobalOC();
       };
@@ -620,6 +625,11 @@
               set('oc_departamento', d.departamento);
               set('oc_sede',         [d.sede, d.oficina].filter(Boolean).join(' / '));
               set('oc_oficina',      d.oficina);
+              set('oc_rz',           d.razonSocial);
+            } else if (contexto === 'cron') {
+              set('cron_marca',  d.marca);
+              set('cron_modelo', d.modelo);
+              set('cron_placas', d.placa);
             }
           })
           .withFailureHandler(function(e) {
@@ -631,34 +641,40 @@
       // ============================================================================
       // 10. SELECT DE PROVEEDORES PARA COTIZADOR
       // ============================================================================
-      window.cargarSelectProveedores = function() {
-        var dl = document.getElementById('datalistProveedores');
-        if (!dl) return;
-        dl.innerHTML = '';
-        listaProveedoresCotizador.forEach(function(p) {
-          var op = document.createElement('option');
-          op.value = p.proveedor;
-          op.setAttribute('data-id',  p.id);
-          op.setAttribute('data-rfc', p.rfc);
-          dl.appendChild(op);
-        });
+      window.cargarSelectProveedores = function() { /* modal-based, no datalist needed */ };
+
+      window.abrirModalBuscadorProv = function() {
+        var modal = document.getElementById('modalBuscadorProv');
+        if (!modal) return;
+        window.renderizarTablaModalProv('');
+        new bootstrap.Modal(modal).show();
       };
 
-      window.agregarProvAConcurso = function() {
-        var input = document.getElementById('buscadorProvCotizador');
-        if (!input || !input.value.trim()) return;
-        var texto = input.value.trim().toUpperCase();
-        var prov = listaProveedoresCotizador.find(function(p) {
-          return p.proveedor.toUpperCase() === texto || p.rfc.toUpperCase() === texto;
-        });
-        if (!prov) { window.mostrarAlerta('Proveedor no encontrado. Selecciónalo de la lista.'); return; }
-        if (provsSeleccionadosPre.find(function(p){ return p.id === prov.id; })) {
+      window.renderizarTablaModalProv = function(filtro) {
+        var lista = listaProveedoresCotizador;
+        var f = (filtro || '').toUpperCase().trim();
+        var tbody = document.getElementById('tbodyModalProv');
+        if (!tbody) return;
+        var filtrados = f ? lista.filter(function(p) { return (p.proveedor||'').toUpperCase().includes(f) || (p.rfc||'').toUpperCase().includes(f); }) : lista;
+        if (filtrados.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Sin resultados</td></tr>'; return; }
+        tbody.innerHTML = filtrados.map(function(p) {
+          var nom = (p.proveedor||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          return '<tr style="cursor:pointer;" onclick="window.seleccionarProvModal(\'' + p.id + '\',\'' + (p.rfc||'') + '\',\'' + nom + '\',\'' + (p.regimenFiscal||'') + '\')">' +
+            '<td><b>' + (p.proveedor||'') + '</b></td><td class="text-muted">' + (p.razonSocial||'') + '</td><td>' + (p.rfc||'') + '</td></tr>';
+        }).join('');
+      };
+
+      window.seleccionarProvModal = function(id, rfc, nombre, regFisc) {
+        if (provsSeleccionadosPre.find(function(p){ return p.id === id; })) {
           window.mostrarAlerta('Este proveedor ya está en el concurso.'); return;
         }
-        provsSeleccionadosPre.push({ id: prov.id, rfc: prov.rfc, nombre: prov.proveedor, regimenFiscal: prov.regimenFiscal || "" });
-        input.value = '';
+        provsSeleccionadosPre.push({ id: id, rfc: rfc, nombre: nombre, regimenFiscal: regFisc });
         window.renderizarProvsPre();
+        var modalEl = document.getElementById('modalBuscadorProv');
+        if (modalEl) { var m = bootstrap.Modal.getInstance(modalEl); if(m) m.hide(); }
       };
+
+      window.agregarProvAConcurso = function() { window.abrirModalBuscadorProv(); };
 
       window.renderizarProvsPre = function() {
         var cont = document.getElementById('provs-seleccionados-container');
@@ -857,6 +873,8 @@
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Días de Crédito</label><input type="number" id="edProvDias" class="form-control" value="' + (prov.diasCredito || 0) + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Límite de Crédito</label><div class="input-group"><span class="input-group-text">$</span><input type="text" id="edProvMontoCred" class="form-control" value="' + (prov.totalCredito || '') + '"></div></div>' +
           '<div class="col-md-12 mb-2"><label class="small fw-bold">Especialidad / Servicio</label><input type="text" id="edProvServ" class="form-control" value="' + (prov.servicio || '') + '"></div>' +
+          '<div class="col-md-6 mb-3"><label class="small fw-bold">Régimen Fiscal (SAT)</label><input type="text" id="edProvRegFisc" class="form-control" value="' + (prov.regimenFiscal || '') + '"></div>' +
+          '<div class="col-md-6 mb-3"><label class="small fw-bold">Intercambio de Facturas</label><select id="edProvIntercambio" class="form-select"><option value="NO"' + (prov.intercambio2 !== 'SI' ? ' selected' : '') + '>NO</option><option value="SI"' + (prov.intercambio2 === 'SI' ? ' selected' : '') + '>S\xCD</option></select></div>' +
           '</div>';
         document.getElementById("cuerpoEdicionDinamica").innerHTML = formEdicion;
         var btnGuardar = document.getElementById("btnGuardarEdicionDinamica");
@@ -868,7 +886,9 @@
             telefono: document.getElementById("edProvTel").value.trim(), correo: document.getElementById("edProvCorr").value.toLowerCase().trim(),
             segmentacion: document.getElementById("edProvSeg").value.toUpperCase().trim(), diasCredito: document.getElementById("edProvDias").value,
             totalCredito: document.getElementById("edProvMontoCred").value.trim(), servicio: document.getElementById("edProvServ").value.toUpperCase().trim(),
-            razonesSociales: document.getElementById("edProvOtrasRS").value.toUpperCase().trim()
+            razonesSociales: document.getElementById("edProvOtrasRS").value.toUpperCase().trim(),
+            regimenFiscal: document.getElementById("edProvRegFisc") ? document.getElementById("edProvRegFisc").value.trim() : "",
+            intercambio2: document.getElementById("edProvIntercambio") ? document.getElementById("edProvIntercambio").value : "NO"
           };
           if (!objProvActualizado.proveedor) { window.mostrarAlerta("El Nombre Comercial es obligatorio."); return; }
           btnGuardar.disabled = true; btnGuardar.innerText = "Guardando...";
@@ -1132,12 +1152,19 @@
       // 14. MOTORES DE FILTRADO EN TIEMPO REAL
       // ============================================================================
       window.filtrarTablaOC = function() {
-        var tk = document.getElementById("filtroTicket").value.toUpperCase().trim(); var nc = document.getElementById("filtroNuco").value.toUpperCase().trim();
-        var trs = document.getElementById("cuerpoTablaOC").getElementsByTagName("tr");
-        for (var i = 0; i < trs.length; i++) {
+        var tk  = document.getElementById("filtroTicket")  ? document.getElementById("filtroTicket").value.toUpperCase().trim() : "";
+        var nc  = document.getElementById("filtroNuco")    ? document.getElementById("filtroNuco").value.toUpperCase().trim() : "";
+        var pv  = document.getElementById("filtroProvOC")  ? document.getElementById("filtroProvOC").value.toUpperCase().trim() : "";
+        var qr  = document.getElementById("filtroQuienOC") ? document.getElementById("filtroQuienOC").value.toUpperCase().trim() : "";
+        var fec = document.getElementById("filtroFechaOC") ? document.getElementById("filtroFechaOC").value : "";
+        var fBus = fec ? fec.split('-').reverse().join('/') : "";
+        var tbody = document.getElementById("cuerpoTablaOC"); if(!tbody) return;
+        var trs = tbody.getElementsByTagName("tr");
+        for(var i=0; i<trs.length; i++){
           if(trs[i].cells.length <= 1) continue;
-          var cTk = trs[i].cells[2].innerText.toUpperCase(); var cNc = trs[i].cells[3].innerText.toUpperCase();
-          trs[i].style.display = (cTk.includes(tk) && cNc.includes(nc)) ? "" : "none";
+          var c1=trs[i].cells[1].innerText.toUpperCase(), c2=trs[i].cells[2].innerText.toUpperCase();
+          var c3=trs[i].cells[3].innerText.toUpperCase(), c4=trs[i].cells[4].innerText, c5=trs[i].cells[5].innerText.toUpperCase();
+          trs[i].style.display = (!tk||c1.includes(tk)) && (!nc||c2.includes(nc)) && (!pv||c3.includes(pv)) && (!fBus||c4.includes(fBus)) && (!qr||c5.includes(qr)) ? "" : "none";
         }
       };
 
@@ -1225,10 +1252,20 @@
           }
         }
       };
-      window.filtrarTablaProv      = function() {
-        var b = (document.getElementById("buscadorProv") ? document.getElementById("buscadorProv").value.toUpperCase().trim() : "");
+      window.filtrarTablaProv = function() {
+        var nom = document.getElementById("filtroNombreProv")  ? document.getElementById("filtroNombreProv").value.toUpperCase().trim() : "";
+        var rs  = document.getElementById("filtroRSProv")      ? document.getElementById("filtroRSProv").value.toUpperCase().trim() : "";
+        var con = document.getElementById("filtroContactoProv") ? document.getElementById("filtroContactoProv").value.toUpperCase().trim() : "";
+        var qr  = document.getElementById("filtroQuienProv")   ? document.getElementById("filtroQuienProv").value.toUpperCase().trim() : "";
         var tb = document.getElementById("cuerpoTablaProv"); if(!tb) return;
-        Array.from(tb.getElementsByTagName("tr")).forEach(tr => tr.style.display = tr.innerText.toUpperCase().includes(b) ? "" : "none");
+        var trs = tb.getElementsByTagName("tr");
+        for(var i=0; i<trs.length; i++){
+          if(trs[i].cells.length > 1){
+            var c1=trs[i].cells[1].innerText.toUpperCase(), c2=trs[i].cells[2].innerText.toUpperCase();
+            var c4=trs[i].cells[4].innerText.toUpperCase(), c6=trs[i].cells[6].innerText.toUpperCase();
+            trs[i].style.display = (!nom||c1.includes(nom)) && (!rs||c2.includes(rs)) && (!con||c4.includes(con)) && (!qr||c6.includes(qr)) ? "" : "none";
+          }
+        }
       };
 
       window.ordenarTabla = function(tbodyId, colIdx) {
@@ -1282,6 +1319,208 @@
             if (msj) msj.innerHTML = '<span class="text-danger">' + e.message + '</span>';
           })
           .buscarInsumosPorTicket(ticket.value.trim());
+      };
+
+      // ============================================================
+      // HERRAMIENTAS
+      // ============================================================
+      window.toggleVistaHerramientas = function(v) {
+        var t = document.getElementById('vistaTablaHerramientas');
+        var f = document.getElementById('vistaFormHerramientas');
+        if(t) t.style.display = v === 'form' ? 'none' : 'block';
+        if(f) f.style.display = v === 'form' ? 'block' : 'none';
+        if(v !== 'form') window.cargarDatosHerramientas();
+      };
+
+      window.cargarDatosHerramientas = function() {
+        google.script.run.withSuccessHandler(function(res) {
+          var tbody = document.getElementById('cuerpoTablaHerramientas');
+          if(!tbody) return;
+          tbody.innerHTML = '';
+          if(!res || !res.exito || res.datos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12" class="text-center py-4 text-muted">Sin herramientas registradas.</td></tr>'; return;
+          }
+          res.datos.forEach(function(f) {
+            var badge = f.estatus === 'DISPONIBLE' ? '<span class="badge bg-success">DISPONIBLE</span>'
+              : f.estatus === 'EN USO' ? '<span class="badge bg-warning text-dark">EN USO</span>'
+              : '<span class="badge bg-danger">' + f.estatus + '</span>';
+            var btnElim = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'Eliminar herramienta?\', function(){ window.ejecutarEliminarHerr(\'' + f.id + '\'); })">&#128465;</button>';
+            tbody.innerHTML += '<tr>' +
+              '<td class="fw-bold text-muted">' + f.id + '</td>' +
+              '<td>' + f.tipo + '</td>' +
+              '<td>' + f.tipoUnidad + '</td>' +
+              '<td><b>' + f.nombre + '</b></td>' +
+              '<td>' + f.marca + '</td>' +
+              '<td>' + f.estadoHerr + '</td>' +
+              '<td>' + f.lugar + '</td>' +
+              '<td>' + badge + '</td>' +
+              '<td>' + f.existencia + '</td>' +
+              '<td>' + (f.quienRegistra||'') + '</td>' +
+              '<td>' + f.fecha + '</td>' +
+              '<td class="text-center">' + btnElim + '</td></tr>';
+          });
+        }).withFailureHandler(function(e) {
+          var tbody = document.getElementById('cuerpoTablaHerramientas');
+          if(tbody) tbody.innerHTML = '<tr><td colspan="12" class="text-danger text-center">' + e.message + '</td></tr>';
+        }).obtenerDatosHerramientas();
+      };
+
+      window.guardarHerramienta = function() {
+        var nombre = document.getElementById('herr_nombre') ? document.getElementById('herr_nombre').value.toUpperCase().trim() : '';
+        if(!nombre) { window.mostrarAlerta('El Nombre del Artículo es obligatorio.'); return; }
+        var btn = document.getElementById('btnGHerr');
+        if(btn) { btn.disabled = true; btn.innerText = 'Guardando...'; }
+        var d = {
+          tipo:        document.getElementById('herr_tipo') ? document.getElementById('herr_tipo').value : '',
+          tipoUnidad:  document.getElementById('herr_tipounidad') ? document.getElementById('herr_tipounidad').value : '',
+          nombre:      nombre,
+          marca:       document.getElementById('herr_marca') ? document.getElementById('herr_marca').value.toUpperCase().trim() : '',
+          estadoHerr:  document.getElementById('herr_estado') ? document.getElementById('herr_estado').value : '',
+          lugar:       document.getElementById('herr_lugar') ? document.getElementById('herr_lugar').value.toUpperCase().trim() : '',
+          estatus:     document.getElementById('herr_estatus') ? document.getElementById('herr_estatus').value : '',
+          existencia:  document.getElementById('herr_existencia') ? document.getElementById('herr_existencia').value : '1',
+          fecha:       document.getElementById('herr_fecha') ? document.getElementById('herr_fecha').value : '',
+          quienRegistra: document.getElementById('herr_quien') ? document.getElementById('herr_quien').value : ''
+        };
+        google.script.run.withSuccessHandler(function(r) {
+          window.mostrarAlerta(r.msj || r);
+          setTimeout(function() { window.toggleVistaHerramientas('tabla'); if(btn){ btn.disabled = false; btn.innerText = 'Guardar Herramienta / Artículo'; } }, 1500);
+        }).withFailureHandler(function(e) {
+          window.mostrarAlerta('Error: ' + e.message); if(btn){ btn.disabled = false; btn.innerText = 'Guardar Herramienta / Artículo'; }
+        }).registrarHerramienta(d);
+      };
+
+      window.ejecutarEliminarHerr = function(id) {
+        google.script.run.withSuccessHandler(function(r) {
+          window.mostrarAlerta(r.msj || r); window.cargarDatosHerramientas();
+        }).eliminarHerramienta(id);
+      };
+
+      window.filtrarTablaHerramientas = function() {
+        var nom = document.getElementById('filtroNombreHerr') ? document.getElementById('filtroNombreHerr').value.toUpperCase().trim() : '';
+        var tip = document.getElementById('filtroTipoHerr')   ? document.getElementById('filtroTipoHerr').value.toUpperCase().trim() : '';
+        var est = document.getElementById('filtroEstatusHerr')? document.getElementById('filtroEstatusHerr').value.toUpperCase().trim() : '';
+        var lug = document.getElementById('filtroLugarHerr')  ? document.getElementById('filtroLugarHerr').value.toUpperCase().trim() : '';
+        var tbody = document.getElementById('cuerpoTablaHerramientas'); if(!tbody) return;
+        var trs = tbody.getElementsByTagName('tr');
+        for(var i=0; i<trs.length; i++) {
+          if(trs[i].cells.length > 1) {
+            var c1=trs[i].cells[1].innerText.toUpperCase(), c3=trs[i].cells[3].innerText.toUpperCase();
+            var c6=trs[i].cells[6].innerText.toUpperCase(), c7=trs[i].cells[7].innerText.toUpperCase();
+            trs[i].style.display = (!tip||c1.includes(tip)) && (!nom||c3.includes(nom)) && (!lug||c6.includes(lug)) && (!est||c7.includes(est)) ? '' : 'none';
+          }
+        }
+      };
+
+      // ============================================================
+      // CRONOGRAMA
+      // ============================================================
+      window.toggleVistaCronograma = function(v) {
+        var t = document.getElementById('vistaTablaCronograma');
+        var f = document.getElementById('vistaFormCronograma');
+        if(t) t.style.display = v === 'form' ? 'none' : 'block';
+        if(f) f.style.display = v === 'form' ? 'block' : 'none';
+        if(v === 'form') {
+          var qG = document.getElementById('quienRegistraGlobal');
+          var qC = document.getElementById('cron_quien');
+          if(qG && qC) qC.value = qG.value;
+        } else { window.cargarDatosCronograma(); }
+      };
+
+      window.cargarDatosCronograma = function() {
+        google.script.run.withSuccessHandler(function(res) {
+          var tbody = document.getElementById('cuerpoTablaCronograma');
+          if(!tbody) return;
+          tbody.innerHTML = '';
+          if(!res || !res.exito || res.datos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="15" class="text-center py-4 text-muted">Sin registros en el cronograma.</td></tr>'; return;
+          }
+          res.datos.forEach(function(f) {
+            var badge = f.estatusUnidad === 'LISTO' ? '<span class="badge bg-success">LISTO</span>'
+              : f.estatusUnidad === 'EN PROCESO' ? '<span class="badge bg-warning text-dark">EN PROCESO</span>'
+              : f.estatusUnidad === 'ENTREGADO' ? '<span class="badge bg-primary">ENTREGADO</span>'
+              : '<span class="badge bg-secondary">EN ESPERA</span>';
+            var btnElim = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'Eliminar registro?\', function(){ window.ejecutarEliminarCron(\'' + f.id + '\'); })">&#128465;</button>';
+            tbody.innerHTML += '<tr>' +
+              '<td class="fw-bold text-muted">' + f.id + '</td>' +
+              '<td>' + f.tipoTrabajo + '</td>' +
+              '<td>' + f.ejecutivo + '</td>' +
+              '<td>' + f.sede + '</td>' +
+              '<td>' + f.fecha + '</td>' +
+              '<td>' + f.ticket + '</td>' +
+              '<td><b>' + f.nuco + '</b></td>' +
+              '<td>' + f.placas + '</td>' +
+              '<td>' + f.mecanico + '</td>' +
+              '<td>' + (f.mecanico2||'&mdash;') + '</td>' +
+              '<td>' + f.infoServicio + '</td>' +
+              '<td>' + badge + '</td>' +
+              '<td>' + (f.mecEstatus||'&mdash;') + '</td>' +
+              '<td>' + (f.mec2FechaApro||'&mdash;') + '</td>' +
+              '<td class="text-center">' + btnElim + '</td></tr>';
+          });
+        }).withFailureHandler(function(e) {
+          var tbody = document.getElementById('cuerpoTablaCronograma');
+          if(tbody) tbody.innerHTML = '<tr><td colspan="15" class="text-danger text-center">' + e.message + '</td></tr>';
+        }).obtenerDatosCronograma();
+      };
+
+      window.guardarCronograma = function() {
+        var nuco = document.getElementById('cron_nuco') ? document.getElementById('cron_nuco').value.trim() : '';
+        if(!nuco) { window.mostrarAlerta('El NUCO es obligatorio.'); return; }
+        var btn = document.getElementById('btnGCron');
+        if(btn) { btn.disabled = true; btn.innerText = 'Guardando...'; }
+        var d = {
+          tipoTrabajo:  document.getElementById('cron_tipotrabajo') ? document.getElementById('cron_tipotrabajo').value : '',
+          ejecutivo:    document.getElementById('cron_ejecutivo') ? document.getElementById('cron_ejecutivo').value.toUpperCase().trim() : '',
+          sede:         document.getElementById('cron_sede') ? document.getElementById('cron_sede').value.toUpperCase().trim() : '',
+          horario:      document.getElementById('cron_horario') ? document.getElementById('cron_horario').value : '',
+          fecha:        document.getElementById('cron_fecha') ? document.getElementById('cron_fecha').value : '',
+          ticket:       document.getElementById('cron_ticket') ? document.getElementById('cron_ticket').value.trim() : '',
+          nuco:         nuco,
+          marca:        document.getElementById('cron_marca') ? document.getElementById('cron_marca').value.toUpperCase() : '',
+          modelo:       document.getElementById('cron_modelo') ? document.getElementById('cron_modelo').value.toUpperCase() : '',
+          placas:       document.getElementById('cron_placas') ? document.getElementById('cron_placas').value.toUpperCase() : '',
+          mecanico:     document.getElementById('cron_mecanico') ? document.getElementById('cron_mecanico').value.toUpperCase().trim() : '',
+          mecanico2:    document.getElementById('cron_mecanico2') ? document.getElementById('cron_mecanico2').value.toUpperCase().trim() : '',
+          infoServicio: document.getElementById('cron_info') ? document.getElementById('cron_info').value.toUpperCase().trim() : '',
+          estatusUnidad:document.getElementById('cron_estatusunidad') ? document.getElementById('cron_estatusunidad').value : '',
+          evidencia:    document.getElementById('cron_evidencia') ? document.getElementById('cron_evidencia').value.trim() : '',
+          formato:      document.getElementById('cron_formato') ? document.getElementById('cron_formato').value.toUpperCase().trim() : '',
+          quienRegistra:document.getElementById('cron_quien') ? document.getElementById('cron_quien').value : '',
+          mecEstatus:   document.getElementById('cron_mecestatusS') ? document.getElementById('cron_mecestatusS').value : '',
+          mec2FechaApro:document.getElementById('cron_mec2fechaapro') ? document.getElementById('cron_mec2fechaapro').value : ''
+        };
+        google.script.run.withSuccessHandler(function(r) {
+          window.mostrarAlerta(r.msj || r);
+          setTimeout(function() { window.toggleVistaCronograma('tabla'); if(btn){ btn.disabled = false; btn.innerText = 'Guardar en Cronograma'; } }, 1500);
+        }).withFailureHandler(function(e) {
+          window.mostrarAlerta('Error: ' + e.message); if(btn){ btn.disabled = false; btn.innerText = 'Guardar en Cronograma'; }
+        }).registrarCronograma(d);
+      };
+
+      window.ejecutarEliminarCron = function(id) {
+        google.script.run.withSuccessHandler(function(r) {
+          window.mostrarAlerta(r.msj || r); window.cargarDatosCronograma();
+        }).eliminarCronograma(id);
+      };
+
+      window.filtrarTablaCronograma = function() {
+        var tk  = document.getElementById('filtroTicketCron')  ? document.getElementById('filtroTicketCron').value.toUpperCase().trim() : '';
+        var nc  = document.getElementById('filtroNucoCron')    ? document.getElementById('filtroNucoCron').value.toUpperCase().trim() : '';
+        var mc  = document.getElementById('filtroMecanicoCron')? document.getElementById('filtroMecanicoCron').value.toUpperCase().trim() : '';
+        var es  = document.getElementById('filtroEstatusCron') ? document.getElementById('filtroEstatusCron').value.toUpperCase().trim() : '';
+        var fec = document.getElementById('filtroFechaCron')   ? document.getElementById('filtroFechaCron').value : '';
+        var fBus = fec ? fec.split('-').reverse().join('/') : '';
+        var tbody = document.getElementById('cuerpoTablaCronograma'); if(!tbody) return;
+        var trs = tbody.getElementsByTagName('tr');
+        for(var i=0; i<trs.length; i++) {
+          if(trs[i].cells.length > 1) {
+            var c4=trs[i].cells[4].innerText, c5=trs[i].cells[5].innerText.toUpperCase();
+            var c6=trs[i].cells[6].innerText.toUpperCase(), c8=trs[i].cells[8].innerText.toUpperCase();
+            var c11=trs[i].cells[11].innerText.toUpperCase();
+            trs[i].style.display = (!tk||c5.includes(tk)) && (!nc||c6.includes(nc)) && (!mc||c8.includes(mc)) && (!es||c11.includes(es)) && (!fBus||c4.includes(fBus)) ? '' : 'none';
+          }
+        }
       };
 
     </script>
