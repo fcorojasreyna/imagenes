@@ -1430,78 +1430,99 @@
         } else { window.cargarDatosCronograma(); }
       };
 
+      window._colorCronFila = function(estatus) {
+        if (estatus === 'EN REPARACION')                  return '#fff9c4'; // amarillo
+        if (estatus === 'UNIDAD NO PRESENTADA A LA CITA') return '#f8d7da'; // rojo
+        if (estatus === 'SERVICIO POSPUESTO POR SV')       return '#ffe0b2'; // naranja
+        if (estatus === 'SERVICIO CONCLUIDO')              return '#a8d5b5'; // verde
+        return '';
+      };
+
       window.cargarDatosCronograma = function() {
+        var hoy = new Date();
+        var dd = String(hoy.getDate()).padStart(2,'0');
+        var mm = String(hoy.getMonth()+1).padStart(2,'0');
+        var yyyy = hoy.getFullYear();
+        var fechaHoyStr = dd+'/'+mm+'/'+yyyy;
+        var elFecha = document.getElementById('cronFechaHoy');
+        if (elFecha) elFecha.innerText = dd+'/'+mm+'/'+yyyy;
+
         google.script.run.withSuccessHandler(function(res) {
           var tbody = document.getElementById('cuerpoTablaCronograma');
           if(!tbody) return;
-          // Ocultar botón nueva entrada para mecánicos
           var btnNueva = document.getElementById('btnNuevaCronEntrada');
           if (btnNueva) btnNueva.style.display = (_rolActual === 'MECANICO') ? 'none' : '';
           tbody.innerHTML = '';
-          if(!res || !res.exito || res.datos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="15" class="text-center py-4 text-muted">Sin registros en el cronograma.</td></tr>'; return;
+          if(!res || !res.exito || !res.datos || res.datos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">Sin actividades programadas para hoy.</td></tr>'; return;
           }
-          res.datos.forEach(function(f) {
-            var badge = f.estatusUnidad === 'LISTO' ? '<span class="badge bg-success">LISTO</span>'
-              : f.estatusUnidad === 'EN PROCESO' ? '<span class="badge bg-warning text-dark">EN PROCESO</span>'
-              : f.estatusUnidad === 'ENTREGADO' ? '<span class="badge bg-primary">ENTREGADO</span>'
-              : '<span class="badge bg-secondary">EN ESPERA</span>';
-            var btnElim = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'Eliminar registro?\', function(){ window.ejecutarEliminarCron(\'' + f.id + '\'); })">&#128465;</button>';
-            tbody.innerHTML += '<tr>' +
-              '<td class="fw-bold text-muted">' + f.id + '</td>' +
-              '<td>' + f.tipoTrabajo + '</td>' +
-              '<td>' + f.ejecutivo + '</td>' +
-              '<td>' + f.sede + '</td>' +
-              '<td>' + f.fecha + '</td>' +
-              '<td>' + f.ticket + '</td>' +
-              '<td><b>' + f.nuco + '</b></td>' +
-              '<td>' + f.placas + '</td>' +
-              '<td>' + f.mecanico + '</td>' +
-              '<td>' + (f.mecanico2||'&mdash;') + '</td>' +
-              '<td>' + f.infoServicio + '</td>' +
-              '<td>' + badge + '</td>' +
-              '<td>' + (f.mecEstatus||'&mdash;') + '</td>' +
-              '<td>' + (f.mec2FechaApro||'&mdash;') + '</td>' +
-              '<td class="text-center">' + btnElim + '</td></tr>';
+          var registrosHoy = res.datos.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; });
+          if (registrosHoy.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No hay actividades programadas para hoy.</td></tr>'; return;
+          }
+          registrosHoy.sort(function(a,b){ return (a.horario||'').localeCompare(b.horario||''); });
+          registrosHoy.forEach(function(f) {
+            var color = window._colorCronFila(f.estatusUnidad);
+            var tr = document.createElement('tr');
+            tr.style.backgroundColor = color;
+            tr.style.cursor = 'pointer';
+            tr.title = 'Clic para editar estatus / subir evidencias';
+            tr.innerHTML =
+              '<td class="fw-bold">'+(f.horario||'—')+'</td>'+
+              '<td><b>'+(f.ticket||'')+'</b></td>'+
+              '<td>'+(f.nuco||'')+'</td>'+
+              '<td>'+(f.marca||'')+' '+(f.modelo||'')+'</td>'+
+              '<td>'+(f.placas||'')+'</td>'+
+              '<td>'+(f.tipoTrabajo||'')+'</td>'+
+              '<td>'+(f.mecanico||'')+(f.mecanico2?'<br><small class="text-muted">+'+f.mecanico2+'</small>':'')+'</td>'+
+              '<td><span class="fw-bold small">'+(f.estatusUnidad||'—')+'</span></td>'+
+              '<td>'+(f.quienRegistra||'')+'</td>';
+            tr.addEventListener('click', (function(reg){ return function(){ window.abrirEditCronograma(reg); }; })(f));
+            tbody.appendChild(tr);
           });
         }).withFailureHandler(function(e) {
           var tbody = document.getElementById('cuerpoTablaCronograma');
-          if(tbody) tbody.innerHTML = '<tr><td colspan="15" class="text-danger text-center">' + e.message + '</td></tr>';
+          if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">'+e.message+'</td></tr>';
         }).obtenerDatosCronograma();
       };
 
       window.guardarCronograma = function() {
-        var nuco = document.getElementById('cron_nuco') ? document.getElementById('cron_nuco').value.trim() : '';
-        if(!nuco) { window.mostrarAlerta('El NUCO es obligatorio.'); return; }
+        var ticket  = document.getElementById('cron_ticket')  ? document.getElementById('cron_ticket').value.trim()  : '';
+        var nuco    = document.getElementById('cron_nuco')    ? document.getElementById('cron_nuco').value.trim()    : '';
+        var fecha   = document.getElementById('cron_fecha')   ? document.getElementById('cron_fecha').value          : '';
+        var horario = document.getElementById('cron_horario') ? document.getElementById('cron_horario').value        : '';
+        if (!nuco)    { window.mostrarAlerta('El NUCO es obligatorio.');        return; }
+        if (!ticket)  { window.mostrarAlerta('El Ticket es obligatorio.');      return; }
+        if (!fecha)   { window.mostrarAlerta('Selecciona una fecha.');          return; }
+        if (!horario) { window.mostrarAlerta('Selecciona un horario.');         return; }
         var btn = document.getElementById('btnGCron');
         if(btn) { btn.disabled = true; btn.innerText = 'Guardando...'; }
         var d = {
-          tipoTrabajo:  document.getElementById('cron_tipotrabajo') ? document.getElementById('cron_tipotrabajo').value : '',
-          ejecutivo:    document.getElementById('cron_ejecutivo') ? document.getElementById('cron_ejecutivo').value.toUpperCase().trim() : '',
-          sede:         document.getElementById('cron_sede') ? document.getElementById('cron_sede').value.toUpperCase().trim() : '',
-          horario:      document.getElementById('cron_horario') ? document.getElementById('cron_horario').value : '',
-          fecha:        document.getElementById('cron_fecha') ? document.getElementById('cron_fecha').value : '',
-          ticket:       document.getElementById('cron_ticket') ? document.getElementById('cron_ticket').value.trim() : '',
-          nuco:         nuco,
-          marca:        document.getElementById('cron_marca') ? document.getElementById('cron_marca').value.toUpperCase() : '',
-          modelo:       document.getElementById('cron_modelo') ? document.getElementById('cron_modelo').value.toUpperCase() : '',
-          placas:       document.getElementById('cron_placas') ? document.getElementById('cron_placas').value.toUpperCase() : '',
-          mecanico:     document.getElementById('cron_mecanico') ? document.getElementById('cron_mecanico').value.toUpperCase().trim() : '',
-          mecanico2:    document.getElementById('cron_mecanico2') ? document.getElementById('cron_mecanico2').value.toUpperCase().trim() : '',
-          infoServicio: document.getElementById('cron_info') ? document.getElementById('cron_info').value.toUpperCase().trim() : '',
-          estatusUnidad:document.getElementById('cron_estatusunidad') ? document.getElementById('cron_estatusunidad').value : '',
-          evidencia:    document.getElementById('cron_evidencia') ? document.getElementById('cron_evidencia').value.trim() : '',
-          formato:      document.getElementById('cron_formato') ? document.getElementById('cron_formato').value.toUpperCase().trim() : '',
-          quienRegistra:document.getElementById('cron_quien') ? document.getElementById('cron_quien').value : '',
-          mecEstatus:   document.getElementById('cron_mecestatusS') ? document.getElementById('cron_mecestatusS').value : '',
-          mec2FechaApro:document.getElementById('cron_mec2fechaapro') ? document.getElementById('cron_mec2fechaapro').value : ''
+          tipoTrabajo:   document.getElementById('cron_tipotrabajo') ? document.getElementById('cron_tipotrabajo').value : '',
+          ejecutivo:     document.getElementById('cron_ejecutivo')   ? document.getElementById('cron_ejecutivo').value.toUpperCase().trim() : '',
+          sede:          document.getElementById('cron_sede')        ? document.getElementById('cron_sede').value.toUpperCase().trim() : '',
+          horario:       horario,
+          fecha:         fecha,
+          ticket:        ticket,
+          nuco:          nuco,
+          marca:         document.getElementById('cron_marca')    ? document.getElementById('cron_marca').value.toUpperCase()    : '',
+          modelo:        document.getElementById('cron_modelo')   ? document.getElementById('cron_modelo').value.toUpperCase()   : '',
+          placas:        document.getElementById('cron_placas')   ? document.getElementById('cron_placas').value.toUpperCase()   : '',
+          mecanico2:     document.getElementById('cron_mecanico2')? document.getElementById('cron_mecanico2').value.toUpperCase().trim() : '',
+          infoServicio:  document.getElementById('cron_info')     ? document.getElementById('cron_info').value.toUpperCase().trim() : '',
+          quienRegistra: document.getElementById('cron_quien')    ? document.getElementById('cron_quien').value : ''
         };
-        google.script.run.withSuccessHandler(function(r) {
-          window.mostrarAlerta(r.msj || r);
-          setTimeout(function() { window.toggleVistaCronograma('tabla'); if(btn){ btn.disabled = false; btn.innerText = 'Guardar en Cronograma'; } }, 1500);
-        }).withFailureHandler(function(e) {
-          window.mostrarAlerta('Error: ' + e.message); if(btn){ btn.disabled = false; btn.innerText = 'Guardar en Cronograma'; }
-        }).registrarCronograma(d);
+        google.script.run
+          .withSuccessHandler(function(r) {
+            if(btn){ btn.disabled = false; btn.innerText = 'Guardar en Cronograma'; }
+            window.mostrarAlerta(r.msj || (r.exito ? 'Registro guardado.' : r.error));
+            if(r.exito) setTimeout(function(){ window.toggleVistaCronograma('tabla'); }, 1500);
+          })
+          .withFailureHandler(function(e) {
+            if(btn){ btn.disabled = false; btn.innerText = 'Guardar en Cronograma'; }
+            window.mostrarAlerta('Error: ' + e.message);
+          })
+          .registrarCronograma(d);
       };
 
       window.ejecutarEliminarCron = function(id) {
@@ -1511,21 +1532,80 @@
       };
 
       window.filtrarTablaCronograma = function() {
-        var tk  = document.getElementById('filtroTicketCron')  ? document.getElementById('filtroTicketCron').value.toUpperCase().trim() : '';
-        var nc  = document.getElementById('filtroNucoCron')    ? document.getElementById('filtroNucoCron').value.toUpperCase().trim() : '';
-        var mc  = document.getElementById('filtroMecanicoCron')? document.getElementById('filtroMecanicoCron').value.toUpperCase().trim() : '';
-        var es  = document.getElementById('filtroEstatusCron') ? document.getElementById('filtroEstatusCron').value.toUpperCase().trim() : '';
-        var fec = document.getElementById('filtroFechaCron')   ? document.getElementById('filtroFechaCron').value : '';
-        var fBus = fec ? fec.split('-').reverse().join('/') : '';
+        var tk = document.getElementById('filtroTicketCron') ? document.getElementById('filtroTicketCron').value.toUpperCase().trim() : '';
+        var nc = document.getElementById('filtroNucoCron')   ? document.getElementById('filtroNucoCron').value.toUpperCase().trim()   : '';
+        var mc = document.getElementById('filtroMecCron')    ? document.getElementById('filtroMecCron').value.toUpperCase().trim()    : '';
         var tbody = document.getElementById('cuerpoTablaCronograma'); if(!tbody) return;
         var trs = tbody.getElementsByTagName('tr');
         for(var i=0; i<trs.length; i++) {
-          if(trs[i].cells.length > 1) {
-            var c4=trs[i].cells[4].innerText, c5=trs[i].cells[5].innerText.toUpperCase();
-            var c6=trs[i].cells[6].innerText.toUpperCase(), c8=trs[i].cells[8].innerText.toUpperCase();
-            var c11=trs[i].cells[11].innerText.toUpperCase();
-            trs[i].style.display = (!tk||c5.includes(tk)) && (!nc||c6.includes(nc)) && (!mc||c8.includes(mc)) && (!es||c11.includes(es)) && (!fBus||c4.includes(fBus)) ? '' : 'none';
-          }
+          var txt = trs[i].innerText.toUpperCase();
+          trs[i].style.display = ((!tk||txt.includes(tk)) && (!nc||txt.includes(nc)) && (!mc||txt.includes(mc))) ? '' : 'none';
+        }
+      };
+
+      window.abrirEditCronograma = function(reg) {
+        document.getElementById('editCronId').value     = reg.id     || '';
+        document.getElementById('editCronTicket').value = reg.ticket || '';
+        document.getElementById('tituloModalCron').innerText = 'Editar — Ticket '+(reg.ticket||'')+' | '+(reg.nuco||'');
+        var sel = document.getElementById('editCronEstatus');
+        if(sel) sel.value = reg.estatusUnidad || 'EN REPARACION';
+        document.getElementById('editCronEvidencia').value = '';
+        document.getElementById('editCronFormato').value   = '';
+        var evAct = document.getElementById('evidenciaActualCron');
+        var foAct = document.getElementById('formatoActualCron');
+        if(evAct) evAct.innerHTML = reg.evidencia && reg.evidencia !== 'SIN EVIDENCIA' ? '📎 Actual: <a href="'+reg.evidencia+'" target="_blank">Ver archivo</a>' : '';
+        if(foAct) foAct.innerHTML = reg.formato   && reg.formato   !== '' ? '📄 Actual: <a href="'+reg.formato+'" target="_blank">Ver archivo</a>' : '';
+        document.getElementById('cronEditMsj').innerText = '';
+        new bootstrap.Modal(document.getElementById('modalEditCronograma')).show();
+      };
+
+      window.guardarEdicionCronograma = function() {
+        var id      = document.getElementById('editCronId').value;
+        var ticket  = document.getElementById('editCronTicket').value;
+        var estatus = document.getElementById('editCronEstatus').value;
+        var btn     = document.getElementById('btnGuardarEditCron');
+        var msj     = document.getElementById('cronEditMsj');
+        var fileEv  = document.getElementById('editCronEvidencia').files[0];
+        var fileFo  = document.getElementById('editCronFormato').files[0];
+        if(btn){ btn.disabled = true; btn.innerText = 'Guardando...'; }
+        msj.innerText = '';
+
+        function _actualizarEstatus(urlEv, urlFo) {
+          google.script.run
+            .withSuccessHandler(function(r) {
+              if(btn){ btn.disabled = false; btn.innerText = 'Guardar Cambios'; }
+              if(!r.exito){ msj.innerText = '✖ '+r.error; return; }
+              bootstrap.Modal.getInstance(document.getElementById('modalEditCronograma')).hide();
+              window.mostrarAlerta(r.msj || 'Registro actualizado.');
+              window.cargarDatosCronograma();
+            })
+            .withFailureHandler(function(e){ if(btn){ btn.disabled=false; btn.innerText='Guardar Cambios'; } msj.innerText='✖ Error: '+e.message; })
+            .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: urlEv, urlFormato: urlFo });
+        }
+
+        function leerArchivo(file, callback) {
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            var base64 = e.target.result.split(',')[1];
+            google.script.run
+              .withSuccessHandler(function(r){ callback(r.exito ? r.url : ''); })
+              .withFailureHandler(function(){ callback(''); })
+              .subirArchivoEvidenciaCronograma(ticket, file.name, file.type, base64);
+          };
+          reader.readAsDataURL(file);
+        }
+
+        if(fileEv && fileFo) {
+          msj.innerText = 'Subiendo archivos...';
+          leerArchivo(fileEv, function(uEv){ leerArchivo(fileFo, function(uFo){ _actualizarEstatus(uEv, uFo); }); });
+        } else if(fileEv) {
+          msj.innerText = 'Subiendo evidencia...';
+          leerArchivo(fileEv, function(uEv){ _actualizarEstatus(uEv, ''); });
+        } else if(fileFo) {
+          msj.innerText = 'Subiendo formato...';
+          leerArchivo(fileFo, function(uFo){ _actualizarEstatus('', uFo); });
+        } else {
+          _actualizarEstatus('', '');
         }
       };
 
