@@ -1434,6 +1434,9 @@
         google.script.run.withSuccessHandler(function(res) {
           var tbody = document.getElementById('cuerpoTablaCronograma');
           if(!tbody) return;
+          // Ocultar botón nueva entrada para mecánicos
+          var btnNueva = document.getElementById('btnNuevaCronEntrada');
+          if (btnNueva) btnNueva.style.display = (_rolActual === 'MECANICO') ? 'none' : '';
           tbody.innerHTML = '';
           if(!res || !res.exito || res.datos.length === 0) {
             tbody.innerHTML = '<tr><td colspan="15" class="text-center py-4 text-muted">Sin registros en el cronograma.</td></tr>'; return;
