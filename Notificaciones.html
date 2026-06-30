@@ -1,52 +1,111 @@
 <div id="vistaNotificaciones" class="container-fluid p-0">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="fw-bold m-0" style="color: var(--azul);">🔔 Autorizaciones Pendientes</h4>
+    <h4 class="fw-bold m-0" style="color: var(--azul);">🔔 Centro de Notificaciones y Autorizaciones</h4>
   </div>
 
-  <div class="card shadow-sm border-0">
+  <!-- PANEL: Lo que el usuario logueado debe autorizar -->
+  <div id="panelPendientesAuth" class="card shadow-sm border-0 mb-4">
+    <div class="card-header py-3" style="background-color: var(--azul); color: white;">
+      <h6 class="m-0 fw-bold">📋 Pendientes por Autorizar (Tu Rol)</h6>
+    </div>
     <div class="card-body p-3">
       <div class="row g-2 mb-3 align-items-center">
         <div class="col-md-3">
-          <input type="text" id="filtroTicketNotif" class="form-control" placeholder="🔍 Ticket..." onkeyup="window.filtrarTablaNotif()" style="border: 2px solid #B4A169;">
+          <input type="text" id="filtroTicketNotif" class="form-control" placeholder="🔍 Ticket / Folio..." onkeyup="window.filtrarTablaNotif('pendientes')" style="border: 2px solid #B4A169;">
         </div>
         <div class="col-md-3">
-          <input type="text" id="filtroNucoNotif" class="form-control" placeholder="🔍 NUCO..." onkeyup="window.filtrarTablaNotif()" style="border: 2px solid #B4A169;">
-        </div>
-        <div class="col-md-3">
-          <select id="filtroTipoNotif" class="form-select" onchange="window.filtrarTablaNotif()" style="border: 2px solid #B4A169;">
-            <option value="">Todos los módulos</option>
-            <option value="TALLER">TALLER</option>
-            <option value="INVENTARIO">INVENTARIO</option>
-            <option value="OC">COTIZADOR / OC</option>
+          <select id="filtroTipoNotif" class="form-select" onchange="window.filtrarTablaNotif('pendientes')" style="border: 2px solid #B4A169;">
+            <option value="">Todos los tipos</option>
+            <option value="DUPLA">Dupla (Cronograma)</option>
+            <option value="OC">Orden de Compra</option>
           </select>
         </div>
         <div class="col-md-3">
           <button class="btn w-100 fw-bold text-white" style="background-color: var(--azul);" onclick="window.cargarDatosNotificaciones()">↻ Actualizar</button>
         </div>
       </div>
-
-      <div class="alert mb-3" style="background-color: #fff8e1; border-left: 4px solid var(--dorado); color: #5a4a00; font-size: 0.88rem;">
-        ⚠️ Los registros aquí listados fueron marcados como <strong>PENDIENTE AUTORIZACIÓN</strong> y requieren aprobación del Gerente antes de procesarse.
-      </div>
-
       <div class="table-responsive">
         <table class="table table-hover table-sm align-middle mb-0">
           <thead style="background-color: var(--azul); color: white;">
             <tr>
-              <th style="white-space:nowrap;">ID</th>
-              <th style="white-space:nowrap;">Módulo</th>
-              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaNotif', 2)">Ticket ↕</th>
-              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaNotif', 3)">NUCO ↕</th>
-              <th style="white-space:nowrap;">Descripción / Concepto</th>
-              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaNotif', 5)">Solicitante ↕</th>
-              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaNotif', 6)">Fecha ↕</th>
-              <th class="text-center" style="white-space:nowrap;">Decisión</th>
+              <th style="white-space:nowrap;">Tipo</th>
+              <th style="white-space:nowrap;">Referencia</th>
+              <th style="white-space:nowrap;">Ticket</th>
+              <th style="white-space:nowrap;">NUCO</th>
+              <th style="white-space:nowrap;">Concepto</th>
+              <th style="white-space:nowrap;">Solicitante</th>
+              <th style="white-space:nowrap;">Fecha</th>
+              <th class="text-center" style="white-space:nowrap;">Acción</th>
             </tr>
           </thead>
-          <tbody id="cuerpoTablaNotif">
-            <tr><td colspan="8" class="text-center py-4 text-muted">Cargando autorizaciones pendientes...</td></tr>
+          <tbody id="cuerpoTablaPendientes">
+            <tr><td colspan="8" class="text-center py-4 text-muted">Cargando...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL: Mis solicitudes enviadas (para el ejecutivo) -->
+  <div id="panelMisSolicitudes" class="card shadow-sm border-0 mb-4">
+    <div class="card-header py-3" style="background-color: #f8f9fa; border-bottom: 3px solid var(--dorado);">
+      <h6 class="m-0 fw-bold" style="color: var(--azul);">📨 Mis Solicitudes Enviadas</h6>
+    </div>
+    <div class="card-body p-3">
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead style="background-color: var(--azul); color: white;">
+            <tr>
+              <th style="white-space:nowrap;">Tipo</th>
+              <th style="white-space:nowrap;">Ticket</th>
+              <th style="white-space:nowrap;">Concepto</th>
+              <th style="white-space:nowrap;">Nivel Actual</th>
+              <th style="white-space:nowrap;">Gerente</th>
+              <th style="white-space:nowrap;">Subdirección</th>
+              <th style="white-space:nowrap;">Dirección</th>
+              <th style="white-space:nowrap;">Fecha</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaMisSolicitudes">
+            <tr><td colspan="8" class="text-center py-4 text-muted">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Autorización con escalamiento -->
+<div class="modal fade" id="modalAutorizacion" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background-color: var(--azul); color: white;">
+        <h5 class="modal-title fw-bold" id="tituloModalAuth">Autorización</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div id="panelDecisionAuth">
+          <p class="fw-bold mb-3" id="textoModalAuth">¿Deseas autorizar este registro?</p>
+          <div class="mb-3">
+            <label class="fw-bold small" style="color: var(--azul);">Comentario (opcional)</label>
+            <textarea id="comentarioAuth" class="form-control" rows="2" placeholder="Observaciones..."></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success fw-bold flex-grow-1" onclick="window.confirmarAutorizacion('AUTORIZADO')">✔ Autorizar</button>
+            <button class="btn btn-danger fw-bold flex-grow-1" onclick="window.confirmarAutorizacion('RECHAZADO')">✖ Rechazar</button>
+          </div>
+        </div>
+        <!-- Panel escalamiento (aparece después de autorizar OC) -->
+        <div id="panelEscalamientoAuth" style="display:none;">
+          <div class="alert" style="background-color: #e8f5e9; border-left: 4px solid #28a745; color: #1b5e20;">
+            ✔ Autorización registrada exitosamente.
+          </div>
+          <p class="fw-bold mb-3" id="textoEscalamiento"></p>
+          <div class="d-flex gap-2">
+            <button class="btn fw-bold flex-grow-1 text-white" style="background-color: var(--dorado);" id="btnEscalarSi" onclick="window.escalarAutorizacion(true)">Sí, escalar</button>
+            <button class="btn btn-outline-secondary fw-bold flex-grow-1" onclick="window.escalarAutorizacion(false)">No, cerrar aquí</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

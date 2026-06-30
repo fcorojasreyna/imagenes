@@ -1527,29 +1527,80 @@
       // ============================================================================
       // NOTIFICACIONES / AUTORIZACIONES
       // ============================================================================
+      var _authActual = {}; // contexto del modal de autorización activo
+
       window.cargarDatosNotificaciones = function() {
-        var tbody = document.getElementById('cuerpoTablaNotif'); if(!tbody) return;
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm" style="color:var(--dorado)"></div> Cargando...</td></tr>';
+        var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
+        var tbP = document.getElementById('cuerpoTablaPendientes');
+        var tbM = document.getElementById('cuerpoTablaMisSolicitudes');
+        if(tbP) tbP.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm" style="color:var(--dorado)"></div></td></tr>';
+        if(tbM) tbM.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm" style="color:var(--dorado)"></div></td></tr>';
+
         google.script.run
           .withSuccessHandler(function(res) {
-            var tbody = document.getElementById('cuerpoTablaNotif'); if(!tbody) return;
-            tbody.innerHTML = '';
-            if (!res.exito || !res.datos || res.datos.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No hay registros pendientes de autorización.</td></tr>';
-              window.actualizarBadgeNotif(0); return;
+            var tbP = document.getElementById('cuerpoTablaPendientes');
+            var tbM = document.getElementById('cuerpoTablaMisSolicitudes');
+            if (!res.exito) return;
+
+            // --- Pendientes que debo autorizar yo ---
+            var pendientes = (res.pendientes || []);
+            window.actualizarBadgeNotif(pendientes.length);
+            if (tbP) {
+              tbP.innerHTML = '';
+              if (pendientes.length === 0) {
+                tbP.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No tienes autorizaciones pendientes.</td></tr>';
+              } else {
+                pendientes.forEach(function(f) {
+                  var btnAcc = '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\')">Revisar</button>';
+                  tbP.innerHTML += '<tr>'
+                    +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
+                    +'<td class="fw-bold">'+f.referencia+'</td>'
+                    +'<td>'+f.ticket+'</td>'
+                    +'<td>'+f.nuco+'</td>'
+                    +'<td class="small">'+f.descripcion+'</td>'
+                    +'<td>'+f.solicitante+'</td>'
+                    +'<td>'+f.fecha+'</td>'
+                    +'<td class="text-center">'+btnAcc+'</td>'
+                    +'</tr>';
+                });
+              }
             }
-            window.actualizarBadgeNotif(res.datos.length);
-            res.datos.forEach(function(f) {
-              var btnAut = '<button class="btn btn-sm btn-success me-1 fw-bold" onclick="window.procesarAutorizacion(\''+f.id+'\',\''+f.tipo+'\',\'AUTORIZADO\')">✔ Autorizar</button>';
-              var btnRec = '<button class="btn btn-sm btn-danger fw-bold" onclick="window.procesarAutorizacion(\''+f.id+'\',\''+f.tipo+'\',\'RECHAZADO\')">✖ Rechazar</button>';
-              tbody.innerHTML += '<tr><td class="fw-bold text-muted small">'+f.id+'</td><td><span class="badge" style="background:var(--azul)">'+f.tipo+'</span></td><td>'+f.ticket+'</td><td>'+f.nuco+'</td><td class="small">'+f.descripcion+'</td><td>'+f.quienRegistro+'</td><td>'+f.fecha+'</td><td class="text-center">'+btnAut+btnRec+'</td></tr>';
-            });
+
+            // --- Mis solicitudes enviadas ---
+            var mias = (res.mias || []);
+            if (tbM) {
+              tbM.innerHTML = '';
+              if (mias.length === 0) {
+                tbM.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No has enviado solicitudes.</td></tr>';
+              } else {
+                mias.forEach(function(f) {
+                  var badgeNivel = '<span class="badge bg-secondary">'+f.nivelActual+'</span>';
+                  var estG = window._badgeEst(f.decisionGerente);
+                  var estS = window._badgeEst(f.decisionSub);
+                  var estD = window._badgeEst(f.decisionDir);
+                  tbM.innerHTML += '<tr>'
+                    +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
+                    +'<td>'+f.ticket+'</td>'
+                    +'<td class="small">'+f.descripcion+'</td>'
+                    +'<td>'+badgeNivel+'</td>'
+                    +'<td>'+estG+'</td>'
+                    +'<td>'+estS+'</td>'
+                    +'<td>'+estD+'</td>'
+                    +'<td>'+f.fecha+'</td>'
+                    +'</tr>';
+                });
+              }
+            }
           })
-          .withFailureHandler(function(e) {
-            var tbody = document.getElementById('cuerpoTablaNotif'); if(!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Error al cargar: '+e.message+'</td></tr>';
-          })
-          .obtenerPendientesAutorizacion();
+          .withFailureHandler(function(e) { window.mostrarAlerta('Error al cargar notificaciones: ' + e.message); })
+          .obtenerDatosNotificaciones(quien);
+      };
+
+      window._badgeEst = function(v) {
+        if (!v || v === 'N/A' || v === '') return '<span class="text-muted small">—</span>';
+        if (v === 'AUTORIZADO') return '<span class="badge bg-success">✔ Autorizado</span>';
+        if (v === 'RECHAZADO')  return '<span class="badge bg-danger">✖ Rechazado</span>';
+        return '<span class="badge bg-warning text-dark">⏳ Pendiente</span>';
       };
 
       window.actualizarBadgeNotif = function(n) {
@@ -1559,35 +1610,89 @@
         badge.style.display = n > 0 ? 'inline-block' : 'none';
       };
 
-      window.procesarAutorizacion = function(id, tipo, decision) {
+      window.abrirModalAuth = function(id, tipo, nivel, desc) {
+        _authActual = { id: id, tipo: tipo, nivel: nivel, desc: decodeURIComponent(desc), decision: null };
+        document.getElementById('panelDecisionAuth').style.display = '';
+        document.getElementById('panelEscalamientoAuth').style.display = 'none';
+        document.getElementById('comentarioAuth').value = '';
+        var titulo = tipo === 'DUPLA' ? 'Autorización de Dupla' : 'Autorización de OC';
+        document.getElementById('tituloModalAuth').innerText = titulo;
+        document.getElementById('textoModalAuth').innerText = '¿Deseas autorizar el siguiente registro?\n"' + decodeURIComponent(desc) + '"';
+        new bootstrap.Modal(document.getElementById('modalAutorizacion')).show();
+      };
+
+      window.confirmarAutorizacion = function(decision) {
+        _authActual.decision = decision;
         var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
-        var comentario = decision === 'RECHAZADO' ? (prompt('Motivo del rechazo (opcional):') || '') : '';
-        window.mostrarConfirmacion(
-          decision === 'AUTORIZADO' ? '¿Autorizar este registro?' : '¿Rechazar este registro?',
-          function() {
-            google.script.run
-              .withSuccessHandler(function(r) {
-                window.mostrarAlerta(r.msj || r);
-                window.cargarDatosNotificaciones();
-              })
-              .withFailureHandler(function(e) { window.mostrarAlerta('Error: ' + e.message); })
-              .procesarAutorizacion(id, tipo, decision, comentario, quien);
-          }
-        );
+        var comentario = document.getElementById('comentarioAuth').value.trim();
+        google.script.run
+          .withSuccessHandler(function(r) {
+            if (!r.exito) { window.mostrarAlerta(r.msj || 'Error'); return; }
+            if (decision === 'RECHAZADO' || _authActual.tipo === 'DUPLA') {
+              // Duplas: no hay cadena. OC rechazada: tampoco.
+              bootstrap.Modal.getInstance(document.getElementById('modalAutorizacion')).hide();
+              window.mostrarAlerta(r.msj);
+              window.cargarDatosNotificaciones();
+              return;
+            }
+            // OC autorizada: preguntar si escalar
+            document.getElementById('panelDecisionAuth').style.display = 'none';
+            document.getElementById('panelEscalamientoAuth').style.display = '';
+            var siguienteNivel = _authActual.nivel === 'GERENTE' ? 'Subdirección' : 'Dirección';
+            document.getElementById('textoEscalamiento').innerText = '¿Es necesario que ' + siguienteNivel + ' valide esta OC?';
+            _authActual.msj = r.msj;
+          })
+          .withFailureHandler(function(e) { window.mostrarAlerta('Error: ' + e.message); })
+          .procesarAutorizacion(_authActual.id, _authActual.tipo, _authActual.nivel, decision, comentario, quien);
+      };
+
+      window.escalarAutorizacion = function(escalar) {
+        var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
+        bootstrap.Modal.getInstance(document.getElementById('modalAutorizacion')).hide();
+        if (!escalar) {
+          window.mostrarAlerta(_authActual.msj || 'Autorización registrada. La cadena se cierra aquí.');
+          window.cargarDatosNotificaciones(); return;
+        }
+        google.script.run
+          .withSuccessHandler(function(r) {
+            window.mostrarAlerta(r.msj || 'Solicitud escalada correctamente.');
+            window.cargarDatosNotificaciones();
+          })
+          .withFailureHandler(function(e) { window.mostrarAlerta('Error: ' + e.message); })
+          .escalarAutorizacion(_authActual.id, _authActual.nivel, quien);
+      };
+
+      window.solicitarDupla = function() {
+        var mec1 = document.getElementById('cron_mecanico') ? document.getElementById('cron_mecanico').value.trim() : '';
+        var mec2 = document.getElementById('cron_mecanico2') ? document.getElementById('cron_mecanico2').value.trim() : '';
+        var ticket = document.getElementById('cron_ticket') ? document.getElementById('cron_ticket').value.trim() : '';
+        var nuco = document.getElementById('nuco') ? document.getElementById('nuco').value.trim() : '';
+        var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
+        if (!mec1 || !mec2) { window.mostrarAlerta('Ingresa el nombre de ambos mecánicos antes de solicitar la dupla.'); return; }
+        if (!ticket) { window.mostrarAlerta('El Ticket es obligatorio.'); return; }
+        var btn = document.getElementById('btnSolicitarDupla'); if(btn){ btn.disabled = true; btn.innerText = 'Enviando...'; }
+        google.script.run
+          .withSuccessHandler(function(r) {
+            window.mostrarAlerta(r.msj || 'Solicitud de dupla enviada al Gerente.');
+            if(btn){ btn.disabled = false; btn.innerText = 'Solicitar Dupla (requiere autorización)'; }
+          })
+          .withFailureHandler(function(e) {
+            window.mostrarAlerta('Error: ' + e.message);
+            if(btn){ btn.disabled = false; btn.innerText = 'Solicitar Dupla (requiere autorización)'; }
+          })
+          .crearSolicitudAutorizacion({ tipo: 'DUPLA', ticket: ticket, nuco: nuco, descripcion: 'Dupla: ' + mec1 + ' + ' + mec2, solicitante: quien, datoExtra: mec2, refId: ticket });
       };
 
       window.filtrarTablaNotif = function() {
         var tk = document.getElementById('filtroTicketNotif') ? document.getElementById('filtroTicketNotif').value.toUpperCase().trim() : '';
-        var nc = document.getElementById('filtroNucoNotif')   ? document.getElementById('filtroNucoNotif').value.toUpperCase().trim() : '';
         var tp = document.getElementById('filtroTipoNotif')   ? document.getElementById('filtroTipoNotif').value.toUpperCase().trim() : '';
-        var tbody = document.getElementById('cuerpoTablaNotif'); if(!tbody) return;
+        var tbody = document.getElementById('cuerpoTablaPendientes'); if(!tbody) return;
         var trs = tbody.getElementsByTagName('tr');
         for(var i=0; i<trs.length; i++) {
           if(trs[i].cells.length > 1) {
+            var c1 = trs[i].cells[0].innerText.toUpperCase();
             var c2 = trs[i].cells[2].innerText.toUpperCase();
-            var c3 = trs[i].cells[3].innerText.toUpperCase();
-            var c1 = trs[i].cells[1].innerText.toUpperCase();
-            trs[i].style.display = (!tk||c2.includes(tk)) && (!nc||c3.includes(nc)) && (!tp||c1.includes(tp)) ? '' : 'none';
+            trs[i].style.display = (!tp||c1.includes(tp)) && (!tk||c2.includes(tk)) ? '' : 'none';
           }
         }
       };
