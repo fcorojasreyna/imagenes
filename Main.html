@@ -368,6 +368,7 @@
               document.getElementById('pantalla-login').style.display  = 'none';
               document.getElementById('app-principal').style.display   = 'block';
               window.aplicarControlRol(_rolActual);
+              window.cargarCatalogos();
               window.mostrarInicio(document.getElementById('btnInicio'));
             } else {
               msj.innerText = (res && res.error) ? res.error : 'Usuario o contraseña incorrectos.';
@@ -1038,7 +1039,8 @@
       window.toggleVistaTaller = function(v) {
         document.getElementById('vistaTablaTaller').style.display = v === 'form' ? 'none' : 'block';
         document.getElementById('vistaFormTaller').style.display = v === 'form' ? 'block' : 'none';
-        if(v !== 'form') window.cargarDatosTaller();
+        if(v === 'form') window.llenarSelectsModulo('Taller');
+        else window.cargarDatosTaller();
       };
 
       window.toggleCamposTaller = function() {
@@ -1440,6 +1442,53 @@
       };
 
       // ============================================================
+      // CATÁLOGOS DINÁMICOS
+      // ============================================================
+      window.catalogosGlobal = {};
+
+      window.cargarCatalogos = function() {
+        google.script.run.withSuccessHandler(function(res) {
+          if (res && res.exito) {
+            window.catalogosGlobal = res.catalogos || {};
+          }
+        }).obtenerCatalogos();
+      };
+
+      window.llenarSelect = function(selectId, catalogKey) {
+        var sel = document.getElementById(selectId);
+        if (!sel) return;
+        var valores = window.catalogosGlobal[catalogKey.toUpperCase()] || [];
+        if (valores.length === 0) return; // no sobreescribir si no hay datos
+        var primerOpt = sel.options[0] && sel.options[0].value === '' ? sel.options[0].outerHTML : '';
+        sel.innerHTML = primerOpt;
+        valores.forEach(function(v) {
+          var opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        });
+      };
+
+      window.llenarSelectsModulo = function(modulo) {
+        var mapa = {
+          'Taller': [
+            ['tipoServicio',  'TIPO_SERVICIO'],
+            ['familia',       'FAMILIA'],
+            ['estatusUnidad', 'ESTATUS_UNIDAD']
+          ],
+          'Inventario': [
+            ['tipoArticulo',  'TIPO_ARTICULO']
+          ],
+          'Cronograma': [
+            ['cron_tipotrabajo', 'TIPO_TRABAJO'],
+            ['cron_sede',        'SEDES']
+          ]
+        };
+        var campos = mapa[modulo] || [];
+        campos.forEach(function(par) { window.llenarSelect(par[0], par[1]); });
+      };
+
+      // ============================================================
       // CRONOGRAMA
       // ============================================================
       window.toggleVistaCronograma = function(v) {
@@ -1457,6 +1506,7 @@
           if(mec2) { mec2.value = ''; mec2.readOnly = true; mec2.placeholder = 'Sin solicitar...'; }
           var btnDup = document.getElementById('btnSolicitarDuplaCron');
           if(btnDup) { btnDup.classList.remove('btn-success'); btnDup.style.backgroundColor = 'var(--dorado)'; btnDup.innerHTML = '👥 Solicitar Dupla'; btnDup.dataset.activo = 'no'; }
+          window.llenarSelectsModulo('Cronograma');
         } else { window.cargarDatosCronograma(); }
       };
 
@@ -1539,8 +1589,8 @@
           modelo:        document.getElementById('cron_modelo')   ? document.getElementById('cron_modelo').value.toUpperCase()   : '',
           placas:        document.getElementById('cron_placas')   ? document.getElementById('cron_placas').value.toUpperCase()   : '',
           mecanico2Solicitado: document.getElementById('btnSolicitarDuplaCron') ? (document.getElementById('btnSolicitarDuplaCron').dataset.activo === 'si') : false,
-          infoServicio:  document.getElementById('cron_info')     ? document.getElementById('cron_info').value.toUpperCase().trim() : '',
-          quienRegistra: document.getElementById('cron_quien')    ? document.getElementById('cron_quien').value : ''
+          info:    document.getElementById('cron_info')  ? document.getElementById('cron_info').value.toUpperCase().trim() : '',
+          quien:   document.getElementById('cron_quien') ? document.getElementById('cron_quien').value : ''
         };
         google.script.run
           .withSuccessHandler(function(r) {
@@ -1552,7 +1602,7 @@
             if(btn){ btn.disabled = false; btn.innerText = 'Guardar en Cronograma'; }
             window.mostrarAlerta('Error: ' + e.message);
           })
-          .registrarCronograma(d);
+          .guardarCronograma(d);
       };
 
       window.ejecutarEliminarCron = function(id) {

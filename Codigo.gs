@@ -757,6 +757,177 @@ function actualizarFilaConsumoBackend(d) {
   } catch(e) { return { exito: false, error: "Fallo al actualizar registro." }; }
 }
 
+// ============================================================
+// CATÁLOGOS DINÁMICOS
+// ============================================================
+
+function obtenerCatalogos() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const hoja = ss.getSheetByName("Catalogos");
+    if (!hoja) return { exito: false, error: "Hoja 'Catalogos' no encontrada." };
+    const datos = hoja.getDataRange().getDisplayValues();
+    if (datos.length < 2) return { exito: true, catalogos: {} };
+    const headers = datos[0];
+    let catalogos = {};
+    headers.forEach(function(h, colIdx) {
+      if (!h) return;
+      let key = h.toString().trim().toUpperCase();
+      catalogos[key] = [];
+      for (let r = 1; r < datos.length; r++) {
+        let val = datos[r][colIdx] ? datos[r][colIdx].toString().trim() : "";
+        if (val) catalogos[key].push(val);
+      }
+    });
+    return { exito: true, catalogos: catalogos };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+// ============================================================
+// CRONOGRAMA
+// ============================================================
+
+function obtenerMecanicos() {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Accesos");
+    const datos = hoja.getDataRange().getDisplayValues();
+    let mecanicos = [];
+    for (let i = 1; i < datos.length; i++) {
+      let rol = datos[i][4] ? datos[i][4].toString().trim().toUpperCase() : "";
+      let nombre = datos[i][0] ? datos[i][0].toString().trim() : "";
+      if (rol === "MECANICO" && nombre) mecanicos.push(nombre);
+    }
+    return { exito: true, mecanicos: mecanicos };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function obtenerDatosCronograma() {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+    if (!hoja) return { exito: false, error: "Hoja 'Cronograma' no encontrada." };
+    const d = hoja.getDataRange().getDisplayValues();
+    if (d.length < 2) return { exito: true, datos: [] };
+    let filas = [];
+    for (let i = 1; i < d.length; i++) {
+      if (!d[i][0]) continue;
+      filas.push({
+        id: d[i][0], ticket: d[i][1], nuco: d[i][2], marca: d[i][3],
+        modelo: d[i][4], placas: d[i][5], tipoTrabajo: d[i][6],
+        fecha: d[i][7], horario: d[i][8], sede: d[i][9],
+        mecanico: d[i][10], mecanico2: d[i][11],
+        estatusUnidad: d[i][12], quienRegistra: d[i][13],
+        info: d[i][14], evidencia: d[i][15], formato: d[i][16]
+      });
+    }
+    return { exito: true, datos: filas };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function guardarCronograma(d) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let hoja = ss.getSheetByName("Cronograma");
+    if (!hoja) hoja = ss.insertSheet("Cronograma");
+    const idGen = generarIdIncremental("Cronograma", "CRON");
+
+    // Asignar mecánico aleatorio
+    const mecResult = obtenerMecanicos();
+    const mecList = (mecResult.exito && mecResult.mecanicos.length > 0) ? mecResult.mecanicos : [];
+    let mecPrincipal = d.mecanicoManual || (mecList.length > 0 ? mecList[Math.floor(Math.random() * mecList.length)] : "SIN ASIGNAR");
+    let mec2 = "";
+    if (d.mecanico2Solicitado && mecList.length > 1) {
+      let lista2 = mecList.filter(function(m){ return m !== mecPrincipal; });
+      mec2 = lista2.length > 0 ? lista2[Math.floor(Math.random() * lista2.length)] : "";
+    }
+
+    hoja.appendRow([
+      idGen, d.ticket, d.nuco, d.marca, d.modelo, d.placas,
+      d.tipoTrabajo, limpiarHoraLectura(d.fecha), d.horario, d.sede,
+      mecPrincipal, mec2, "EN REPARACION", d.quien, d.info || "", "", ""
+    ]);
+    SpreadsheetApp.flush();
+    return { exito: true, msj: "Entrada registrada: " + idGen, mecanico: mecPrincipal, mecanico2: mec2 };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function actualizarCronograma(d) {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() === d.id.toString().trim()) {
+        const f = i + 1;
+        hoja.getRange(f, 13).setValue(d.estatus);
+        if (d.evidencia) hoja.getRange(f, 16).setValue(d.evidencia);
+        if (d.formato) hoja.getRange(f, 17).setValue(d.formato);
+
+        // Si es pospuesto, mover al siguiente día hábil
+        if (d.estatus === "SERVICIO POSPUESTO POR SV") {
+          let fechaActual = parseFechaToDate(datos[i][7].toString());
+          fechaActual.setDate(fechaActual.getDate() + 1);
+          while (fechaActual.getDay() === 0 || fechaActual.getDay() === 6) {
+            fechaActual.setDate(fechaActual.getDate() + 1);
+          }
+          hoja.getRange(f, 8).setValue(formatoDDMMYYYY(fechaActual));
+        }
+        SpreadsheetApp.flush();
+        return { exito: true, msj: "Registro actualizado." };
+      }
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function crearSolicitudAutorizacion(d) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let hoja = ss.getSheetByName("Autorizaciones");
+    if (!hoja) hoja = ss.insertSheet("Autorizaciones");
+    const idGen = generarIdIncremental("Autorizaciones", "AUTH");
+    hoja.appendRow([
+      idGen, d.tipo || "DUPLA", d.nivel || "GERENTE", d.ticket, d.nuco,
+      d.desc || "", d.quien, formatoDDMMYYYY(new Date()), "PENDIENTE", ""
+    ]);
+    SpreadsheetApp.flush();
+    return { exito: true, msj: "Solicitud enviada.", id: idGen };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function obtenerDatosAutorizaciones() {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: true, datos: [] };
+    const d = hoja.getDataRange().getDisplayValues();
+    if (d.length < 2) return { exito: true, datos: [] };
+    let filas = [];
+    for (let i = 1; i < d.length; i++) {
+      if (!d[i][0]) continue;
+      filas.push({ id: d[i][0], tipo: d[i][1], nivel: d[i][2], ticket: d[i][3], nuco: d[i][4], desc: d[i][5], quien: d[i][6], fecha: d[i][7], decision: d[i][8], comentario: d[i][9] });
+    }
+    return { exito: true, datos: filas };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function resolverAutorizacion(id, decision, comentario) {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString() === id.toString()) {
+        hoja.getRange(i + 1, 9).setValue(decision);
+        hoja.getRange(i + 1, 10).setValue(comentario || "");
+        SpreadsheetApp.flush();
+        return { exito: true, msj: "Decisión registrada." };
+      }
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+// ============================================================
+
 function actualizarProveedorCompleto(d) {
   try {
     const hoja  = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proveedores");
