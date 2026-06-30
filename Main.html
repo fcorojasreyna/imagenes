@@ -1432,11 +1432,16 @@
       window.catalogosGlobal = {};
 
       window.cargarCatalogos = function() {
-        google.script.run.withSuccessHandler(function(res) {
-          if (res && res.exito) {
-            window.catalogosGlobal = res.catalogos || {};
-          }
-        }).obtenerCatalogos();
+        try {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              if (res && res.exito) window.catalogosGlobal = res.catalogos || {};
+            })
+            .withFailureHandler(function(e) {
+              console.warn('Catálogos no disponibles:', e.message);
+            })
+            .obtenerCatalogos();
+        } catch(e) { console.warn('obtenerCatalogos no desplegada aún.'); }
       };
 
       window.llenarSelect = function(selectId, catalogKey) {
