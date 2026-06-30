@@ -408,7 +408,7 @@
       window.cargarDatosTaller = function() {
         google.script.run.withSuccessHandler(function(res) {
           if (res.exito) {
-            var tbody = document.getElementById('cuerpoTablaTaller'); tbody.innerHTML = '';
+            var tbody = document.getElementById('cuerpoTablaTaller'); if(!tbody) return; tbody.innerHTML = '';
             if (res.datos.length === 0) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4">No hay unidades en taller.</td></tr>'; return; }
             res.datos.forEach(function(f) {
               var badge = f.estatus === "LIBERADO" ? '<span class="badge bg-success">✅ LIBERADO</span>' : '<span class="badge bg-warning text-dark">⏳ INGRESADO</span>';
@@ -423,7 +423,7 @@
       window.cargarDatosInventario = function() {
         google.script.run.withSuccessHandler(function(res) {
           if (res.exito) {
-            var tbody = document.getElementById('cuerpoTablaInv'); tbody.innerHTML = '';
+            var tbody = document.getElementById('cuerpoTablaInv'); if(!tbody) return; tbody.innerHTML = '';
             res.datos.forEach(function(fila) {
               var badge = fila.estatus === "DISPONIBLE" ? '<span class="badge bg-success">✅ DISPONIBLE</span>' : '<span class="badge bg-danger">❌ CONSUMIDO</span>';
               var esDeOC = fila.obs && fila.obs.toUpperCase().indexOf("ALTA AUTOMÁTICA") > -1;
@@ -439,7 +439,7 @@
       window.cargarDatosConsumos = function() {
         google.script.run.withSuccessHandler(function(res) {
           if (res.exito) {
-            var tbody = document.getElementById('cuerpoTablaConsumos'); tbody.innerHTML = '';
+            var tbody = document.getElementById('cuerpoTablaConsumos'); if(!tbody) return; tbody.innerHTML = '';
             if (res.datos.length === 0) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4">No hay salidas registradas.</td></tr>'; return; }
             res.datos.forEach(function(fila) {
               var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.editarConsumoModal(\''+fila.idConsumo+'\', \''+fila.ticketNuevo+'\', \''+fila.producto+'\', \''+fila.vehiculo+'\', \''+fila.fecha+'\', \''+fila.cantidad+'\', \''+fila.costoTotal+'\')">✏️</button>';
@@ -454,7 +454,7 @@
         google.script.run.withSuccessHandler(function(res) {
           if (res.exito) {
             window.catalogoProveedoresCache = res.datos;
-            var tbody = document.getElementById('cuerpoTablaProv'); tbody.innerHTML = '';
+            var tbody = document.getElementById('cuerpoTablaProv'); if(!tbody) return; tbody.innerHTML = '';
             res.datos.forEach(function(f) {
               var btnEliminar = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'¿Eliminar?\', function(){ window.ejecutarEliminar(\'Proveedores\', \''+f.id+'\'); })">🗑️</button>';
               var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.abrirEdicionProveedorCompleta(\''+f.id+'\')">✏️</button>';

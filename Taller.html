@@ -1,47 +1,42 @@
 <div id="vistaTablaTaller" class="container-fluid p-0">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="fw-bold m-0" style="color: var(--azul);">🔧 Bitácora de Taller</h4>
-    <button class="btn text-white fw-bold px-4 shadow-sm" style="background-color: var(--dorado);" onclick="window.toggleVistaTaller('form')">
-      + Ingresar Vehículo
-    </button>
   </div>
 
   <div class="card shadow-sm border-0">
-    <div class="card-body p-4">
-
-      <div class="row mb-4 align-items-center g-2">
-        <div class="col-md-3">
-          <label class="small fw-bold text-muted mb-1">Ticket</label>
-          <input type="text" id="filtroTicketTaller" class="form-control bg-light border-0" placeholder="Ej. 1234" onkeyup="window.filtrarTablaTaller()">
+    <div class="card-body p-3">
+      <div class="row g-2 mb-3 align-items-center">
+        <div class="col-md-2">
+          <input type="text" id="filtroTicketTaller" class="form-control" placeholder="🔍 Ticket..." onkeyup="window.filtrarTablaTaller()" style="border: 2px solid #B4A169;">
         </div>
         <div class="col-md-3">
-          <label class="small fw-bold text-muted mb-1">NUCO</label>
-          <input type="text" id="filtroNucoTaller" class="form-control bg-light border-0" placeholder="Ej. 100" onkeyup="window.filtrarTablaTaller()">
+          <input type="text" id="filtroNucoTaller" class="form-control" placeholder="🔍 NUCO..." onkeyup="window.filtrarTablaTaller()" style="border: 2px solid #B4A169;">
         </div>
         <div class="col-md-3">
-          <label class="small fw-bold text-muted mb-1">Quien Registra</label>
-          <input type="text" id="filtroQuienTaller" class="form-control bg-light border-0" placeholder="Ej. JUAN PEREZ" onkeyup="window.filtrarTablaTaller()">
+          <input type="text" id="filtroQuienTaller" class="form-control" placeholder="🔍 Quien Registra..." onkeyup="window.filtrarTablaTaller()" style="border: 2px solid #B4A169;">
         </div>
-        <div class="col-md-3">
-          <label class="small fw-bold text-muted mb-1">Filtrar por Fecha</label>
-          <input type="date" id="filtroFechaTaller" class="form-control bg-light border-0" onchange="window.filtrarTablaTaller()">
+        <div class="col-md-2">
+          <input type="date" id="filtroFechaTaller" class="form-control" onchange="window.filtrarTablaTaller()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-2">
+          <button class="btn w-100 fw-bold text-white" style="background-color: var(--dorado); color: var(--azul) !important;" onclick="window.toggleVistaTaller('form')">+ Ingresar Vehículo</button>
         </div>
       </div>
 
       <div class="table-responsive">
-        <table class="table table-hover table-borderless align-middle">
-          <thead class="table-dark" style="background-color: var(--azul);">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead style="background-color: var(--azul); color: white;">
             <tr>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 0)" style="cursor:pointer;">Ticket ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 1)" style="cursor:pointer;">NUCO / Unidad ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 2)" style="cursor:pointer;">Servicio ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 3)" style="cursor:pointer;">Descripción ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 4)" style="cursor:pointer;">Proveedor ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 5)" style="cursor:pointer;">Costo Total ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 6)" style="cursor:pointer;">Estatus Unidad ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 7)" style="cursor:pointer;">Quien Registra ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 8)" style="cursor:pointer;">Fecha Ingreso ↕</th>
-              <th class="text-center">Acciones</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 0)">Ticket ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 1)">NUCO ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 2)">Servicio ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 3)">Descripción ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 4)">Proveedor ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 5)">Costo Total ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 6)">Estatus ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 7)">Quien Registra ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 8)">Fecha ↕</th>
+              <th class="text-center" style="white-space:nowrap;">Acciones</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaTaller">
@@ -54,8 +49,8 @@
 </div>
 
 <div id="vistaFormTaller" class="container-fluid p-0" style="display: none;">
-  <div class="mb-4">
-    <button class="btn btn-sm btn-outline-secondary fw-bold shadow-sm" onclick="window.toggleVistaTaller('tabla')">← Regresar a la bitácora</button>
+  <div class="mb-3">
+    <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="window.toggleVistaTaller('tabla')">← Regresar a la bitácora</button>
   </div>
 
   <div class="card shadow-sm border-0 mb-4">
@@ -64,8 +59,8 @@
     </div>
     <div class="card-body p-4 bg-white">
 
-      <h6 class="fw-bold text-secondary mb-3 border-bottom pb-2">Información Vehicular y Folios</h6>
-      <div class="row mb-4">
+      <h6 class="fw-bold text-secondary mb-3 border-bottom pb-2">Información Vehicular</h6>
+      <div class="row mb-3">
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Ticket *</label>
           <input type="text" id="ticket" class="form-control border-dark" placeholder="Ej. 1234">
@@ -75,21 +70,17 @@
           <input type="text" id="nuco" class="form-control border-primary" placeholder="Autocompleta..."
                  onblur="window.autocompletarNuco(this.value, 'taller')">
         </div>
-        <div class="col-md-3 mb-3">
+        <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Placas</label>
           <input type="text" id="placas" class="form-control bg-light" readonly>
         </div>
-        <div class="col-md-3 mb-3">
+        <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Serie</label>
           <input type="text" id="serie" class="form-control bg-light" readonly>
         </div>
-        <div class="col-md-2 mb-3">
-          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Folio CPP *</label>
-          <input type="text" id="folioCpp" class="form-control border-success" placeholder="Ej. CPP-26-01">
-        </div>
       </div>
 
-      <div class="row mb-4">
+      <div class="row mb-3">
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Línea</label>
           <input type="text" id="linea" class="form-control bg-light" readonly tabindex="-1">
@@ -109,7 +100,7 @@
       </div>
 
       <h6 class="fw-bold text-secondary mb-3 border-bottom pb-2 mt-2">Especificaciones del Servicio</h6>
-      <div class="row mb-4">
+      <div class="row mb-3">
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Odómetro Act.</label>
           <input type="text" id="odometro" class="form-control" placeholder="KM...">
@@ -149,8 +140,8 @@
         </div>
       </div>
 
-      <h6 class="fw-bold text-secondary mb-3 border-bottom pb-2 mt-2">Detalles y Costos Operativos</h6>
-      <div class="row mb-4">
+      <h6 class="fw-bold text-secondary mb-3 border-bottom pb-2 mt-2">Detalles y Costos</h6>
+      <div class="row mb-3">
         <div class="col-md-3 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Realizado Por *</label>
           <select id="proveedor" class="form-select border-primary" onchange="window.toggleCamposTaller()">
@@ -159,7 +150,6 @@
             <option value="AMBOS">AMBOS</option>
           </select>
         </div>
-
         <div class="col-md-2 mb-3" id="divInterno">
           <label class="fw-bold" style="color: var(--dorado); font-size: 0.85rem;">M. de Obra Interna</label>
           <div class="input-group">
@@ -174,24 +164,22 @@
             <input type="text" id="servExterno" class="form-control border-success" oninput="window.calcularTotalTaller()" placeholder="0.00">
           </div>
         </div>
-
         <div class="col-md-3 mb-3">
-          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Costo Total Refacciones + MO</label>
-          <div class="input-group input-group-lg">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Costo Total (MO + Refacciones)</label>
+          <div class="input-group">
             <span class="input-group-text" style="background-color: var(--azul); color: white;">$</span>
             <input type="text" id="costoTotalTaller" class="form-control bg-light fw-bold" readonly placeholder="0.00">
           </div>
         </div>
-
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Cant. Refacciones</label>
           <input type="number" id="numeroPartes" class="form-control text-center fw-bold" value="0" min="0">
         </div>
       </div>
 
-      <div class="row mb-4">
+      <div class="row mb-3">
         <div class="col-md-9 mb-3">
-          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Descripción Exacta de Actividades / Observaciones *</label>
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Descripción de Actividades / Observaciones *</label>
           <textarea id="descripcion" class="form-control" rows="2" placeholder="Describe los trabajos realizados..."></textarea>
         </div>
         <div class="col-md-3 mb-3">
@@ -205,15 +193,16 @@
         </div>
       </div>
 
-      <div class="row align-items-center mb-4">
-        <div class="col-md-4">
+      <div class="row align-items-center mb-3">
+        <div class="col-md-5">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Estatus de la Unidad *</label>
-          <select id="estatusUnidad" class="form-select border-primary shadow-sm fw-bold">
+          <select id="estatusUnidad" class="form-select border-primary fw-bold">
             <option value="INGRESADO" selected>⏳ INGRESADO A TALLER (EN PROCESO)</option>
             <option value="LIBERADO">✅ LIBERADO / TERMINADO</option>
           </select>
         </div>
         <input type="hidden" id="evidencia" value="SIN EVIDENCIA">
+        <input type="hidden" id="folioCpp" value="">
       </div>
 
       <div class="mt-4 text-end border-top pt-4">
@@ -221,7 +210,6 @@
           Guardar Registro en Bitácora
         </button>
       </div>
-
     </div>
   </div>
 </div>
