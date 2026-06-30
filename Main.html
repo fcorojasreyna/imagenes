@@ -359,12 +359,14 @@
             btn.disabled = false;
             btn.innerText = 'INGRESAR';
             if (res && res.exito) {
+              _rolActual = (res.rol || '').toUpperCase().trim();
               document.getElementById('nombreUsuarioUI').innerText = res.nombre || user;
               document.getElementById('rolUsuarioUI').innerText    = res.rol   || '';
               document.getElementById('quienRegistraGlobal').value = res.nombre || user;
               document.getElementById('correoUsuarioGlobal').value = res.correo || '';
               document.getElementById('pantalla-login').style.display  = 'none';
               document.getElementById('app-principal').style.display   = 'block';
+              window.aplicarControlRol(_rolActual);
               window.mostrarInicio(document.getElementById('btnInicio'));
             } else {
               msj.innerText = (res && res.error) ? res.error : 'Usuario o contraseña incorrectos.';
@@ -1528,6 +1530,7 @@
       // NOTIFICACIONES / AUTORIZACIONES
       // ============================================================================
       var _authActual = {}; // contexto del modal de autorización activo
+      var _rolActual  = ''; // rol del usuario logueado
 
       window.cargarDatosNotificaciones = function() {
         var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
@@ -1542,9 +1545,18 @@
             var tbM = document.getElementById('cuerpoTablaMisSolicitudes');
             if (!res.exito) return;
 
-            // --- Pendientes que debo autorizar yo ---
+            // --- Control de visibilidad por rol ---
+            var rolesQueAutorizan = ['GERENTE','SUBDIRECTORA','DIRECTORA','ADMIN'];
+            var panelPend = document.getElementById('panelPendientesAuth');
+            if (panelPend) panelPend.style.display = rolesQueAutorizan.includes(_rolActual) ? '' : 'none';
+
+            // --- Badge: pendientes para autorizadores / resueltas para ejecutivos ---
             var pendientes = (res.pendientes || []);
-            window.actualizarBadgeNotif(pendientes.length);
+            var miasBadge  = rolesQueAutorizan.includes(_rolActual)
+              ? pendientes.length
+              : (res.mias || []).filter(function(m){ return m.estado !== 'PENDIENTE'; }).length;
+            window.actualizarBadgeNotif(miasBadge);
+
             if (tbP) {
               tbP.innerHTML = '';
               if (pendientes.length === 0) {
@@ -1606,8 +1618,24 @@
       window.actualizarBadgeNotif = function(n) {
         var badge = document.getElementById('badgeNotif');
         if (!badge) return;
-        badge.innerText = n;
+        badge.innerText = n > 99 ? '99+' : n;
         badge.style.display = n > 0 ? 'inline-block' : 'none';
+      };
+
+      window.aplicarControlRol = function(rol) {
+        var todosNav = ['btnInicio','btnDash','btnInv','btnTal','btnCon','btnProv','btnCot','btnHerr','btnCron','btnNotif'];
+        if (rol === 'MECANICO') {
+          todosNav.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.style.display = (id === 'btnCron') ? '' : 'none';
+          });
+          return;
+        }
+        // Todos los demás roles ven todo el nav
+        todosNav.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.style.display = '';
+        });
       };
 
       window.abrirModalAuth = function(id, tipo, nivel, desc) {
