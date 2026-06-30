@@ -190,6 +190,7 @@
           <a class="nav-pill nav-pill-azul" id="btnCot" onclick="window.cargarModulo('Cotizador', this)">Cotizaciones / OC</a>
           <a class="nav-pill" id="btnHerr" onclick="window.cargarModulo('Herramientas', this)">Herramientas</a>
           <a class="nav-pill" id="btnCron" onclick="window.cargarModulo('Cronograma', this)">Cronograma</a>
+          <a class="nav-pill" id="btnNotif" onclick="window.cargarModulo('Notificaciones', this)">Notificaciones 🔔</a>
         </div>
 
         <div class="logo-derecho" style="display: flex; align-items: center; gap: 15px;">
@@ -431,7 +432,7 @@
               var badge = fila.estatus === "DISPONIBLE" ? '<span class="badge bg-success">✅ DISPONIBLE</span>' : '<span class="badge bg-danger">❌ CONSUMIDO</span>';
               var esDeOC = fila.obs && fila.obs.toUpperCase().indexOf("ALTA AUTOMÁTICA") > -1;
               var btnEliminar = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'¿Eliminar insumo?\', function(){ window.ejecutarEliminar(\'Inventario\', \''+fila.id+'\'); })">🗑️</button>';
-              var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.editarInvModal(\''+fila.id+'\', \''+fila.producto+'\', \''+fila.marca+'\', \''+fila.vehiculo+'\', \''+fila.cantidad+'\', \''+fila.costoTotal+'\', \''+fila.estatus+'\', \''+fila.folioCpp+'\', \''+fila.costoUnitario+'\')">✏️</button>';
+              var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.editarInvModal(\''+fila.id+'\', \''+fila.producto+'\', \''+fila.marca+'\', \''+fila.vehiculo+'\', \''+fila.cantidad+'\', \''+fila.costoTotal+'\', \''+fila.estatus+'\', \''+fila.folioCpp+'\', \''+fila.costoUnitario+'\', \''+fila.medida+'\')">✏️</button>';
               var botones = esDeOC ? '<span class="badge bg-secondary me-2" style="font-size:0.65rem;">NO EDITABLE (CREADA POR OC)</span>' + btnEliminar : btnEditar + btnEliminar;
               tbody.innerHTML += '<tr><td><b>'+fila.ticket+'</b></td><td>'+fila.folioCpp+'</td><td><b>'+fila.producto+'</b><br><small>'+fila.marca+'</small></td><td>'+fila.vehiculo+'</td><td>'+fila.cantidad+'</td><td>$'+parseFloat(fila.costoUnitario||0).toLocaleString('es-MX')+'</td><td class="fw-bold">$'+parseFloat(fila.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+badge+'</td><td>'+fila.quienRegistra+'</td><td>'+fila.fecha+'</td><td class="text-center">'+botones+'</td></tr>';
             });
@@ -823,17 +824,21 @@
       };
 
       // MODAL INVENTARIO MANUAL
-      window.editarInvModal = function(id, prod, marca, veh, cant, costot, estatus, fcpp, costou) {
-        document.getElementById("tituloEdicionDinamica").innerText = "Editar Insumo Manual: " + id;
+      window.editarInvModal = function(id, prod, marca, veh, cant, costot, estatus, fcpp, costou, medida) {
+        document.getElementById("tituloEdicionDinamica").innerText = "Editar Insumo: " + id;
         var sDisp = estatus.includes('DISPONIBLE') ? 'selected' : ''; var sCons = estatus.includes('CONSUMIDO') ? 'selected' : '';
-        var formEdicion = '<div class="row">'+
-          '<div class="col-md-4 mb-3"><label class="small fw-bold">Producto</label><input type="text" id="edInvProd" class="form-control" value="'+prod+'"></div>'+
-          '<div class="col-md-4 mb-3"><label class="small fw-bold">Marca</label><input type="text" id="edInvMarca" class="form-control" value="'+marca+'"></div>'+
-          '<div class="col-md-4 mb-3"><label class="small fw-bold">Vehículo</label><input type="text" id="edInvVeh" class="form-control" value="'+veh+'"></div>'+
-          '<div class="col-md-3 mb-3"><label class="small fw-bold">Cantidad</label><input type="number" id="edInvCant" class="form-control" value="'+cant+'" oninput="window.recalcularCostoUnitarioInvModal()"></div>'+
-          '<div class="col-md-4 mb-3"><label class="small fw-bold">Costo Total</label><div class="input-group"><span class="input-group-text">$</span><input type="text" id="edInvCostot" class="form-control" value="'+costot+'" oninput="window.recalcularCostoUnitarioInvModal()"></div></div>'+
-          '<div class="col-md-3 mb-3"><label class="small fw-bold text-muted">Costo Unitario (Calculado)</label><div class="input-group"><span class="input-group-text">$</span><input type="text" id="edInvCostou" class="form-control bg-light fw-bold" readonly value="'+window.sanitizarNumero(costou).toFixed(2)+'"></div></div>'+
-          '<div class="col-md-2 mb-3"><label class="small fw-bold">Estatus</label><select id="edInvEstatus" class="form-select"><option value="DISPONIBLE" '+sDisp+'>DISPONIBLE</option><option value="CONSUMIDO" '+sCons+'>CONSUMIDO</option></select></div>'+
+        var umOpts = ['PZA','LTS','KG','MTR','JGO','SRV','CJA','PAR','RLL','GAL'].map(function(u){ return '<option value="'+u+'"'+(medida===u?' selected':'')+'>'+u+'</option>'; }).join('');
+        var formEdicion =
+          '<div class="row g-3">'+
+            '<div class="col-md-5"><label class="form-label small fw-bold" style="color:var(--azul);">Producto *</label><input type="text" id="edInvProd" class="form-control" value="'+prod+'"></div>'+
+            '<div class="col-md-4"><label class="form-label small fw-bold" style="color:var(--azul);">Marca</label><input type="text" id="edInvMarca" class="form-control" value="'+marca+'"></div>'+
+            '<div class="col-md-3"><label class="form-label small fw-bold" style="color:var(--azul);">Unidad (UM)</label><select id="edInvMedida" class="form-select">'+umOpts+'</select></div>'+
+            '<div class="col-md-12"><label class="form-label small fw-bold" style="color:var(--azul);">Vehículo</label><input type="text" id="edInvVeh" class="form-control" value="'+veh+'"></div>'+
+            '<div class="col-12"><hr class="my-1"></div>'+
+            '<div class="col-md-3"><label class="form-label small fw-bold" style="color:var(--azul);">Cantidad</label><input type="number" id="edInvCant" class="form-control" value="'+cant+'" oninput="window.recalcularCostoUnitarioInvModal()"></div>'+
+            '<div class="col-md-4"><label class="form-label small fw-bold" style="color:var(--azul);">Costo Total</label><div class="input-group"><span class="input-group-text bg-white">$</span><input type="text" id="edInvCostot" class="form-control" value="'+costot+'" oninput="window.recalcularCostoUnitarioInvModal()"></div></div>'+
+            '<div class="col-md-3"><label class="form-label small fw-bold text-muted">Costo Unitario</label><div class="input-group"><span class="input-group-text bg-light">$</span><input type="text" id="edInvCostou" class="form-control bg-light fw-bold" readonly value="'+window.sanitizarNumero(costou).toFixed(2)+'"></div></div>'+
+            '<div class="col-md-2"><label class="form-label small fw-bold" style="color:var(--azul);">Estatus</label><select id="edInvEstatus" class="form-select"><option value="DISPONIBLE" '+sDisp+'>✅ DISPONIBLE</option><option value="CONSUMIDO" '+sCons+'>❌ CONSUMIDO</option></select></div>'+
           '</div>';
         var edDin2 = document.getElementById("cuerpoEdicionDinamica"); if(!edDin2) return; edDin2.innerHTML = formEdicion;
 
@@ -845,7 +850,7 @@
 
         var btnGuardar = document.getElementById("btnGuardarEdicionDinamica");
         btnGuardar.onclick = function() {
-          var obj = { id: id, producto: document.getElementById("edInvProd").value.toUpperCase(), marca: document.getElementById("edInvMarca").value.toUpperCase(), vehiculo: document.getElementById("edInvVeh").value.toUpperCase(), cantidad: window.sanitizarNumero(document.getElementById("edInvCant").value), costoTotal: window.sanitizarNumero(document.getElementById("edInvCostot").value), estatus: document.getElementById("edInvEstatus").value, obsTicket: "MODIFICADO" };
+          var obj = { id: id, producto: document.getElementById("edInvProd").value.toUpperCase(), marca: document.getElementById("edInvMarca").value.toUpperCase(), vehiculo: document.getElementById("edInvVeh").value.toUpperCase(), medida: document.getElementById("edInvMedida").value, cantidad: window.sanitizarNumero(document.getElementById("edInvCant").value), costoTotal: window.sanitizarNumero(document.getElementById("edInvCostot").value), estatus: document.getElementById("edInvEstatus").value, obsTicket: "MODIFICADO" };
           obj.costoUnitario = obj.cantidad > 0 ? (obj.costoTotal / obj.cantidad) : 0;
           btnGuardar.disabled = true; btnGuardar.innerText = "Guardando...";
           google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r.msj || r); bootstrap.Modal.getInstance(document.getElementById('modalEdicionDinamica')).hide(); window.cargarDatosInventario(); btnGuardar.disabled = false; btnGuardar.innerText = "Guardar Cambios"; }).actualizarFilaInventarioBackend(obj);
