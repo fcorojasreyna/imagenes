@@ -1,38 +1,46 @@
 <div id="vistaTablaOC" class="container-fluid p-0">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold m-0" style="color: var(--azul);">Historial de Cotizaciones y Órdenes de Compra</h4>
-    <button class="btn text-dark fw-bold px-4 shadow-sm" style="background-color: var(--dorado);" onclick="window.toggleVistaOC('form')">
-      + Nueva Cotización / OC
-    </button>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold m-0" style="color: var(--azul);">📄 Historial de Cotizaciones y Órdenes de Compra</h4>
   </div>
 
   <div class="card shadow-sm border-0">
-    <div class="card-body p-4">
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <label class="small fw-bold text-muted mb-1">Buscar por Ticket</label>
-          <input type="text" id="filtroTicket" class="form-control bg-light border-0" placeholder="Ej. 1235" onkeyup="window.filtrarTablaOC()">
+    <div class="card-body p-3">
+      <div class="row g-2 mb-3 align-items-center">
+        <div class="col-md-2">
+          <input type="text" id="filtroTicketOC" class="form-control" placeholder="🔍 Ticket..." onkeyup="window.filtrarTablaOC()" style="border: 2px solid #B4A169;">
         </div>
-        <div class="col-md-6">
-          <label class="small fw-bold text-muted mb-1">Buscar por NUCO</label>
-          <input type="text" id="filtroNuco" class="form-control bg-light border-0" placeholder="Ej. 100" onkeyup="window.filtrarTablaOC()">
+        <div class="col-md-2">
+          <input type="text" id="filtroNucoOC" class="form-control" placeholder="🔍 NUCO..." onkeyup="window.filtrarTablaOC()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="filtroProvOC" class="form-control" placeholder="🔍 Proveedor / RS..." onkeyup="window.filtrarTablaOC()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-2">
+          <input type="text" id="filtroQuienOC" class="form-control" placeholder="🔍 Quien Registra..." onkeyup="window.filtrarTablaOC()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-1">
+          <input type="date" id="filtroFechaOC" class="form-control" onchange="window.filtrarTablaOC()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-2">
+          <button class="btn w-100 fw-bold text-white" style="background-color: var(--dorado); color: var(--azul) !important;" onclick="window.toggleVistaOC('form')">+ Nueva Cotización / OC</button>
         </div>
       </div>
 
       <div class="table-responsive">
-        <table class="table table-hover table-borderless align-middle">
-          <thead class="table-light" style="border-bottom: 2px solid var(--dorado);">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead style="background-color: var(--azul); color: white;">
             <tr>
-              <th style="color: var(--azul);">Folio OC</th>
-              <th style="color: var(--azul);">Ticket Base</th>
-              <th style="color: var(--azul);">NUCO</th>
-              <th style="color: var(--azul);">Razón Social Compra</th>
-              <th style="color: var(--azul);">Fecha Registro</th>
-              <th style="color: var(--azul); text-align: center;">Formatos PDF</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaOC', 0)">Folio OC ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaOC', 1)">Ticket ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaOC', 2)">NUCO ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaOC', 3)">Razón Social ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaOC', 4)">Fecha ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaOC', 5)">Quien Registró ↕</th>
+              <th class="text-center" style="white-space:nowrap;">Formatos PDF</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaOC">
-            <tr><td colspan="6" class="text-center py-4 text-muted">Cargando bitácora central...</td></tr>
+            <tr><td colspan="7" class="text-center py-4 text-muted">Cargando bitácora central...</td></tr>
           </tbody>
         </table>
       </div>
@@ -212,13 +220,12 @@
     <div class="card-body p-4">
       <div class="row mb-3">
         <div class="col-md-8">
-          <input type="text" id="buscadorProvCotizador" list="datalistProveedores" class="form-control"
-                 placeholder="Escribe el nombre o RFC del proveedor y selecciónalo...">
-          <datalist id="datalistProveedores"></datalist>
+          <button class="btn w-100 fw-bold text-white" style="background-color: var(--azul);"
+                  onclick="window.abrirModalBuscadorProv()">🔍 Buscar y Agregar Proveedor al Concurso</button>
         </div>
         <div class="col-md-4">
           <button class="btn text-white w-100 fw-bold" style="background-color: var(--dorado);"
-                  onclick="window.agregarProvAConcurso()">+ Agregar a la Lista</button>
+                  onclick="window.agregarProvAConcurso()">+ Agregar Seleccionado</button>
         </div>
       </div>
 
@@ -246,8 +253,42 @@
       <button id="btnGOC" class="btn text-white fw-bold py-3 shadow-lg"
               style="background-color: var(--azul); font-size: 1.15rem; width: 60%; border-radius: 8px;"
               onclick="window.procesarOC()">
-        ✅ Registrar Cotización y Generar PDFs
+        Registrar Cotización y Generar PDFs
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Buscador de Proveedores -->
+<div class="modal fade" id="modalBuscadorProv" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="background-color: var(--azul); color: white;">
+        <h5 class="modal-title fw-bold">Buscar Proveedor</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <input type="text" id="buscadorModalProv" class="form-control mb-3"
+               placeholder="🔍 Buscar por nombre, RFC o contacto..."
+               style="border: 2px solid #B4A169;"
+               onkeyup="window.renderizarTablaModalProv(this.value)">
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+          <table class="table table-hover table-sm align-middle mb-0">
+            <thead style="background-color: var(--azul); color: white; position: sticky; top: 0;">
+              <tr>
+                <th>Proveedor</th>
+                <th>Razón Social</th>
+                <th>RFC</th>
+                <th>Contacto</th>
+                <th class="text-center">Seleccionar</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoModalProv">
+              <tr><td colspan="5" class="text-center py-3 text-muted">Cargando proveedores...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>

@@ -1,93 +1,152 @@
-<style>
-  .card-modulo { border-radius: 10px; padding: 25px; background: white; border-top: 5px solid #B4A169; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-  .seccion-titulo { font-weight: bold; color: #1E252B; border-bottom: 2px solid #f0f0f0; margin: 20px 0 10px 0; padding-bottom: 5px;}
-  .btn-guardar { background: #1E252B; color: white; width: 100%; padding: 12px; font-weight: bold; border: none; border-radius: 5px; transition: 0.3s; margin-top: 15px;}
-  .btn-guardar:hover { background: #B4A169; color: #1E252B; }
-  .btn-accion { background: #B4A169; color: #1E252B; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; width: 100%;}
-  .tabla-container { max-height: 450px; overflow-y: auto; margin-top: 20px; border: 1px solid #eee; border-radius: 5px;}
-  .table thead th { background-color: #1E252B; color: white; position: sticky; top: 0;}
-  input[type="text"] { text-transform: uppercase; }
-</style>
-
-<div id="vistaTablaProv" class="card-modulo">
-  <div class="row align-items-center mb-4">
-    <div class="col-md-8 mb-2">
-      <input type="text" id="buscadorProv" class="form-control" placeholder="🔍 Buscar Proveedor o RFC..."
-             onkeyup="window.filtrarTablaProv()" style="border: 2px solid #B4A169;">
-    </div>
-    <div class="col-md-4 mb-2">
-      <button class="btn-accion" onclick="window.toggleVistaProv('form')">+ Nuevo Proveedor</button>
-    </div>
+<div id="vistaTablaProv" class="container-fluid p-0">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold m-0" style="color: var(--azul);">🏢 Catálogo de Proveedores</h4>
   </div>
-  <div class="tabla-container">
-    <table class="table table-hover align-middle table-sm" id="tablaProv">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Proveedor</th>
-          <th>Razón Social</th>
-          <th>RFC</th>
-          <th>Contacto</th>
-          <th>Teléfono</th>
-          <th class="text-center">Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="cuerpoTablaProv">
-        <tr><td colspan="7" class="text-center py-4">Cargando proveedores...</td></tr>
-      </tbody>
-    </table>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-3">
+      <div class="row g-2 mb-3 align-items-center">
+        <div class="col-md-3">
+          <input type="text" id="filtroNombreProv" class="form-control" placeholder="🔍 Proveedor..." onkeyup="window.filtrarTablaProv()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="filtroRSProv" class="form-control" placeholder="🔍 Razón Social / RFC..." onkeyup="window.filtrarTablaProv()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-2">
+          <input type="text" id="filtroContactoProv" class="form-control" placeholder="🔍 Contacto..." onkeyup="window.filtrarTablaProv()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-2">
+          <input type="text" id="filtroQuienProv" class="form-control" placeholder="🔍 Quien Registra..." onkeyup="window.filtrarTablaProv()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-2">
+          <button class="btn w-100 fw-bold text-white" style="background-color: var(--dorado); color: var(--azul) !important;" onclick="window.toggleVistaProv('form')">+ Nuevo Proveedor</button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0" id="tablaProv">
+          <thead style="background-color: var(--azul); color: white;">
+            <tr>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaProv', 0)">ID ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaProv', 1)">Proveedor ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaProv', 2)">Razón Social ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaProv', 3)">RFC ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaProv', 4)">Contacto ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaProv', 5)">Teléfono ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaProv', 6)">Quien Registró ↕</th>
+              <th class="text-center" style="white-space:nowrap;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaProv">
+            <tr><td colspan="8" class="text-center py-4 text-muted">Cargando proveedores...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
-<div id="vistaFormProv" class="card-modulo" style="display: none;">
-  <button class="btn btn-sm mb-3" style="background:#eee; font-weight:bold;" onclick="window.toggleVistaProv('tabla')">← Regresar a la lista</button>
-  <h3 class="text-center" style="color: #1E252B;">Registro de Proveedor</h3>
-
-  <div class="row">
-    <div class="col-md-6 mb-3"><label>Proveedor (Nombre Comercial) *</label><input type="text" id="p_proveedor" class="form-control"></div>
-    <div class="col-md-6 mb-3"><label>Razón Social *</label><input type="text" id="p_razonsocial" class="form-control"></div>
-  </div>
-  <div class="row">
-    <div class="col-md-4 mb-3"><label>RFC</label><input type="text" id="p_rfc" class="form-control"></div>
-    <div class="col-md-4 mb-3"><label>Estado</label><input type="text" id="p_estado" class="form-control"></div>
-    <div class="col-md-4 mb-3"><label>Dirección</label><input type="text" id="p_direccion" class="form-control"></div>
-  </div>
-  <div class="row">
-    <div class="col-md-4 mb-3"><label>Nombre del Contacto</label><input type="text" id="p_contacto" class="form-control"></div>
-    <div class="col-md-4 mb-3"><label>Número de Contacto</label><input type="text" id="p_numero" class="form-control"></div>
-    <div class="col-md-4 mb-3"><label>Correo Electrónico</label><input type="email" id="p_correo" class="form-control" style="text-transform:lowercase;"></div>
-  </div>
-  <div class="row">
-    <div class="col-md-6 mb-3"><label>Segmentación de Servicio</label><input type="text" id="p_segmentacion" class="form-control"></div>
-    <div class="col-md-6 mb-3"><label>Servicio</label><input type="text" id="p_servicio" class="form-control"></div>
-  </div>
-  <div class="row">
-    <div class="col-md-4 mb-3"><label>Días de Crédito</label><input type="number" id="p_diascredito" class="form-control"></div>
-    <div class="col-md-4 mb-3"><label>Total de Crédito</label><input type="number" id="p_totalcredito" class="form-control"></div>
-    <div class="col-md-4 mb-3"><label>Razones Sociales Compatibles</label><input type="text" id="p_razonessociales" class="form-control" placeholder="EJ. CIB, FRO..."></div>
-  </div>
-  <div class="row">
-    <div class="col-md-6 mb-3">
-      <label>Régimen Fiscal</label>
-      <select id="p_regimenfiscal" class="form-select">
-        <option value="">-- Selecciona --</option>
-        <option value="GENERAL DE LEY PM">GENERAL DE LEY PM (601)</option>
-        <option value="RESICO PM">RESICO PM (626)</option>
-        <option value="GENERAL DE LEY PF">GENERAL DE LEY PF</option>
-        <option value="RESICO PF">RESICO PF (625)</option>
-        <option value="ACTIVIDAD EMPRESARIAL PF">ACTIVIDAD EMPRESARIAL PF (612)</option>
-        <option value="SIN OBLIGACIONES FISCALES">SIN OBLIGACIONES FISCALES (616)</option>
-      </select>
-    </div>
-    <div class="col-md-6 mb-3">
-      <label>¿Acepta Intercambio 2?</label>
-      <select id="p_intercambio2" class="form-select">
-        <option value="NO">NO</option>
-        <option value="SI">SÍ</option>
-      </select>
-    </div>
+<div id="vistaFormProv" class="container-fluid p-0" style="display: none;">
+  <div class="mb-3">
+    <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="window.toggleVistaProv('tabla')">← Regresar a la lista</button>
   </div>
 
-  <button type="button" class="btn-guardar" id="btnGP" onclick="window.guardarProveedor()">Guardar Proveedor</button>
-  <div id="msjProv" class="mt-3 text-center fw-bold"></div>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3" style="border-bottom: 3px solid var(--dorado);">
+      <h4 class="m-0 fw-bold text-center" style="color: var(--azul);">Registro de Proveedor</h4>
+    </div>
+    <div class="card-body bg-white p-4">
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Proveedor (Nombre Comercial) *</label>
+          <input type="text" id="p_proveedor" class="form-control" style="text-transform:uppercase;">
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Razón Social *</label>
+          <input type="text" id="p_razonsocial" class="form-control" style="text-transform:uppercase;">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">RFC</label>
+          <input type="text" id="p_rfc" class="form-control" style="text-transform:uppercase;">
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Estado</label>
+          <input type="text" id="p_estado" class="form-control" style="text-transform:uppercase;">
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Dirección</label>
+          <input type="text" id="p_direccion" class="form-control" style="text-transform:uppercase;">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Nombre del Contacto</label>
+          <input type="text" id="p_contacto" class="form-control" style="text-transform:uppercase;">
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Número de Contacto</label>
+          <input type="text" id="p_numero" class="form-control">
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Correo Electrónico</label>
+          <input type="email" id="p_correo" class="form-control" style="text-transform:lowercase;">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Segmentación de Servicio</label>
+          <input type="text" id="p_segmentacion" class="form-control" style="text-transform:uppercase;">
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Servicio</label>
+          <input type="text" id="p_servicio" class="form-control" style="text-transform:uppercase;">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Días de Crédito</label>
+          <input type="number" id="p_diascredito" class="form-control">
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Total de Crédito</label>
+          <input type="number" id="p_totalcredito" class="form-control">
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Razones Sociales Compatibles</label>
+          <input type="text" id="p_razonessociales" class="form-control" placeholder="EJ. CIB, FRO..." style="text-transform:uppercase;">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Régimen Fiscal</label>
+          <select id="p_regimenfiscal" class="form-select">
+            <option value="">-- Selecciona --</option>
+            <option value="GENERAL DE LEY PM">GENERAL DE LEY PM (601)</option>
+            <option value="RESICO PM">RESICO PM (626)</option>
+            <option value="GENERAL DE LEY PF">GENERAL DE LEY PF</option>
+            <option value="RESICO PF">RESICO PF (625)</option>
+            <option value="ACTIVIDAD EMPRESARIAL PF">ACTIVIDAD EMPRESARIAL PF (612)</option>
+            <option value="SIN OBLIGACIONES FISCALES">SIN OBLIGACIONES FISCALES (616)</option>
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted" style="font-size: 0.85rem;">¿Acepta Intercambio 2?</label>
+          <select id="p_intercambio2" class="form-select">
+            <option value="NO">NO</option>
+            <option value="SI">SÍ</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-4 text-center">
+        <button type="button" class="btn text-white fw-bold py-3 shadow-sm w-100" id="btnGP"
+                style="background-color: var(--azul); font-size: 1.1rem; border-radius: 6px;"
+                onclick="window.guardarProveedor()">Guardar Proveedor</button>
+      </div>
+      <div id="msjProv" class="mt-3 text-center fw-bold"></div>
+    </div>
+  </div>
 </div>
