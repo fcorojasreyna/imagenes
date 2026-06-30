@@ -126,7 +126,7 @@
         </div>
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Ejecutivo</label>
-          <input type="text" id="cron_ejecutivo" class="form-control" style="text-transform:uppercase;">
+          <input type="text" id="cron_ejecutivo" class="form-control bg-light" readonly>
         </div>
       </div>
 
@@ -142,12 +142,12 @@
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">
             Mecánico 2
-            <span class="text-muted fw-normal" style="font-size:0.75rem;">(requiere autorización)</span>
+            <span class="badge bg-secondary fw-normal ms-1" style="font-size:0.7rem;">Asignado aleatoriamente</span>
           </label>
-          <input type="text" id="cron_mecanico2" class="form-control" placeholder="Nombre del 2° mecánico..." style="text-transform:uppercase;">
+          <input type="text" id="cron_mecanico2" class="form-control bg-light" readonly placeholder="Sin solicitar...">
         </div>
         <div class="col-md-3 mb-3">
-          <button type="button" class="btn w-100 fw-bold text-white py-2" style="background-color: var(--dorado);" onclick="window.solicitarDupla()">
+          <button type="button" id="btnSolicitarDuplaCron" data-activo="no" class="btn w-100 fw-bold text-white py-2" style="background-color: var(--dorado);" onclick="window.solicitarDupla()">
             👥 Solicitar Dupla
           </button>
         </div>

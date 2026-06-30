@@ -178,19 +178,11 @@
       </div>
 
       <div class="row mb-3">
-        <div class="col-md-9 mb-3">
+        <div class="col-md-12 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Descripción de Actividades / Observaciones *</label>
           <textarea id="descripcion" class="form-control" rows="2" placeholder="Describe los trabajos realizados..."></textarea>
         </div>
-        <div class="col-md-3 mb-3">
-          <label class="fw-bold text-danger" style="font-size: 0.85rem;">Alerta del Ticket</label>
-          <select id="alertaTicket" class="form-select border-danger">
-            <option value="SIN ALERTA">SIN ALERTA</option>
-            <option value="RETRABAJO">RETRABAJO</option>
-            <option value="GARANTIA">GARANTÍA</option>
-            <option value="NEGLIGENCIA">NEGLIGENCIA</option>
-          </select>
-        </div>
+        <input type="hidden" id="alertaTicket" value="TICKET NUEVO">
       </div>
 
       <div class="row align-items-center mb-3">

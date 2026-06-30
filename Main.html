@@ -416,7 +416,7 @@
             res.datos.forEach(function(f) {
               var badge = f.estatus === "LIBERADO" ? '<span class="badge bg-success">✅ LIBERADO</span>' : '<span class="badge bg-warning text-dark">⏳ INGRESADO</span>';
               var btnEliminar = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'¿Eliminar de forma permanente?\', function(){ window.ejecutarEliminar(\'Taller\', \''+f.idTaller+'\'); })">🗑️</button>';
-              var btnEditar = "<button class='btn btn-sm btn-outline-primary me-1 border-0' onclick='event.stopPropagation(); window.editarTallerModal(\""+f.idTaller+"\",\""+f.ticket+"\",\""+f.nuco+"\",\""+f.folioCpp+"\",\""+f.alertaTicket+"\",\""+f.serie+"\",\""+f.odometro+"\",\""+f.fechaServicio+"\",\""+f.tipoServicio+"\",\""+f.familia+"\",\""+f.numeroPartes+"\",\""+f.proveedor+"\",\""+f.descripcion+"\",\""+f.servInterno+"\",\""+f.servExterno+"\",\""+f.costoTotal+"\",\""+f.estatus+"\")'>✏️</button>";
+              var btnEditar = "<button class='btn btn-sm btn-outline-primary me-1 border-0' onclick='event.stopPropagation(); window.editarTallerModal(\""+f.idTaller+"\",\""+f.ticket+"\",\""+f.nuco+"\",\""+f.folioCpp+"\",\""+f.alertaTicket+"\",\""+f.serie+"\",\""+f.odometro+"\",\""+f.fechaServicio+"\",\""+f.tipoServicio+"\",\""+f.familia+"\",\""+f.numeroPartes+"\",\""+f.proveedor+"\",\""+f.descripcion+"\",\""+f.servInterno+"\",\""+f.servExterno+"\",\""+f.costoTotal+"\",\""+f.estatus+"\",\""+(f.linea||'')+"\",\""+(f.modelo||'')+"\",\""+(f.sede||'')+"\",\""+(f.oficina||'')+"\",\""+(f.departamento||'')+"\",\""+(f.placas||'')+"\")'>✏️</button>";
               tbody.innerHTML += '<tr><td>'+f.ticket+'</td><td><b>'+f.nuco+'</b><br><button class="btn btn-sm btn-link p-0 text-decoration-none fw-bold" style="color:var(--dorado); font-size:0.75rem;" onclick="window.verHistorial(\''+f.nuco+'\')">⏳ Historial</button></td><td>'+f.tipoServicio+'</td><td>'+f.descripcion+'</td><td>'+f.proveedor+'</td><td class="fw-bold text-dark">$'+parseFloat(f.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+badge+'</td><td>'+f.quienRegistra+'</td><td>'+f.fecha+'</td><td class="text-center">'+btnEditar+btnEliminar+'</td></tr>';
             });
           }
@@ -729,7 +729,7 @@
       // ============================================================================
 
       // MODAL TALLER
-      window.editarTallerModal = function(id, ticket, nuco, folioCpp, alertaTicket, serie, odo, fServ, tipoSer, fam, numPartes, prov, desc, sInt, sExt, costT, est) {
+      window.editarTallerModal = function(id, ticket, nuco, folioCpp, alertaTicket, serie, odo, fServ, tipoSer, fam, numPartes, prov, desc, sInt, sExt, costT, est, linea, modelo, sede, oficina, departamento, placas) {
         document.getElementById("tituloEdicionDinamica").innerText = "Modificar Registro de Taller: " + id;
 
         var selectTipo = '<select id="edTalTipo" class="form-select">'+
@@ -757,12 +757,16 @@
           '<option value="LIBERADO" '+(est==='LIBERADO'?'selected':'')+'>✅ LIBERADO</option></select>';
 
         var html = '<div class="row">'+
-          '<div class="col-md-4 mb-3"><label class="small fw-bold text-danger">Ticket (Bloqueado)</label><input type="text" class="form-control bg-light fw-bold" readonly value="'+ticket+'"></div>'+
-          '<div class="col-md-4 mb-3"><label class="small fw-bold text-danger">NUCO (Bloqueado)</label><input type="text" class="form-control bg-light fw-bold" readonly value="'+nuco+'"></div>'+
-          '<div class="col-md-4 mb-3"><label class="small fw-bold text-danger">Folio CPP (Bloqueado)</label><input type="text" class="form-control bg-light fw-bold" readonly value="'+folioCpp+'"></div>'+
-          '<div class="col-md-4 mb-3"><label class="small fw-bold">Alerta Ticket</label><input type="text" id="edTalAlerta" class="form-control" value="'+alertaTicket+'"></div>'+
-          '<div class="col-md-4 mb-3"><label class="small fw-bold text-danger">Serie (Bloqueado)</label><input type="text" class="form-control bg-light" readonly value="'+serie+'"></div>'+
-          '<div class="col-md-4 mb-3"><label class="small fw-bold">Odómetro</label><input type="text" id="edTalOdo" class="form-control" value="'+odo+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold text-danger">Ticket (Bloqueado)</label><input type="text" class="form-control bg-light fw-bold" readonly value="'+ticket+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold text-danger">NUCO (Bloqueado)</label><input type="text" class="form-control bg-light fw-bold" readonly value="'+nuco+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold text-danger">Placas (Bloqueado)</label><input type="text" class="form-control bg-light" readonly value="'+(placas||'')+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold text-danger">Serie (Bloqueado)</label><input type="text" class="form-control bg-light" readonly value="'+serie+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold text-danger">Línea (Bloqueado)</label><input type="text" class="form-control bg-light" readonly value="'+(linea||'')+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold text-danger">Modelo (Bloqueado)</label><input type="text" class="form-control bg-light" readonly value="'+(modelo||'')+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold text-danger">Sede (Bloqueado)</label><input type="text" class="form-control bg-light" readonly value="'+(sede||'')+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold text-danger">Oficina (Bloqueado)</label><input type="text" class="form-control bg-light" readonly value="'+(oficina||'')+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold text-danger">Departamento (Bloqueado)</label><input type="text" class="form-control bg-light" readonly value="'+(departamento||'')+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold">Odómetro</label><input type="text" id="edTalOdo" class="form-control" value="'+odo+'"></div>'+
           '<div class="col-md-6 mb-3"><label class="small fw-bold">Fecha Servicio</label><input type="date" id="edTalFecha" class="form-control" value="'+(fServ?fServ.split('/').reverse().join('-'):'')+'"></div>'+
           '<div class="col-md-6 mb-3"><label class="small fw-bold">Tipo de Servicio</label>'+selectTipo+'</div>'+
           '<div class="col-md-6 mb-3"><label class="small fw-bold">Familia</label>'+selectFam+'</div>'+
@@ -772,6 +776,7 @@
           '<div class="col-md-4 mb-3"><label class="small fw-bold text-muted">Costo Total (Calculado)</label><input type="text" id="edTalCostT" class="form-control bg-light fw-bold text-dark" readonly value="' + window.sanitizarNumero(costT).toFixed(2) + '"></div>'+
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Cant. Partes</label><input type="number" id="edTalPartes" class="form-control" value="'+numPartes+'"></div>'+
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Estatus Unidad</label>'+selectEst+'</div>'+
+          (alertaTicket === 'TICKET DUPLICADO' ? '<div class="col-md-4 mb-3"><label class="small fw-bold text-danger">⚠️ Alerta</label><input type="text" class="form-control bg-light fw-bold text-danger" readonly value="TICKET DUPLICADO"></div>' : '')+
           '<div class="col-md-12 mb-3"><label class="small fw-bold">Descripción de Actividades</label><textarea id="edTalDesc" class="form-control" rows="2">'+desc+'</textarea></div>'+
           '</div>';
 
@@ -789,7 +794,6 @@
           btn.disabled = true; btn.innerText = "Guardando...";
           var obj = {
             id:           id,
-            alertaTicket: document.getElementById("edTalAlerta").value,
             odometro:     document.getElementById("edTalOdo").value,
             fechaServ:    document.getElementById("edTalFecha").value,
             tipoServicio: document.getElementById("edTalTipo").value,
@@ -822,11 +826,26 @@
       window.editarInvModal = function(id, prod, marca, veh, cant, costot, estatus, fcpp, costou) {
         document.getElementById("tituloEdicionDinamica").innerText = "Editar Insumo Manual: " + id;
         var sDisp = estatus.includes('DISPONIBLE') ? 'selected' : ''; var sCons = estatus.includes('CONSUMIDO') ? 'selected' : '';
-        var formEdicion = '<div class="row"><div class="col-md-6 mb-3"><label class="small fw-bold">Producto</label><input type="text" id="edInvProd" class="form-control" value="'+prod+'"></div><div class="col-md-6 mb-3"><label class="small fw-bold">Marca</label><input type="text" id="edInvMarca" class="form-control" value="'+marca+'"></div><div class="col-md-6 mb-3"><label class="small fw-bold">Folio CPP</label><input type="text" id="edInvFcpp" class="form-control" value="'+fcpp+'"></div><div class="col-md-6 mb-3"><label class="small fw-bold">Cantidad</label><input type="number" id="edInvCant" class="form-control" value="'+cant+'" oninput="document.getElementById(\'edInvCostot\').value = (this.value * '+costou+').toFixed(2)"></div><div class="col-md-6 mb-3"><label class="small fw-bold">Costo Total</label><div class="input-group"><span class="input-group-text">$</span><input type="text" id="edInvCostot" class="form-control" value="'+costot+'"></div></div><div class="col-md-6 mb-3"><label class="small fw-bold">Estatus</label><select id="edInvEstatus" class="form-select"><option value="DISPONIBLE" '+sDisp+'>DISPONIBLE</option><option value="CONSUMIDO" '+sCons+'>CONSUMIDO</option></select></div></div>';
+        var formEdicion = '<div class="row">'+
+          '<div class="col-md-4 mb-3"><label class="small fw-bold">Producto</label><input type="text" id="edInvProd" class="form-control" value="'+prod+'"></div>'+
+          '<div class="col-md-4 mb-3"><label class="small fw-bold">Marca</label><input type="text" id="edInvMarca" class="form-control" value="'+marca+'"></div>'+
+          '<div class="col-md-4 mb-3"><label class="small fw-bold">Vehículo</label><input type="text" id="edInvVeh" class="form-control" value="'+veh+'"></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold">Cantidad</label><input type="number" id="edInvCant" class="form-control" value="'+cant+'" oninput="window.recalcularCostoUnitarioInvModal()"></div>'+
+          '<div class="col-md-4 mb-3"><label class="small fw-bold">Costo Total</label><div class="input-group"><span class="input-group-text">$</span><input type="text" id="edInvCostot" class="form-control" value="'+costot+'" oninput="window.recalcularCostoUnitarioInvModal()"></div></div>'+
+          '<div class="col-md-3 mb-3"><label class="small fw-bold text-muted">Costo Unitario (Calculado)</label><div class="input-group"><span class="input-group-text">$</span><input type="text" id="edInvCostou" class="form-control bg-light fw-bold" readonly value="'+window.sanitizarNumero(costou).toFixed(2)+'"></div></div>'+
+          '<div class="col-md-2 mb-3"><label class="small fw-bold">Estatus</label><select id="edInvEstatus" class="form-select"><option value="DISPONIBLE" '+sDisp+'>DISPONIBLE</option><option value="CONSUMIDO" '+sCons+'>CONSUMIDO</option></select></div>'+
+          '</div>';
         var edDin2 = document.getElementById("cuerpoEdicionDinamica"); if(!edDin2) return; edDin2.innerHTML = formEdicion;
+
+        window.recalcularCostoUnitarioInvModal = function() {
+          var c = window.sanitizarNumero(document.getElementById("edInvCant").value);
+          var ct = window.sanitizarNumero(document.getElementById("edInvCostot").value);
+          document.getElementById("edInvCostou").value = (c > 0 ? (ct / c) : 0).toFixed(2);
+        };
+
         var btnGuardar = document.getElementById("btnGuardarEdicionDinamica");
         btnGuardar.onclick = function() {
-          var obj = { id: id, producto: document.getElementById("edInvProd").value.toUpperCase(), marca: document.getElementById("edInvMarca").value.toUpperCase(), folioCpp: document.getElementById("edInvFcpp").value.toUpperCase(), cantidad: window.sanitizarNumero(document.getElementById("edInvCant").value), costoTotal: window.sanitizarNumero(document.getElementById("edInvCostot").value), estatus: document.getElementById("edInvEstatus").value, obsTicket: "MODIFICADO" };
+          var obj = { id: id, producto: document.getElementById("edInvProd").value.toUpperCase(), marca: document.getElementById("edInvMarca").value.toUpperCase(), vehiculo: document.getElementById("edInvVeh").value.toUpperCase(), cantidad: window.sanitizarNumero(document.getElementById("edInvCant").value), costoTotal: window.sanitizarNumero(document.getElementById("edInvCostot").value), estatus: document.getElementById("edInvEstatus").value, obsTicket: "MODIFICADO" };
           obj.costoUnitario = obj.cantidad > 0 ? (obj.costoTotal / obj.cantidad) : 0;
           btnGuardar.disabled = true; btnGuardar.innerText = "Guardando...";
           google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r.msj || r); bootstrap.Modal.getInstance(document.getElementById('modalEdicionDinamica')).hide(); window.cargarDatosInventario(); btnGuardar.disabled = false; btnGuardar.innerText = "Guardar Cambios"; }).actualizarFilaInventarioBackend(obj);
@@ -1427,6 +1446,12 @@
           var qG = document.getElementById('quienRegistraGlobal');
           var qC = document.getElementById('cron_quien');
           if(qG && qC) qC.value = qG.value;
+          var ejec = document.getElementById('cron_ejecutivo');
+          if(ejec && qG) ejec.value = qG.value;
+          var mec2 = document.getElementById('cron_mecanico2');
+          if(mec2) { mec2.value = ''; mec2.readOnly = true; mec2.placeholder = 'Sin solicitar...'; }
+          var btnDup = document.getElementById('btnSolicitarDuplaCron');
+          if(btnDup) { btnDup.classList.remove('btn-success'); btnDup.style.backgroundColor = 'var(--dorado)'; btnDup.innerHTML = '👥 Solicitar Dupla'; btnDup.dataset.activo = 'no'; }
         } else { window.cargarDatosCronograma(); }
       };
 
@@ -1508,7 +1533,7 @@
           marca:         document.getElementById('cron_marca')    ? document.getElementById('cron_marca').value.toUpperCase()    : '',
           modelo:        document.getElementById('cron_modelo')   ? document.getElementById('cron_modelo').value.toUpperCase()   : '',
           placas:        document.getElementById('cron_placas')   ? document.getElementById('cron_placas').value.toUpperCase()   : '',
-          mecanico2:     document.getElementById('cron_mecanico2')? document.getElementById('cron_mecanico2').value.toUpperCase().trim() : '',
+          mecanico2Solicitado: document.getElementById('btnSolicitarDuplaCron') ? (document.getElementById('btnSolicitarDuplaCron').dataset.activo === 'si') : false,
           infoServicio:  document.getElementById('cron_info')     ? document.getElementById('cron_info').value.toUpperCase().trim() : '',
           quienRegistra: document.getElementById('cron_quien')    ? document.getElementById('cron_quien').value : ''
         };
@@ -1774,24 +1799,34 @@
       };
 
       window.solicitarDupla = function() {
-        var mec1 = document.getElementById('cron_mecanico') ? document.getElementById('cron_mecanico').value.trim() : '';
-        var mec2 = document.getElementById('cron_mecanico2') ? document.getElementById('cron_mecanico2').value.trim() : '';
         var ticket = document.getElementById('cron_ticket') ? document.getElementById('cron_ticket').value.trim() : '';
-        var nuco = document.getElementById('nuco') ? document.getElementById('nuco').value.trim() : '';
+        var nuco = document.getElementById('cron_nuco') ? document.getElementById('cron_nuco').value.trim() : '';
         var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
-        if (!mec1 || !mec2) { window.mostrarAlerta('Ingresa el nombre de ambos mecánicos antes de solicitar la dupla.'); return; }
-        if (!ticket) { window.mostrarAlerta('El Ticket es obligatorio.'); return; }
-        var btn = document.getElementById('btnSolicitarDupla'); if(btn){ btn.disabled = true; btn.innerText = 'Enviando...'; }
+        if (!ticket) { window.mostrarAlerta('El Ticket es obligatorio antes de solicitar dupla.'); return; }
+        if (!nuco) { window.mostrarAlerta('El NUCO es obligatorio antes de solicitar dupla.'); return; }
+
+        var btn = document.getElementById('btnSolicitarDuplaCron');
+        var mec2 = document.getElementById('cron_mecanico2');
+        var activo = btn && btn.dataset.activo === 'si';
+
+        if (activo) {
+          if(btn) { btn.style.backgroundColor = 'var(--dorado)'; btn.innerHTML = '👥 Solicitar Dupla'; btn.dataset.activo = 'no'; }
+          if(mec2) { mec2.value = ''; mec2.placeholder = 'Sin solicitar...'; }
+          return;
+        }
+
+        if(btn){ btn.disabled = true; btn.innerText = 'Enviando...'; }
         google.script.run
           .withSuccessHandler(function(r) {
+            if(btn){ btn.disabled = false; btn.dataset.activo = 'si'; btn.style.backgroundColor = '#198754'; btn.innerHTML = '✅ Dupla Solicitada'; }
+            if(mec2) mec2.placeholder = 'Se asignará al guardar...';
             window.mostrarAlerta(r.msj || 'Solicitud de dupla enviada al Gerente.');
-            if(btn){ btn.disabled = false; btn.innerText = 'Solicitar Dupla (requiere autorización)'; }
           })
           .withFailureHandler(function(e) {
+            if(btn){ btn.disabled = false; btn.innerText = '👥 Solicitar Dupla'; }
             window.mostrarAlerta('Error: ' + e.message);
-            if(btn){ btn.disabled = false; btn.innerText = 'Solicitar Dupla (requiere autorización)'; }
           })
-          .crearSolicitudAutorizacion({ tipo: 'DUPLA', ticket: ticket, nuco: nuco, descripcion: 'Dupla: ' + mec1 + ' + ' + mec2, solicitante: quien, datoExtra: mec2, refId: ticket });
+          .crearSolicitudAutorizacion({ tipo: 'DUPLA', ticket: ticket, nuco: nuco, descripcion: 'Solicitud de segundo mecánico para ticket ' + ticket, solicitante: quien, datoExtra: '', refId: ticket });
       };
 
       window.filtrarTablaNotif = function() {
