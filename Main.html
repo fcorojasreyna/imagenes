@@ -702,7 +702,7 @@
       window.renderizarTablaModalProv = function(filtro) {
         var lista = listaProveedoresCotizador;
         var f = (filtro || '').toUpperCase().trim();
-        var tbody = document.getElementById('tbodyModalProv');
+        var tbody = document.getElementById('cuerpoModalProv');
         if (!tbody) return;
         var filtrados = f ? lista.filter(function(p) { return (p.proveedor||'').toUpperCase().includes(f) || (p.rfc||'').toUpperCase().includes(f); }) : lista;
         if (filtrados.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Sin resultados</td></tr>'; return; }
@@ -1012,15 +1012,17 @@
         var idProd = "prod_" + numBloquesCotizador;
         var filasProveedores = '';
 
+        var opInter = window.opcionesDesde('INTERCAMBIO', 'NO') || '<option value="NO" selected>NO</option><option value="SI">SÍ</option>';
         proveedoresFijados.forEach(function(p) {
           var esResico = p.regimenFiscal && p.regimenFiscal.toUpperCase().indexOf('RESICO') > -1;
-          filasProveedores += '<tr><td class="text-center align-middle"><input type="radio" name="ganador_' + idProd + '" class="prod-radio-ganador" value="' + p.rfc + '" data-nombre="' + p.nombre + '"></td><td class="fw-bold align-middle">' + p.nombre + (esResico ? ' <span class="badge bg-warning text-dark" style="font-size:0.65rem;">RESICO</span>' : '') + '</td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-pu" placeholder="0.00" oninput="window.recalcularMatriz(\'' + idProd + '\', this)"></div></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-sub bg-light" readonly placeholder="0.00"></div></td><td><select class="form-select form-select-sm prov-inter" onchange="window.recalcularMatriz(\'' + idProd + '\', this)"><option value="NO">NO</option><option value="SI">SÍ</option></select></td><td class="text-center"><input type="checkbox" class="form-check-input prov-resico" title="Marcar si aplica RESICO (IVA=0)" onchange="window.recalcularMatriz(\'' + idProd + '\', this)" ' + (esResico ? 'checked' : '') + '></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-iva bg-light text-info" readonly placeholder="0.00"></div></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-tot text-danger fw-bold bg-light" readonly placeholder="0.00"></div></td><td><input type="text" class="form-control form-control-sm prov-entrega" placeholder="EJ. 2 DIAS"></td></tr>';
+          filasProveedores += '<tr><td class="text-center align-middle"><input type="radio" name="ganador_' + idProd + '" class="prod-radio-ganador" value="' + p.rfc + '" data-nombre="' + p.nombre + '"></td><td class="fw-bold align-middle">' + p.nombre + (esResico ? ' <span class="badge bg-warning text-dark" style="font-size:0.65rem;">RESICO</span>' : '') + '</td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-pu" placeholder="0.00" oninput="window.recalcularMatriz(\'' + idProd + '\', this)"></div></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-sub bg-light" readonly placeholder="0.00"></div></td><td><select class="form-select form-select-sm prov-inter" onchange="window.recalcularMatriz(\'' + idProd + '\', this)">' + opInter + '</select></td><td class="text-center"><input type="checkbox" class="form-check-input prov-resico" title="Marcar si aplica RESICO (IVA=0)" onchange="window.recalcularMatriz(\'' + idProd + '\', this)" ' + (esResico ? 'checked' : '') + '></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-iva bg-light text-info" readonly placeholder="0.00"></div></td><td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control prov-tot text-danger fw-bold bg-light" readonly placeholder="0.00"></div></td><td><input type="text" class="form-control form-control-sm prov-entrega" placeholder="EJ. 2 DIAS"></td></tr>';
         });
 
+        var opProdOC = window.opcionesDesde('PRODUCTO', '') || '<option value="">-- Selecciona --</option>';
         var opFam = window.opcionesDesde('FAMILIA', 'OTRO') || '<option value="AFINACION MAYOR">AFINACIÓN MAYOR</option><option value="OTRO" selected>OTRO</option>';
         var opUM  = window.opcionesDesde('UM', 'PIEZA(S)') || '<option value="PIEZA(S)" selected>PIEZA(S)</option><option value="LITRO(S)">LITRO(S)</option>';
 
-        var bloqueHtml = '<div class="card mb-4 shadow-sm border-0 bloque-producto" id="' + idProd + '"><div class="card-header bg-white d-flex justify-content-between align-items-center" style="border-bottom: 2px solid var(--dorado);"><h6 class="m-0 fw-bold" style="color: var(--azul);">📦 Partida / Producto Recambio</h6><button class="btn btn-sm btn-danger fw-bold" onclick="document.getElementById(\'' + idProd + '\').remove()">X Quitar</button></div><div class="card-body bg-light"><div class="row"><div class="col-md-3 mb-2"><label class="fw-bold text-muted small">Nombre / Refacción *</label><input type="text" class="form-control prod-nombre"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Familia *</label><select class="form-select prod-familia">' + opFam + '</select></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Marca *</label><input type="text" class="form-control prod-marca"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Descripción Técnica</label><input type="text" class="form-control prod-desc"></div><div class="col-md-1 mb-2"><label class="fw-bold text-muted small">Cant</label><input type="number" class="form-control prod-cant" value="1" min="1" oninput="window.recalcularTodoBloque(\'' + idProd + '\')"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">UM</label><select class="form-select prod-um">' + opUM + '</select></div></div><table class="table table-bordered table-sm mt-3 bg-white"><thead class="table-dark"><tr><th>Ganador</th><th>Proveedor</th><th>P. Unitario</th><th>Subtotal</th><th>¿Intercambio?</th><th title="Marcar si el proveedor es RESICO (IVA=0)">RESICO</th><th>IVA (16%)</th><th>Total c/IVA</th><th>Entrega</th></tr></thead><tbody>' + filasProveedores + '</tbody></table></div></div>';
+        var bloqueHtml = '<div class="card mb-4 shadow-sm border-0 bloque-producto" id="' + idProd + '"><div class="card-header bg-white d-flex justify-content-between align-items-center" style="border-bottom: 2px solid var(--dorado);"><h6 class="m-0 fw-bold" style="color: var(--azul);">📦 Partida / Producto Recambio</h6><button class="btn btn-sm btn-danger fw-bold" onclick="document.getElementById(\'' + idProd + '\').remove()">X Quitar</button></div><div class="card-body bg-light"><div class="row"><div class="col-md-3 mb-2"><label class="fw-bold text-muted small">Nombre / Refacción *</label><select class="form-select prod-nombre">' + opProdOC + '</select></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Familia *</label><select class="form-select prod-familia">' + opFam + '</select></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Marca *</label><input type="text" class="form-control prod-marca"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">Descripción Técnica</label><input type="text" class="form-control prod-desc"></div><div class="col-md-1 mb-2"><label class="fw-bold text-muted small">Cant</label><input type="number" class="form-control prod-cant" value="1" min="1" oninput="window.recalcularTodoBloque(\'' + idProd + '\')"></div><div class="col-md-2 mb-2"><label class="fw-bold text-muted small">UM</label><select class="form-select prod-um">' + opUM + '</select></div></div><table class="table table-bordered table-sm mt-3 bg-white"><thead class="table-dark"><tr><th>Ganador</th><th>Proveedor</th><th>P. Unitario</th><th>Subtotal</th><th>¿Intercambio?</th><th title="Marcar si el proveedor es RESICO (IVA=0)">RESICO</th><th>IVA (16%)</th><th>Total c/IVA</th><th>Entrega</th></tr></thead><tbody>' + filasProveedores + '</tbody></table></div></div>';
 
         document.getElementById("contenedor-productos").insertAdjacentHTML('beforeend', bloqueHtml);
       };
@@ -1156,8 +1158,9 @@
 
       window.agregarArticuloInventario = function() {
         numArticulosInventario++; var idA = "art_inv_" + numArticulosInventario;
+        var opProd = window.opcionesDesde('PRODUCTO', '') || '<option value="">-- Selecciona --</option>';
         var opUM = window.opcionesDesde('UM', 'PIEZA(S)') || '<option value="PIEZA(S)" selected>PIEZA(S)</option><option value="JUEGO(KIT)">JUEGO(KIT)</option><option value="LITRO(S)">LITRO(S)</option><option value="METRO(S)">METRO(S)</option><option value="CAJA(S)">CAJA(S)</option><option value="PAQUETE(S)">PAQUETE(S)</option>';
-        var ht = '<div class="p-4 mb-3 border rounded bg-light border-dark" id="' + idA + '"><div class="d-flex justify-content-between align-items-center mb-3"><h6 class="text-dark fw-bold m-0">Artículo #' + numArticulosInventario + '</h6><button type="button" class="btn btn-sm btn-danger fw-bold" onclick="document.getElementById(\'' + idA + '\').remove()">X Eliminar</button></div><div class="row"><div class="col-md-4 mb-3"><label class="small fw-bold">Producto *</label><input type="text" class="form-control item-prod"></div><div class="col-md-4 mb-3"><label class="small fw-bold">Marca *</label><input type="text" class="form-control item-marca"></div><div class="col-md-4 mb-3"><label class="small fw-bold">Vehículo a Instalar *</label><input type="text" class="form-control item-veh"></div></div><div class="row"><div class="col-md-6 mb-3"><label class="small fw-bold">UM *</label><select class="form-select item-um">' + opUM + '</select></div><div class="col-md-6 mb-3"><label class="small fw-bold">Cantidad *</label><input type="number" class="form-control item-cant" value="1" min="1" oninput="window.calcularUnitarioInv(\'' + idA + '\')"></div></div><div class="row"><div class="col-md-6 mb-3"><label class="small fw-bold">Costo Total *</label><div class="input-group"><span class="input-group-text">$</span><input type="text" class="form-control item-costot" placeholder="0.00" oninput="window.calcularUnitarioInv(\'' + idA + '\')"></div></div><div class="col-md-6 mb-3"><label class="small fw-bold text-muted">Costo Unitario (Calculado)</label><div class="input-group"><span class="input-group-text bg-dark text-white">$</span><input type="text" class="form-control item-costou bg-white fw-bold text-dark" readonly placeholder="0.00"></div></div></div></div>';
+        var ht = '<div class="p-4 mb-3 border rounded bg-light border-dark" id="' + idA + '"><div class="d-flex justify-content-between align-items-center mb-3"><h6 class="text-dark fw-bold m-0">Artículo #' + numArticulosInventario + '</h6><button type="button" class="btn btn-sm btn-danger fw-bold" onclick="document.getElementById(\'' + idA + '\').remove()">X Eliminar</button></div><div class="row"><div class="col-md-4 mb-3"><label class="small fw-bold">Producto *</label><select class="form-select item-prod">' + opProd + '</select></div><div class="col-md-4 mb-3"><label class="small fw-bold">Marca *</label><input type="text" class="form-control item-marca"></div><div class="col-md-4 mb-3"><label class="small fw-bold">Vehículo a Instalar *</label><input type="text" class="form-control item-veh"></div></div><div class="row"><div class="col-md-6 mb-3"><label class="small fw-bold">UM *</label><select class="form-select item-um">' + opUM + '</select></div><div class="col-md-6 mb-3"><label class="small fw-bold">Cantidad *</label><input type="number" class="form-control item-cant" value="1" min="1" oninput="window.calcularUnitarioInv(\'' + idA + '\')"></div></div><div class="row"><div class="col-md-6 mb-3"><label class="small fw-bold">Costo Total *</label><div class="input-group"><span class="input-group-text">$</span><input type="text" class="form-control item-costot" placeholder="0.00" oninput="window.calcularUnitarioInv(\'' + idA + '\')"></div></div><div class="col-md-6 mb-3"><label class="small fw-bold text-muted">Costo Unitario (Calculado)</label><div class="input-group"><span class="input-group-text bg-dark text-white">$</span><input type="text" class="form-control item-costou bg-white fw-bold text-dark" readonly placeholder="0.00"></div></div></div></div>';
         document.getElementById("contenedor-articulos-inventario").insertAdjacentHTML('beforeend', ht);
       };
 
@@ -1431,7 +1434,8 @@
         var f = document.getElementById('vistaFormHerramientas');
         if(t) t.style.display = v === 'form' ? 'none' : 'block';
         if(f) f.style.display = v === 'form' ? 'block' : 'none';
-        if(v !== 'form') window.cargarDatosHerramientas();
+        if(v === 'form') window.llenarSelectsModulo('Herramientas');
+        else window.cargarDatosHerramientas();
       };
 
       window.cargarDatosHerramientas = function() {
@@ -1551,25 +1555,36 @@
           'Taller': [
             ['tipoServicio',  'TIPO_SERVICIO'],
             ['familia',       'FAMILIA'],
+            ['proveedor',     'REALIZADO_POR'],
             ['estatusUnidad', 'ESTATUS_TALLER']
           ],
           'Cronograma': [
-            ['cron_tipotrabajo', 'TIPO_SERVICIO'],
+            ['cron_tipotrabajo', 'TIPO_TRABAJO'],
             ['cron_sede',        'SEDES'],
-            ['cron_horario',     'HORARIO']
+            ['cron_horario',     'HORARIO'],
+            ['editCronEstatus',  'ESTATUS_UNIDAD_CRON']
           ],
           'Inventario': [],
           'Proveedores': [
+            ['p_estado',        'ESTADO_REP'],
+            ['p_servicio',      'SERVICIO'],
             ['p_regimenfiscal', 'REGIMEN_FISCAL'],
-            ['p_intercambio2',  'INTERCAMBIO_FACTURAS']
+            ['p_intercambio2',  'INTERCAMBIO']
           ],
           'Cotizador': [
             ['oc_tsol',   'TIPO_SOLICITUD_OC'],
             ['oc_tser',   'TIPO_SERVICIO_OC'],
-            ['oc_tpart',  'TIPO_PARTE_OC'],
+            ['oc_tpart',  'TIPO_PARTIDA_OC'],
             ['oc_intext', 'REALIZADO_POR'],
             ['oc_fp',     'FORMA_PAGO_OC'],
             ['oc_mpago',  'METODO_PAGO_OC']
+          ],
+          'Herramientas': [
+            ['herr_tipo',       'TIPO_HERRAMIENTA'],
+            ['herr_tipounidad', 'UM'],
+            ['herr_estado',     'ESTADO_HERRAMIENTA'],
+            ['herr_lugar',      'UBICACION_HERRAMIENTA'],
+            ['herr_estatus',    'ESTATUS_HERRAMIENTA']
           ]
         };
         var campos = mapa[modulo] || [];
