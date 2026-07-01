@@ -338,6 +338,7 @@
       };
 
       // Valida campos requeridos — pinta borde rojo en vacíos, retorna false si hay alguno
+      // Soporta inputs normales y hidden inputs de dropdowns Bootstrap (marca el botón btn_ID)
       window.validarCampos = function(ids) {
         var ok = true;
         ids.forEach(function(id) {
@@ -345,8 +346,18 @@
           if (!el) return;
           var vacio = el.value === undefined ? false : el.value.toString().trim() === '';
           if (vacio) {
-            el.style.border = '2px solid red';
-            el.addEventListener('input', function limpiar() { el.style.border = ''; el.removeEventListener('input', limpiar); }, { once: true });
+            if (el.type === 'hidden') {
+              // Dropdown Bootstrap: marcar el botón visualmente
+              var btn = document.getElementById('btn_' + id);
+              if (btn) {
+                btn.style.border = '2px solid red';
+                var limpiarBtn = function() { btn.style.border = ''; el.removeEventListener('change', limpiarBtn); };
+                el.addEventListener('change', limpiarBtn, { once: true });
+              }
+            } else {
+              el.style.border = '2px solid red';
+              el.addEventListener('input', function limpiar() { el.style.border = ''; el.removeEventListener('input', limpiar); }, { once: true });
+            }
             ok = false;
           }
         });
@@ -1268,7 +1279,7 @@
       };
 
       window.procesarTaller = function() {
-        if (!window.validarCampos(['ticket', 'nuco', 'descripcion'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
+        if (!window.validarCampos(['ticket', 'nuco', 'tipoServicio', 'familia', 'descripcion'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         var btn = document.getElementById("btnGT"); btn.disabled = true; btn.innerText = "Guardando...";
         var p = document.getElementById("proveedor").value;
         var d = {
@@ -1305,7 +1316,7 @@
       };
 
       window.procesarInventario = function() {
-        if (!window.validarCampos(['ticket'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
+        if (!window.validarCampos(['ticket', 'folioCpp'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         var btn = document.getElementById("btnGI");
         var gen = { ticket: document.getElementById("ticket").value, folioCpp: document.getElementById("folioCpp").value, obsTicket: document.getElementById("obsTicket").value, estatus: "DISPONIBLE", quienRegistra: document.getElementById("quienRegistraGlobal").value };
         if(!gen.ticket) { window.mostrarAlerta("El Ticket es obligatorio."); return; }
@@ -1351,6 +1362,7 @@
 
       window.procesarConsumo = function() {
         var btn = document.getElementById("btnGC");
+        if (!window.validarCampos(['ticketBuscar', 'fechaConsumo', 'evidenciaConsumo'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         var gen = { ticketInsumo: document.getElementById("ticketBuscar").value.trim(), fechaConsumo: document.getElementById("fechaConsumo").value, evidencia: document.getElementById("evidenciaConsumo").value.trim(), quienRegistra: document.getElementById("quienRegistraGlobal").value, folioCpp: document.getElementById("folioCppConsumo") ? document.getElementById("folioCppConsumo").value.trim() : "", importeDescuento: document.getElementById("importeDescuentoConsumo") ? document.getElementById("importeDescuentoConsumo").value.trim() : "" };
         if(!gen.ticketInsumo || !gen.fechaConsumo || !gen.evidencia) { window.mostrarAlerta("Por favor completa los campos generales obligatorios."); return; }
         var cons = []; var errSel = false; var errCant = false;
@@ -1456,6 +1468,7 @@
       };
 
       window.guardarProveedor = function() {
+        if (!window.validarCampos(['p_proveedor', 'p_razonsocial', 'p_rfc', 'p_contacto', 'p_numero'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         var p = document.getElementById("p_proveedor").value.toUpperCase().trim(); if(!p) { window.mostrarAlerta("El Nombre Comercial es obligatorio."); return; }
         var btn = document.getElementById("btnGP"); btn.disabled = true; btn.innerText = "Guardando Ficha Comercial...";
         var rsEl = document.getElementById("p_razonessociales");
@@ -1695,6 +1708,7 @@
       };
 
       window.guardarHerramienta = function() {
+        if (!window.validarCampos(['herr_tipo', 'herr_nombre', 'herr_estatus'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         var nombre = document.getElementById('herr_nombre') ? document.getElementById('herr_nombre').value.toUpperCase().trim() : '';
         if(!nombre) { window.mostrarAlerta('El Nombre del Artículo es obligatorio.'); return; }
         var btn = document.getElementById('btnGHerr');

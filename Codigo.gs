@@ -861,14 +861,38 @@ function guardarCronograma(d) {
       return { exito: false, error: 'Ya hay 2 vehículos programados para las ' + d.horario + ' del ' + fechaNorm + '. Elige otro horario.' };
     }
 
-    // Asignar mecánico aleatorio
+    // Asignar mecánico principal con round-robin (reparto equitativo)
     const mecResult = obtenerMecanicos();
     const mecList = (mecResult.exito && mecResult.mecanicos.length > 0) ? mecResult.mecanicos : [];
-    let mecPrincipal = d.mecanicoManual || (mecList.length > 0 ? mecList[Math.floor(Math.random() * mecList.length)] : "SIN ASIGNAR");
+    let mecPrincipal = "SIN ASIGNAR";
+    if (d.mecanicoManual) {
+      mecPrincipal = d.mecanicoManual;
+    } else if (mecList.length > 0) {
+      // Contar asignaciones actuales en el Cronograma para round-robin
+      const hojaC = ss.getSheetByName("Cronograma");
+      const filasC = hojaC ? hojaC.getDataRange().getDisplayValues() : [];
+      let conteos = {};
+      mecList.forEach(function(m) { conteos[m] = 0; });
+      for (let i = 1; i < filasC.length; i++) {
+        let mAsig = (filasC[i][11] || '').toString().trim();
+        if (conteos.hasOwnProperty(mAsig)) conteos[mAsig]++;
+      }
+      // Elegir el mecánico con menos asignaciones (el que le toca)
+      mecPrincipal = mecList.reduce(function(min, m) { return conteos[m] < conteos[min] ? m : min; }, mecList[0]);
+    }
     let mec2 = "";
     if (d.mecanico2Solicitado && mecList.length > 1) {
       let lista2 = mecList.filter(function(m){ return m !== mecPrincipal; });
-      mec2 = lista2.length > 0 ? lista2[Math.floor(Math.random() * lista2.length)] : "";
+      // Round-robin para el segundo mecánico también
+      const hojaC = ss.getSheetByName("Cronograma");
+      const filasC = hojaC ? hojaC.getDataRange().getDisplayValues() : [];
+      let conteos2 = {};
+      lista2.forEach(function(m) { conteos2[m] = 0; });
+      for (let i = 1; i < filasC.length; i++) {
+        let m2Asig = (filasC[i][12] || '').toString().trim();
+        if (conteos2.hasOwnProperty(m2Asig)) conteos2[m2Asig]++;
+      }
+      mec2 = lista2.reduce(function(min, m) { return conteos2[m] < conteos2[min] ? m : min; }, lista2[0]);
     }
 
     hoja.appendRow([
