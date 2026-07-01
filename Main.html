@@ -1303,11 +1303,45 @@
 
       // Funciones para el dropdown estilo select2
 
-      // Lazy-loader: llama llenarSelect solo si la lista está vacía
+      // Lazy-loader con recarga automática si el catálogo no ha llegado aún
       window.abrirDropdownCat = function(hiddenId, catalogKey) {
         var lista = document.getElementById('lista_' + hiddenId);
-        if (lista && lista.querySelectorAll('li').length === 0) {
+        if (!lista) return;
+
+        // Si ya tiene opciones cargadas, no hacer nada
+        if (lista.querySelectorAll('li').length > 0) return;
+
+        // Si el catálogo global ya tiene datos, llenar directamente
+        if (Object.keys(window.catalogosGlobal).length > 0) {
           window.llenarSelect(hiddenId, catalogKey);
+          if (lista.querySelectorAll('li').length === 0) {
+            lista.innerHTML = '<li class="px-2 py-1 text-muted small">Sin valores para: <b>' + catalogKey + '</b></li>';
+          }
+          return;
+        }
+
+        // Catálogo vacío → recargar desde el servidor y reintentar
+        lista.innerHTML = '<li class="px-2 py-1 text-muted small">⏳ Cargando catálogo...</li>';
+        try {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              if (res && res.exito) {
+                window.catalogosGlobal = res.catalogos || {};
+                lista.innerHTML = '';
+                window.llenarSelect(hiddenId, catalogKey);
+                if (lista.querySelectorAll('li').length === 0) {
+                  lista.innerHTML = '<li class="px-2 py-1 text-muted small">Sin valores para: <b>' + catalogKey + '</b></li>';
+                }
+              } else {
+                lista.innerHTML = '<li class="px-2 py-1 text-danger small">Error al cargar catálogo</li>';
+              }
+            })
+            .withFailureHandler(function(e) {
+              lista.innerHTML = '<li class="px-2 py-1 text-danger small">Error: ' + (e.message || 'desconocido') + '</li>';
+            })
+            .obtenerCatalogos();
+        } catch(e) {
+          lista.innerHTML = '<li class="px-2 py-1 text-danger small">No disponible fuera de GAS</li>';
         }
       };
 
