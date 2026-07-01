@@ -457,9 +457,16 @@
       // ============================================================================
       // 5. LECTORES DE BASES DE DATOS Y CARGA DE TABLAS
       // ============================================================================
+      var _tallerDatos = [];
+      var _inventarioDatos = [];
+      var _consumosDatos = [];
+      var _proveedoresDatos = [];
+      var _herramientasDatos = [];
+
       window.cargarDatosTaller = function() {
         google.script.run.withSuccessHandler(function(res) {
           if (res.exito) {
+            _tallerDatos = res.datos || [];
             var tbody = document.getElementById('cuerpoTablaTaller'); if(!tbody) return; tbody.innerHTML = '';
             if (res.datos.length === 0) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4">No hay unidades en taller.</td></tr>'; return; }
             res.datos.forEach(function(f) {
@@ -475,6 +482,7 @@
       window.cargarDatosInventario = function() {
         google.script.run.withSuccessHandler(function(res) {
           if (res.exito) {
+            _inventarioDatos = res.datos || [];
             var tbody = document.getElementById('cuerpoTablaInv'); if(!tbody) return; tbody.innerHTML = '';
             res.datos.forEach(function(fila) {
               var badge = fila.estatus === "DISPONIBLE" ? '<span class="badge bg-success">✅ DISPONIBLE</span>' : '<span class="badge bg-danger">❌ CONSUMIDO</span>';
@@ -491,6 +499,7 @@
       window.cargarDatosConsumos = function() {
         google.script.run.withSuccessHandler(function(res) {
           if (res.exito) {
+            _consumosDatos = res.datos || [];
             var tbody = document.getElementById('cuerpoTablaConsumos'); if(!tbody) return; tbody.innerHTML = '';
             if (res.datos.length === 0) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4">No hay salidas registradas.</td></tr>'; return; }
             res.datos.forEach(function(fila) {
@@ -505,6 +514,7 @@
       window.cargarDatosProv = function() {
         google.script.run.withSuccessHandler(function(res) {
           if (res.exito) {
+            _proveedoresDatos = res.datos || [];
             window.catalogoProveedoresCache = res.datos;
             var tbody = document.getElementById('cuerpoTablaProv'); if(!tbody) return; tbody.innerHTML = '';
             res.datos.forEach(function(f) {
@@ -627,6 +637,62 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+      };
+
+      function _descargarCSV(nombre, headers, filas) {
+        var csv = [headers].concat(filas).map(function(row) {
+          return row.map(function(c) { return '"' + (c==null?'':c+'').replace(/"/g,'""') + '"'; }).join(',');
+        }).join('\r\n');
+        var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href = url; a.download = nombre;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      window.exportarExcelTaller = function() {
+        if (!_tallerDatos.length) { window.mostrarAlerta('No hay datos cargados.'); return; }
+        var h = ['ID','NUCO','Ticket','Folio CPP','Alerta Ticket','Serie','Odómetro','Fecha Registro','Fecha Servicio','Tipo Servicio','Familia','# Partes','Proveedor','Descripción','Quien Registra','MO Interna','MO Externa','Costo Total','Estatus','Línea','Modelo','Placas','Sede','Oficina','Departamento'];
+        var filas = _tallerDatos.map(function(f) {
+          return [f.idTaller,f.nuco,f.ticket,f.folioCpp,f.alertaTicket,f.serie,f.odometro,f.fecha,f.fechaServicio,f.tipoServicio,f.familia,f.numeroPartes,f.proveedor,f.descripcion,f.quienRegistra,f.servInterno,f.servExterno,f.costoTotal,f.estatus,f.linea,f.modelo,f.placas,f.sede,f.oficina,f.departamento];
+        });
+        _descargarCSV('Taller_' + new Date().toISOString().slice(0,10) + '.csv', h, filas);
+      };
+
+      window.exportarExcelInventario = function() {
+        if (!_inventarioDatos.length) { window.mostrarAlerta('No hay datos cargados.'); return; }
+        var h = ['Ticket','Folio CPP','Producto','Marca','Vehículo','Cantidad','Medida','Costo Unitario','Costo Total','Estatus','Quien Registra','Fecha','Observaciones'];
+        var filas = _inventarioDatos.map(function(f) {
+          return [f.ticket,f.folioCpp,f.producto,f.marca,f.vehiculo,f.cantidad,f.medida,f.costoUnitario,f.costoTotal,f.estatus,f.quienRegistra,f.fecha,f.obs];
+        });
+        _descargarCSV('Inventario_' + new Date().toISOString().slice(0,10) + '.csv', h, filas);
+      };
+
+      window.exportarExcelConsumos = function() {
+        if (!_consumosDatos.length) { window.mostrarAlerta('No hay datos cargados.'); return; }
+        var h = ['Ticket','Producto','Vehículo','Cantidad','Costo Total','Quien Registra','Fecha','Folio CPP','Importe Descuento'];
+        var filas = _consumosDatos.map(function(f) {
+          return [f.ticketNuevo,f.producto,f.vehiculo,f.cantidad,f.costoTotal,f.quienRegistra,f.fecha,f.folioCpp,f.importeDescuento];
+        });
+        _descargarCSV('Consumos_' + new Date().toISOString().slice(0,10) + '.csv', h, filas);
+      };
+
+      window.exportarExcelProveedores = function() {
+        if (!_proveedoresDatos.length) { window.mostrarAlerta('No hay datos cargados.'); return; }
+        var h = ['ID','Proveedor','Razón Social','RFC','Dirección','Estado','Contacto','Teléfono','Correo','Segmentación','Días Crédito','Total Crédito','Servicio','Razones Sociales','Régimen Fiscal','Intercambio'];
+        var filas = _proveedoresDatos.map(function(f) {
+          return [f.id,f.proveedor,f.razonSocial,f.rfc,f.direccion,f.estado,f.contacto,f.telefono,f.correo,f.segmentacion,f.diasCredito,f.totalCredito,f.servicio,f.razonesSociales,f.regimenFiscal,f.intercambio2];
+        });
+        _descargarCSV('Proveedores_' + new Date().toISOString().slice(0,10) + '.csv', h, filas);
+      };
+
+      window.exportarExcelHerramientas = function() {
+        if (!_herramientasDatos.length) { window.mostrarAlerta('No hay datos cargados.'); return; }
+        var h = ['ID','Tipo','Tipo Unidad','Nombre','Marca','Estado','Lugar','Estatus','Existencia','Fecha','Quien Registra'];
+        var filas = _herramientasDatos.map(function(f) {
+          return [f.id,f.tipo,f.tipoUnidad,f.nombre,f.marca,f.estadoHerr,f.lugar,f.estatus,f.existencia,f.fecha,f.quien];
+        });
+        _descargarCSV('Herramientas_' + new Date().toISOString().slice(0,10) + '.csv', h, filas);
       };
 
       // ============================================================================
@@ -1600,8 +1666,10 @@
           if(!tbody) return;
           tbody.innerHTML = '';
           if(!res || !res.exito || res.datos.length === 0) {
+            _herramientasDatos = [];
             tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">Sin herramientas registradas.</td></tr>'; return;
           }
+          _herramientasDatos = res.datos || [];
           res.datos.forEach(function(f) {
             var badge = f.estatus === 'DISPONIBLE' ? '<span class="badge bg-success">DISPONIBLE</span>'
               : f.estatus === 'EN USO' ? '<span class="badge bg-warning text-dark">EN USO</span>'
