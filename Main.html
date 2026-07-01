@@ -1651,6 +1651,7 @@
           registrosHoy.forEach(function(f) {
             var color = window._colorCronFila(f.estatusUnidad);
             var tr = document.createElement('tr');
+            tr.dataset.id = f.id;
             tr.style.setProperty('--bs-table-bg', color);
             tr.style.setProperty('--bs-table-striped-bg', color);
             tr.style.cursor = 'pointer';
@@ -1784,11 +1785,31 @@
 
         var esEjec = (_rolActual === 'EJECUTIVO');
 
+        var _idEditando = document.getElementById('editCronId').value;
         function _done(r) {
           if(btn){ btn.disabled = false; btn.innerText = 'Guardar Cambios'; }
           if(!r.exito){ msj.innerText = '✖ '+(r.error||'Error'); return; }
           bootstrap.Modal.getInstance(document.getElementById('modalEditCronograma')).hide();
           window.mostrarAlerta(r.msj || 'Registro actualizado.');
+          // Pintar inmediatamente la fila con el nuevo color antes de recargar
+          if (!esEjec) {
+            var nuevoEstatus = document.getElementById('editCronEstatus') ? document.getElementById('editCronEstatus').value : '';
+            var nuevoColor = window._colorCronFila(nuevoEstatus);
+            var tbody = document.getElementById('cuerpoTablaCronograma');
+            if(tbody) {
+              var filas = tbody.getElementsByTagName('tr');
+              for(var i=0; i<filas.length; i++) {
+                if(filas[i].dataset && filas[i].dataset.id === _idEditando) {
+                  filas[i].style.setProperty('--bs-table-bg', nuevoColor);
+                  filas[i].style.setProperty('--bs-table-striped-bg', nuevoColor);
+                  // Actualizar texto del estatus en la celda
+                  var celdas = filas[i].getElementsByTagName('td');
+                  if(celdas[7]) celdas[7].innerHTML = '<span class="fw-bold small">'+nuevoEstatus+'</span>';
+                  break;
+                }
+              }
+            }
+          }
           window.cargarDatosCronograma();
         }
         function _fail(e){ if(btn){ btn.disabled=false; btn.innerText='Guardar Cambios'; } msj.innerText='✖ Error: '+e.message; }

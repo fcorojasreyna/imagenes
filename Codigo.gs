@@ -821,7 +821,8 @@ function obtenerDatosCronograma() {
         marca: d[i][8], modelo: d[i][9], placas: d[i][10],
         mecanico: d[i][11], mecanico2: d[i][12],
         info: d[i][13], estatusUnidad: d[i][14],
-        evidencia: d[i][15], formato: d[i][16], quienRegistra: d[i][17]
+        evidencia: d[i][15], formato: d[i][16], quienRegistra: d[i][17],
+        mec2Estatus: d[i][18], mec2Fecha: d[i][19]
       });
     }
     return { exito: true, datos: filas };
@@ -863,7 +864,9 @@ function guardarCronograma(d) {
       "EN REPARACION",     // O: ESTATUS UNIDAD
       "",                  // P: EVIDENCIA
       "",                  // Q: FORMATO
-      d.quien              // R: QUIEN REGISTRA
+      d.quien,             // R: QUIEN REGISTRA
+      "",                  // S: MECANICO 2 ESTATUS
+      ""                   // T: MECANICO 2 FECHA APROBACION
     ]);
     SpreadsheetApp.flush();
     return { exito: true, msj: "Entrada registrada: " + idGen, mecanico: mecPrincipal, mecanico2: mec2 };
