@@ -67,6 +67,7 @@
           <input type="text" id="p_razonsocial" class="form-control" style="text-transform:uppercase;">
         </div>
       </div>
+
       <div class="row">
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">RFC</label>
@@ -74,14 +75,23 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Estado</label>
-          <input type="text" class="form-control form-control-sm mb-1" placeholder="🔍 Buscar estado..." oninput="window.filtrarSelect(this, 'p_estado')" autocomplete="off" style="border:1px solid #ccc;">
-          <select id="p_estado" class="form-select" size="4" style="height:auto; overflow-y:auto;"></select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_p_estado" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="background:white; font-size:0.9rem; color:#6c757d;">
+              <span id="lbl_p_estado" class="text-truncate">— Selecciona Estado —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="p_estado" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_p_estado')"></li>
+              <div id="lista_p_estado"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Dirección</label>
           <input type="text" id="p_direccion" class="form-control" style="text-transform:uppercase;">
         </div>
       </div>
+
       <div class="row">
         <div class="col-md-4 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Nombre del Contacto</label>
@@ -96,6 +106,7 @@
           <input type="email" id="p_correo" class="form-control" style="text-transform:lowercase;">
         </div>
       </div>
+
       <div class="row">
         <div class="col-md-6 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Segmentación de Servicio</label>
@@ -103,10 +114,19 @@
         </div>
         <div class="col-md-6 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Servicio</label>
-          <input type="text" class="form-control form-control-sm mb-1" placeholder="🔍 Buscar servicio..." oninput="window.filtrarSelect(this, 'p_servicio')" autocomplete="off" style="border:1px solid #ccc;">
-          <select id="p_servicio" class="form-select" size="4" style="height:auto; overflow-y:auto;"></select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_p_servicio" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="background:white; font-size:0.9rem; color:#6c757d;">
+              <span id="lbl_p_servicio" class="text-truncate">— Selecciona Servicio —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="p_servicio" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_p_servicio')"></li>
+              <div id="lista_p_servicio"></div>
+            </ul>
+          </div>
         </div>
       </div>
+
       <div class="row">
         <div class="col-md-4 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Días de Crédito</label>
@@ -118,18 +138,33 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Razones Sociales Compatibles</label>
-          <input type="text" class="form-control form-control-sm mb-1" placeholder="🔍 Buscar razón social..." oninput="window.filtrarSelect(this, 'p_razonessociales')" autocomplete="off" style="border:1px solid #ccc;">
-          <select id="p_razonessociales" class="form-select" multiple size="4" style="height:auto; overflow-y:auto;"></select>
-          <small class="text-muted" style="font-size:0.72rem;">Ctrl+clic para seleccionar varias</small>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_p_razonessociales" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="background:white; font-size:0.9rem; color:#6c757d;">
+              <span id="lbl_p_razonessociales" class="text-truncate">— Selecciona una o varias —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="p_razonessociales" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_p_razonessociales')"></li>
+              <div id="lista_p_razonessociales" data-multi="true"></div>
+            </ul>
+          </div>
+          <small class="text-muted" style="font-size:0.72rem;">Haz clic en cada opción para seleccionar varias</small>
         </div>
       </div>
+
       <div class="row">
         <div class="col-md-6 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Régimen Fiscal</label>
-          <input type="text" class="form-control form-control-sm mb-1" placeholder="🔍 Buscar régimen..." oninput="window.filtrarSelect(this, 'p_regimenfiscal')" autocomplete="off" style="border:1px solid #ccc;">
-          <select id="p_regimenfiscal" class="form-select" size="4" style="height:auto; overflow-y:auto;">
-            <option value="">-- Selecciona --</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_p_regimenfiscal" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="background:white; font-size:0.9rem; color:#6c757d;">
+              <span id="lbl_p_regimenfiscal" class="text-truncate">— Selecciona Régimen —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="p_regimenfiscal" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_p_regimenfiscal')"></li>
+              <div id="lista_p_regimenfiscal"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-6 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">¿Acepta Intercambio 2?</label>

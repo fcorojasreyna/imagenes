@@ -1297,11 +1297,39 @@
         });
       };
 
+      // Funciones para el dropdown estilo select2
+      window.filtrarDropdownCat = function(inp, listaId) {
+        var f = (inp.value || '').toUpperCase().trim();
+        var lista = document.getElementById(listaId);
+        if (!lista) return;
+        lista.querySelectorAll('li').forEach(function(li) {
+          li.style.display = (!f || li.textContent.toUpperCase().includes(f)) ? '' : 'none';
+        });
+      };
+
+      window.seleccionarDropdown = function(hiddenId, valor) {
+        document.getElementById(hiddenId).value = valor;
+        var lbl = document.getElementById('lbl_' + hiddenId);
+        if (lbl) { lbl.textContent = valor; lbl.style.color = '#1E252B'; }
+        var btn = document.getElementById('btn_' + hiddenId);
+        if (btn) { var d = bootstrap.Dropdown.getInstance(btn); if (d) d.hide(); }
+      };
+
+      window.toggleCheckDropdown = function(hiddenId, valor, chk) {
+        var hidden = document.getElementById(hiddenId);
+        var vals = hidden.value ? hidden.value.split(', ').filter(Boolean) : [];
+        if (chk.checked) { if (vals.indexOf(valor) === -1) vals.push(valor); }
+        else { vals = vals.filter(function(v) { return v !== valor; }); }
+        hidden.value = vals.join(', ');
+        var lbl = document.getElementById('lbl_' + hiddenId);
+        if (lbl) { lbl.textContent = vals.length ? vals.join(', ') : '— Selecciona una o varias —'; lbl.style.color = vals.length ? '#1E252B' : '#6c757d'; }
+      };
+
       window.guardarProveedor = function() {
         var p = document.getElementById("p_proveedor").value.toUpperCase().trim(); if(!p) { window.mostrarAlerta("El Nombre Comercial es obligatorio."); return; }
         var btn = document.getElementById("btnGP"); btn.disabled = true; btn.innerText = "Guardando Ficha Comercial...";
         var rsEl = document.getElementById("p_razonessociales");
-        var razonesSociales = rsEl ? Array.from(rsEl.selectedOptions).map(function(o){ return o.value; }).join(', ') : '';
+        var razonesSociales = rsEl ? rsEl.value : '';
         var d = {
           proveedor: p, razonSocial: document.getElementById("p_razonsocial").value.toUpperCase().trim(), rfc: document.getElementById("p_rfc").value.toUpperCase().trim(),
           estado: document.getElementById("p_estado") ? document.getElementById("p_estado").value.toUpperCase().trim() : "",
@@ -1604,17 +1632,33 @@
         if (!sel) return;
         var valores = window.catalogosGlobal[catalogKey.toUpperCase()] || [];
         if (valores.length === 0) return;
-        var primerOpt = sel.options[0] && sel.options[0].value === '' ? sel.options[0].outerHTML : '';
-        sel.innerHTML = primerOpt;
-        valores.forEach(function(v) {
-          var opt = document.createElement('option');
-          opt.value = v;
-          opt.textContent = v;
-          sel.appendChild(opt);
-        });
-        // Ajustar size automáticamente si es un listbox (tiene size > 1)
-        if (parseInt(sel.getAttribute('size') || 1) > 1) {
-          sel.size = Math.min(valores.length + (primerOpt ? 1 : 0), 6);
+
+        if (sel.type === 'hidden') {
+          // Dropdown estilo select2
+          var lista = document.getElementById('lista_' + selectId);
+          if (!lista) return;
+          var esMulti = lista.dataset.multi === 'true';
+          lista.innerHTML = valores.map(function(v) {
+            var safe = v.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+            if (esMulti) {
+              return '<li><label class="dropdown-item d-flex align-items-center gap-2 py-1" onclick="event.stopPropagation()" style="cursor:pointer; white-space:normal;">' +
+                '<input type="checkbox" class="form-check-input flex-shrink-0" onchange="window.toggleCheckDropdown(\'' + selectId + '\',\'' + safe + '\',this)">' +
+                '<span>' + v + '</span></label></li>';
+            } else {
+              return '<li><button type="button" class="dropdown-item py-1" style="white-space:normal;" onclick="window.seleccionarDropdown(\'' + selectId + '\',\'' + safe + '\')">' + v + '</button></li>';
+            }
+          }).join('');
+        } else if (sel.tagName === 'SELECT') {
+          var primerOpt = sel.options[0] && sel.options[0].value === '' ? sel.options[0].outerHTML : '';
+          sel.innerHTML = primerOpt;
+          valores.forEach(function(v) {
+            var opt = document.createElement('option');
+            opt.value = v; opt.textContent = v;
+            sel.appendChild(opt);
+          });
+          if (parseInt(sel.getAttribute('size') || 1) > 1) {
+            sel.size = Math.min(valores.length + (primerOpt ? 1 : 0), 6);
+          }
         }
       };
 
