@@ -198,16 +198,12 @@
         <div id="panelGerenteCron">
           <div class="mb-4">
             <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Estatus de la Unidad</label>
-            <div class="dropdown w-100">
-              <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_editCronEstatus" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d; border-color: var(--bs-primary) !important;" onclick="window.abrirDropdownCat('editCronEstatus','ESTATUS_UNIDAD_CRON')">
-                <span id="lbl_editCronEstatus" class="text-truncate">— Estatus —</span><span>▼</span>
-              </button>
-              <input type="hidden" id="editCronEstatus" value="">
-              <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
-                <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_editCronEstatus')"></li>
-                <div id="lista_editCronEstatus"></div>
-              </ul>
-            </div>
+            <select id="editCronEstatus" class="form-select fw-bold">
+              <option value="EN REPARACION">⚙️ EN REPARACIÓN</option>
+              <option value="UNIDAD NO PRESENTADA A LA CITA">🔴 UNIDAD NO PRESENTADA A LA CITA</option>
+              <option value="SERVICIO POSPUESTO POR SV">🟠 SERVICIO POSPUESTO POR SV</option>
+              <option value="SERVICIO CONCLUIDO">✅ SERVICIO CONCLUIDO</option>
+            </select>
             <small class="text-muted d-block mt-1">Si seleccionas <strong>Pospuesto</strong>, la cita se moverá automáticamente al siguiente día hábil.</small>
           </div>
           <div class="mb-3">

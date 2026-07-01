@@ -1820,7 +1820,6 @@
             ['cron_tipotrabajo', 'TIPO_TRABAJO'],
             ['cron_sede',        'SEDES'],
             ['cron_horario',     'HORARIO'],
-            ['editCronEstatus',  'ESTATUS_UNIDAD_CRON'],
             ['edCronTipo',       'TIPO_TRABAJO'],
             ['edCronSede',       'SEDES']
           ],
@@ -2035,7 +2034,8 @@
           var duplaM = document.getElementById('duplaEditMsj');
           if(duplaM) duplaM.innerText = '';
         } else {
-          window.seleccionarDropdown('editCronEstatus', reg.estatusUnidad || 'EN REPARACION');
+          var selEst = document.getElementById('editCronEstatus');
+          if(selEst) selEst.value = reg.estatusUnidad || 'EN REPARACION';
           document.getElementById('editCronEvidencia').value = '';
           document.getElementById('editCronFormato').value   = '';
           var evAct = document.getElementById('evidenciaActualCron');
