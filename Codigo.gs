@@ -879,6 +879,73 @@ function actualizarCronograma(d) {
   } catch(e) { return { exito: false, error: e.message }; }
 }
 
+function actualizarEstatusCronogramaBackend(d) {
+  // d = { id, estatus, urlEvidencia, urlFormato }
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+    if (!hoja) return { exito: false, error: "Hoja 'Cronograma' no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() === d.id.toString().trim()) {
+        const f = i + 1;
+        if (d.estatus) hoja.getRange(f, 13).setValue(d.estatus);
+        if (d.urlEvidencia) hoja.getRange(f, 16).setValue(d.urlEvidencia);
+        if (d.urlFormato)   hoja.getRange(f, 17).setValue(d.urlFormato);
+        if (d.estatus === "SERVICIO POSPUESTO POR SV") {
+          let fechaActual = parseFechaToDate(datos[i][7].toString());
+          fechaActual.setDate(fechaActual.getDate() + 1);
+          while (fechaActual.getDay() === 0 || fechaActual.getDay() === 6) {
+            fechaActual.setDate(fechaActual.getDate() + 1);
+          }
+          hoja.getRange(f, 8).setValue(formatoDDMMYYYY(fechaActual));
+        }
+        SpreadsheetApp.flush();
+        return { exito: true, msj: "Registro actualizado." };
+      }
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function actualizarCamposEjecutivoCronograma(d) {
+  // d = { id, tipoTrabajo, sede, fecha (YYYY-MM-DD), horario, dupla }
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+    if (!hoja) return { exito: false, error: "Hoja 'Cronograma' no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() === d.id.toString().trim()) {
+        const f = i + 1;
+        if (d.tipoTrabajo) hoja.getRange(f, 7).setValue(d.tipoTrabajo);
+        if (d.fecha) {
+          // Convertir YYYY-MM-DD a DD/MM/YYYY
+          const p = d.fecha.split('-');
+          if (p.length === 3) hoja.getRange(f, 8).setValue(p[2]+'/'+p[1]+'/'+p[0]);
+        }
+        if (d.horario) hoja.getRange(f, 9).setValue(d.horario);
+        if (d.sede)    hoja.getRange(f, 10).setValue(d.sede);
+        SpreadsheetApp.flush();
+        return { exito: true, msj: "Campos actualizados correctamente." };
+      }
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function subirArchivoEvidenciaCronograma(ticket, nombre, tipo, base64) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let folder;
+    const folders = DriveApp.getFoldersByName("Evidencias_Cronograma");
+    folder = folders.hasNext() ? folders.next() : DriveApp.createFolder("Evidencias_Cronograma");
+    const blob = Utilities.newBlob(Utilities.base64Decode(base64), tipo, nombre);
+    const file = folder.createFile(blob);
+    file.setName("TK_" + ticket + "_" + nombre);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return { exito: true, url: file.getUrl() };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
 function crearSolicitudAutorizacion(d) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
