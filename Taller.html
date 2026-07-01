@@ -67,8 +67,9 @@
         </div>
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">NUCO *</label>
-          <input type="text" id="nuco" class="form-control border-primary" placeholder="Autocompleta..."
-                 onblur="window.autocompletarNuco(this.value, 'taller')">
+          <input type="text" id="nuco" class="form-control" placeholder="Autocompleta..."
+                 onblur="window.autocompletarNuco(this.value, 'taller', this)"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault(); window.autocompletarNuco(this.value, 'taller', this);}">
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Placas</label>

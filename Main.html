@@ -328,6 +328,36 @@
         modal.show();
       };
 
+      // Valida campos requeridos — pinta borde rojo en vacíos, retorna false si hay alguno
+      window.validarCampos = function(ids) {
+        var ok = true;
+        ids.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          var vacio = el.value === undefined ? false : el.value.toString().trim() === '';
+          if (vacio) {
+            el.style.border = '2px solid red';
+            el.addEventListener('input', function limpiar() { el.style.border = ''; el.removeEventListener('input', limpiar); }, { once: true });
+            ok = false;
+          }
+        });
+        return ok;
+      };
+
+      // Navegación con Enter: avanza al siguiente campo editable visible
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        var t = e.target;
+        if (t.tagName === 'TEXTAREA' || t.tagName === 'BUTTON' || t.tagName === 'A') return;
+        if (t.tagName === 'INPUT' && (t.type === 'submit' || t.type === 'button')) return;
+        e.preventDefault();
+        var campos = Array.from(document.querySelectorAll(
+          'input:not([type=hidden]):not([readonly]):not([disabled]), select:not([disabled])'
+        )).filter(function(el) { return el.offsetParent !== null; });
+        var idx = campos.indexOf(t);
+        if (idx >= 0 && idx < campos.length - 1) campos[idx + 1].focus();
+      });
+
       window.sanitizarNumero = function(v) {
         if(!v) return 0;
         var n = parseFloat(v.toString().replace(/,/g, '').trim());
@@ -608,11 +638,12 @@
       // ============================================================================
       // 9. AUTOCOMPLETE NUCO
       // ============================================================================
-      window.autocompletarNuco = function(valor, contexto) {
+      window.autocompletarNuco = function(valor, contexto, inputEl) {
         if (!valor || valor.trim() === '') return;
 
         google.script.run
           .withSuccessHandler(function(res) {
+            if (inputEl) inputEl.style.border = (!res || !res.exito || !res.datos) ? '2px solid red' : '2px solid #28a745';
             if (!res || !res.exito || !res.datos) return;
             var d = res.datos;
 
@@ -645,6 +676,7 @@
             }
           })
           .withFailureHandler(function(e) {
+            if (inputEl) inputEl.style.border = '2px solid red';
             console.warn('autocompletarNuco error:', e.message);
           })
           .buscarInfoNuco(valor.trim().toUpperCase());
@@ -1094,6 +1126,7 @@
       };
 
       window.procesarTaller = function() {
+        if (!window.validarCampos(['ticket', 'nuco', 'descripcion'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         var btn = document.getElementById("btnGT"); btn.disabled = true; btn.innerText = "Guardando...";
         var p = document.getElementById("proveedor").value;
         var d = {
@@ -1129,6 +1162,7 @@
       };
 
       window.procesarInventario = function() {
+        if (!window.validarCampos(['ticket'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         var btn = document.getElementById("btnGI");
         var gen = { ticket: document.getElementById("ticket").value, folioCpp: document.getElementById("folioCpp").value, obsTicket: document.getElementById("obsTicket").value, estatus: "DISPONIBLE", quienRegistra: document.getElementById("quienRegistraGlobal").value };
         if(!gen.ticket) { window.mostrarAlerta("El Ticket es obligatorio."); return; }
@@ -1629,10 +1663,11 @@
         var nuco    = document.getElementById('cron_nuco')    ? document.getElementById('cron_nuco').value.trim()    : '';
         var fecha   = document.getElementById('cron_fecha')   ? document.getElementById('cron_fecha').value          : '';
         var horario = document.getElementById('cron_horario') ? document.getElementById('cron_horario').value        : '';
-        if (!nuco)    { window.mostrarAlerta('El NUCO es obligatorio.');        return; }
-        if (!ticket)  { window.mostrarAlerta('El Ticket es obligatorio.');      return; }
-        if (!fecha)   { window.mostrarAlerta('Selecciona una fecha.');          return; }
-        if (!horario) { window.mostrarAlerta('Selecciona un horario.');         return; }
+        if (!window.validarCampos(['cron_ticket', 'cron_nuco', 'cron_fecha', 'cron_horario'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
+        if (!nuco)    { return; }
+        if (!ticket)  { return; }
+        if (!fecha)   { return; }
+        if (!horario) { return; }
         var btn = document.getElementById('btnGCron');
         if(btn) { btn.disabled = true; btn.innerText = 'Guardando...'; }
         var d = {
