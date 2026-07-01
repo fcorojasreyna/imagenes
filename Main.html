@@ -1603,11 +1603,13 @@
       };
 
       window._colorCronFila = function(estatus) {
-        if (estatus === 'EN REPARACION')                  return '#fff9c4'; // amarillo
-        if (estatus === 'UNIDAD NO PRESENTADA A LA CITA') return '#f8d7da'; // rojo
-        if (estatus === 'SERVICIO POSPUESTO POR SV')       return '#ffe0b2'; // naranja
-        if (estatus === 'SERVICIO CONCLUIDO')              return '#a8d5b5'; // verde
-        return '';
+        var e = (estatus || '').toString().trim().toUpperCase()
+                  .normalize('NFD').replace(/[̀-ͯ]/g,''); // quita acentos
+        if (e === 'EN REPARACION')                  return '#fff9c4';
+        if (e === 'UNIDAD NO PRESENTADA A LA CITA') return '#f8d7da';
+        if (e === 'SERVICIO POSPUESTO POR SV')       return '#ffe0b2';
+        if (e === 'SERVICIO CONCLUIDO')              return '#a8d5b5';
+        return '#fff9c4'; // default amarillo para registros sin estatus aún
       };
 
       window.cargarDatosCronograma = function() {
