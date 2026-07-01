@@ -409,6 +409,8 @@
               window.aplicarControlRol(_rolActual);
               window.cargarCatalogos();
               window.mostrarInicio(document.getElementById('btnInicio'));
+              // Cargar badge de notificaciones al iniciar sesión (solo badge, sin llenar tablas)
+              setTimeout(function() { window.cargarDatosNotificaciones(true); }, 1000);
             } else {
               msj.innerText = (res && res.error) ? res.error : 'Usuario o contraseña incorrectos.';
             }
@@ -1760,7 +1762,7 @@
           if(duplaM) duplaM.innerText = '';
         } else {
           var sel = document.getElementById('editCronEstatus');
-          if(sel) sel.value = reg.estatusUnidad || 'EN REPARACION';
+          if(sel) { sel.value = 'EN REPARACION'; if(reg.estatusUnidad) sel.value = reg.estatusUnidad; }
           document.getElementById('editCronEvidencia').value = '';
           document.getElementById('editCronFormato').value   = '';
           var evAct = document.getElementById('evidenciaActualCron');
@@ -1846,12 +1848,15 @@
       var _authActual = {}; // contexto del modal de autorización activo
       var _rolActual  = ''; // rol del usuario logueado
 
-      window.cargarDatosNotificaciones = function() {
+      window.cargarDatosNotificaciones = function(solobadge) {
         var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
+        if (!quien) return; // sin sesión activa, no cargar
         var tbP = document.getElementById('cuerpoTablaPendientes');
         var tbM = document.getElementById('cuerpoTablaMisSolicitudes');
-        if(tbP) tbP.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm" style="color:var(--dorado)"></div></td></tr>';
-        if(tbM) tbM.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm" style="color:var(--dorado)"></div></td></tr>';
+        if(!solobadge) {
+          if(tbP) tbP.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm" style="color:var(--dorado)"></div></td></tr>';
+          if(tbM) tbM.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm" style="color:var(--dorado)"></div></td></tr>';
+        }
 
         google.script.run
           .withSuccessHandler(function(res) {
@@ -1900,10 +1905,14 @@
                 tbM.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No has enviado solicitudes.</td></tr>';
               } else {
                 mias.forEach(function(f) {
-                  var badgeNivel = '<span class="badge bg-secondary">'+f.nivelActual+'</span>';
+                  var esDupla = f.tipo === 'DUPLA';
+                  var nivelFinal = f.nivelActual;
+                  var colorNivel = nivelFinal === 'AUTORIZADO' ? 'bg-success' : (nivelFinal === 'RECHAZADO' ? 'bg-danger' : 'bg-secondary');
+                  var badgeNivel = '<span class="badge '+colorNivel+'">'+nivelFinal+'</span>';
                   var estG = window._badgeEst(f.decisionGerente);
-                  var estS = window._badgeEst(f.decisionSub);
-                  var estD = window._badgeEst(f.decisionDir);
+                  // DUPLA solo necesita gerente — sub y dir son N/A
+                  var estS = esDupla ? '<span class="text-muted small">N/A</span>' : window._badgeEst(f.decisionSub);
+                  var estD = esDupla ? '<span class="text-muted small">N/A</span>' : window._badgeEst(f.decisionDir);
                   tbM.innerHTML += '<tr>'
                     +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
                     +'<td>'+f.ticket+'</td>'
@@ -1992,8 +2001,18 @@
         var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
         bootstrap.Modal.getInstance(document.getElementById('modalAutorizacion')).hide();
         if (!escalar) {
-          window.mostrarAlerta(_authActual.msj || 'Autorización registrada. La cadena se cierra aquí.');
-          window.cargarDatosNotificaciones(); return;
+          // Gerente decide no escalar → cerrar cadena como AUTORIZADO
+          google.script.run
+            .withSuccessHandler(function(r) {
+              window.mostrarAlerta(_authActual.msj || 'Autorización registrada. La cadena se cierra aquí.');
+              window.cargarDatosNotificaciones();
+            })
+            .withFailureHandler(function() {
+              window.mostrarAlerta(_authActual.msj || 'Autorización registrada.');
+              window.cargarDatosNotificaciones();
+            })
+            .cerrarCadenaAutorizacion(_authActual.id);
+          return;
         }
         google.script.run
           .withSuccessHandler(function(r) {

@@ -802,6 +802,11 @@ function obtenerMecanicos() {
 }
 
 function obtenerDatosCronograma() {
+  // Columnas sheet: A=ID(0), B=TIPO TRABAJO(1), C=EJECUTIVO(2), D=SEDE(3),
+  //   E=HORARIO(4), F=FECHA(5), G=TICKET(6), H=NUCO(7), I=MARCA(8),
+  //   J=MODELO(9), K=PLACAS(10), L=MECANICO(11), M=MECANICO2(12),
+  //   N=INFO SERVICIO(13), O=ESTATUS UNIDAD(14), P=EVIDENCIA(15),
+  //   Q=FORMATO(16), R=QUIEN REGISTRA(17)
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
     if (!hoja) return { exito: false, error: "Hoja 'Cronograma' no encontrada." };
@@ -811,12 +816,12 @@ function obtenerDatosCronograma() {
     for (let i = 1; i < d.length; i++) {
       if (!d[i][0]) continue;
       filas.push({
-        id: d[i][0], ticket: d[i][1], nuco: d[i][2], marca: d[i][3],
-        modelo: d[i][4], placas: d[i][5], tipoTrabajo: d[i][6],
-        fecha: d[i][7], horario: d[i][8], sede: d[i][9],
-        mecanico: d[i][10], mecanico2: d[i][11],
-        estatusUnidad: d[i][12], quienRegistra: d[i][13],
-        info: d[i][14], evidencia: d[i][15], formato: d[i][16]
+        id: d[i][0], tipoTrabajo: d[i][1], ejecutivo: d[i][2], sede: d[i][3],
+        horario: d[i][4], fecha: d[i][5], ticket: d[i][6], nuco: d[i][7],
+        marca: d[i][8], modelo: d[i][9], placas: d[i][10],
+        mecanico: d[i][11], mecanico2: d[i][12],
+        info: d[i][13], estatusUnidad: d[i][14],
+        evidencia: d[i][15], formato: d[i][16], quienRegistra: d[i][17]
       });
     }
     return { exito: true, datos: filas };
@@ -841,9 +846,24 @@ function guardarCronograma(d) {
     }
 
     hoja.appendRow([
-      idGen, d.ticket, d.nuco, d.marca, d.modelo, d.placas,
-      d.tipoTrabajo, limpiarHoraLectura(d.fecha), d.horario, d.sede,
-      mecPrincipal, mec2, "EN REPARACION", d.quien, d.info || "", "", ""
+      idGen,               // A: ID
+      d.tipoTrabajo,       // B: TIPO DE TRABAJO
+      d.ejecutivo || d.quien, // C: EJECUTIVO
+      d.sede,              // D: SEDE
+      d.horario,           // E: HORARIO INGRESO
+      limpiarHoraLectura(d.fecha), // F: FECHA
+      d.ticket,            // G: TICKET
+      d.nuco,              // H: NUCO
+      d.marca,             // I: MARCA
+      d.modelo,            // J: MODELO
+      d.placas,            // K: PLACAS
+      mecPrincipal,        // L: MECANICO
+      mec2,                // M: MECANICO 2
+      d.info || "",        // N: INFO SERVICIO
+      "EN REPARACION",     // O: ESTATUS UNIDAD
+      "",                  // P: EVIDENCIA
+      "",                  // Q: FORMATO
+      d.quien              // R: QUIEN REGISTRA
     ]);
     SpreadsheetApp.flush();
     return { exito: true, msj: "Entrada registrada: " + idGen, mecanico: mecPrincipal, mecanico2: mec2 };
@@ -880,7 +900,7 @@ function actualizarCronograma(d) {
 }
 
 function actualizarEstatusCronogramaBackend(d) {
-  // d = { id, estatus, urlEvidencia, urlFormato }
+  // Columnas (1-based): O=ESTATUS(15), P=EVIDENCIA(16), Q=FORMATO(17), F=FECHA(6)
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
     if (!hoja) return { exito: false, error: "Hoja 'Cronograma' no encontrada." };
@@ -888,16 +908,17 @@ function actualizarEstatusCronogramaBackend(d) {
     for (let i = 1; i < datos.length; i++) {
       if (datos[i][0].toString().trim() === d.id.toString().trim()) {
         const f = i + 1;
-        if (d.estatus) hoja.getRange(f, 13).setValue(d.estatus);
+        if (d.estatus) hoja.getRange(f, 15).setValue(d.estatus);
         if (d.urlEvidencia) hoja.getRange(f, 16).setValue(d.urlEvidencia);
         if (d.urlFormato)   hoja.getRange(f, 17).setValue(d.urlFormato);
         if (d.estatus === "SERVICIO POSPUESTO POR SV") {
-          let fechaActual = parseFechaToDate(datos[i][7].toString());
+          // Fecha está en columna F (índice 5, col 6)
+          let fechaActual = parseFechaToDate(datos[i][5].toString());
           fechaActual.setDate(fechaActual.getDate() + 1);
           while (fechaActual.getDay() === 0 || fechaActual.getDay() === 6) {
             fechaActual.setDate(fechaActual.getDate() + 1);
           }
-          hoja.getRange(f, 8).setValue(formatoDDMMYYYY(fechaActual));
+          hoja.getRange(f, 6).setValue(formatoDDMMYYYY(fechaActual));
         }
         SpreadsheetApp.flush();
         return { exito: true, msj: "Registro actualizado." };
@@ -908,7 +929,7 @@ function actualizarEstatusCronogramaBackend(d) {
 }
 
 function actualizarCamposEjecutivoCronograma(d) {
-  // d = { id, tipoTrabajo, sede, fecha (YYYY-MM-DD), horario, dupla }
+  // Columnas (1-based): B=TIPO TRABAJO(2), D=SEDE(4), E=HORARIO(5), F=FECHA(6)
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
     if (!hoja) return { exito: false, error: "Hoja 'Cronograma' no encontrada." };
@@ -916,14 +937,13 @@ function actualizarCamposEjecutivoCronograma(d) {
     for (let i = 1; i < datos.length; i++) {
       if (datos[i][0].toString().trim() === d.id.toString().trim()) {
         const f = i + 1;
-        if (d.tipoTrabajo) hoja.getRange(f, 7).setValue(d.tipoTrabajo);
+        if (d.tipoTrabajo) hoja.getRange(f, 2).setValue(d.tipoTrabajo);
+        if (d.sede)        hoja.getRange(f, 4).setValue(d.sede);
+        if (d.horario)     hoja.getRange(f, 5).setValue(d.horario);
         if (d.fecha) {
-          // Convertir YYYY-MM-DD a DD/MM/YYYY
           const p = d.fecha.split('-');
-          if (p.length === 3) hoja.getRange(f, 8).setValue(p[2]+'/'+p[1]+'/'+p[0]);
+          if (p.length === 3) hoja.getRange(f, 6).setValue(p[2]+'/'+p[1]+'/'+p[0]);
         }
-        if (d.horario) hoja.getRange(f, 9).setValue(d.horario);
-        if (d.sede)    hoja.getRange(f, 10).setValue(d.sede);
         SpreadsheetApp.flush();
         return { exito: true, msj: "Campos actualizados correctamente." };
       }
@@ -1013,6 +1033,22 @@ function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien) {
       }
       SpreadsheetApp.flush();
       return { exito: true, msj: decision === 'AUTORIZADO' ? 'Autorizado correctamente.' : 'Solicitud rechazada.', decision: decision };
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function cerrarCadenaAutorizacion(id) {
+  // Marca NIVEL_ACTUAL = AUTORIZADO sin escalar más
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() !== id.toString().trim()) continue;
+      hoja.getRange(i + 1, 9).setValue('AUTORIZADO');
+      SpreadsheetApp.flush();
+      return { exito: true, msj: 'Autorización cerrada correctamente.' };
     }
     return { exito: false, error: "ID no encontrado." };
   } catch(e) { return { exito: false, error: e.message }; }
