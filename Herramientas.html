@@ -101,7 +101,8 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Lugar / Ubicación</label>
-          <input type="text" id="herr_lugar" class="form-control" placeholder="Ej. TALLER PRINCIPAL" style="text-transform:uppercase;">
+          <input type="text" class="form-control form-control-sm mb-1" placeholder="🔍 Buscar ubicación..." oninput="window.filtrarSelect(this, 'herr_lugar')" autocomplete="off" style="border:1px solid #ccc;">
+          <select id="herr_lugar" class="form-select" size="4" style="height:auto; overflow-y:auto;"></select>
         </div>
       </div>
 

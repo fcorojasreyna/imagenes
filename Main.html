@@ -257,8 +257,14 @@
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content" style="border-top: 5px solid var(--dorado);">
           <div class="modal-header" style="background-color: var(--azul); color: white;">
-            <h5 class="modal-title fw-bold">Historial Cronológico de la Unidad: <span id="modalHistorialTitulo" style="color: var(--dorado);"></span></h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div>
+              <h5 class="modal-title fw-bold m-0">Historial Cronológico de la Unidad: <span id="modalHistorialTitulo" style="color: var(--dorado);"></span></h5>
+              <small style="color: #ccc;">Gasto Total Acumulado: <span id="modalHistorialTotal" class="fw-bold" style="color: var(--dorado);">$0</span></small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm fw-bold" style="background-color: var(--dorado); color: var(--azul);" onclick="window.exportarHistorialExcel()">📥 Excel</button>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
           </div>
           <div class="modal-body" id="modalHistorialCuerpo"></div>
         </div>
@@ -535,8 +541,14 @@
       // ============================================================================
       // 7. HISTORIAL CRONOLÓGICO DE UNIDAD (NUCO)
       // ============================================================================
+      var _historialDatosActual = [];
+      var _historialNucoActual = '';
+
       window.verHistorial = function(nuco) {
+        _historialNucoActual = nuco;
+        _historialDatosActual = [];
         document.getElementById('modalHistorialTitulo').innerText = nuco;
+        document.getElementById('modalHistorialTotal').innerText = '$0';
         document.getElementById('modalHistorialCuerpo').innerHTML = '<p class="text-center text-muted"><span class="spinner-border spinner-border-sm"></span> Cargando historial...</p>';
         new bootstrap.Modal(document.getElementById('modalHistorial')).show();
 
@@ -547,8 +559,11 @@
               cuerpo.innerHTML = '<p class="text-center text-muted py-3">Sin registros para esta unidad.</p>';
               return;
             }
+            _historialDatosActual = res.datos;
+            var total = 0;
             var html = '<div class="timeline">';
             res.datos.forEach(function(r) {
+              total += parseFloat(r.costoTotal || 0);
               html += '<div class="timeline-item">' +
                 '<div class="timeline-date">' + (r.fecha || '') + ' — ' + (r.modulo || '') + '</div>' +
                 '<div class="timeline-content">' +
@@ -564,11 +579,47 @@
             });
             html += '</div>';
             cuerpo.innerHTML = html;
+            document.getElementById('modalHistorialTotal').innerText = '$' + total.toLocaleString('es-MX', { minimumFractionDigits: 2 });
           })
           .withFailureHandler(function(e) {
             document.getElementById('modalHistorialCuerpo').innerHTML = '<p class="text-danger">' + e.message + '</p>';
           })
           .obtenerHistorialNuco(nuco);
+      };
+
+      window.exportarHistorialExcel = function() {
+        if (!_historialDatosActual || _historialDatosActual.length === 0) {
+          window.mostrarAlerta('No hay datos cargados para exportar.'); return;
+        }
+        var headers = ['Fecha', 'Módulo', 'Ticket', 'Servicio / Tipo', 'Descripción', 'Costo Total', 'Registrado Por'];
+        var filas = _historialDatosActual.map(function(r) {
+          return [
+            r.fecha || '',
+            r.modulo || '',
+            r.ticket || '',
+            r.servicio || r.tipoServicio || '',
+            r.descripcion || '',
+            parseFloat(r.costoTotal || 0).toFixed(2),
+            r.quienRegistra || ''
+          ];
+        });
+        var total = _historialDatosActual.reduce(function(s, r) { return s + parseFloat(r.costoTotal || 0); }, 0);
+        filas.push(['', '', '', '', 'TOTAL ACUMULADO', total.toFixed(2), '']);
+
+        var csv = [headers].concat(filas).map(function(row) {
+          return row.map(function(c) { return '"' + (c+'').replace(/"/g,'""') + '"'; }).join(',');
+        }).join('\r\n');
+
+        var bom = '﻿';
+        var blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'Historial_NUCO_' + _historialNucoActual + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       };
 
       // ============================================================================
