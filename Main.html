@@ -1055,7 +1055,8 @@
       window.toggleVistaOC = function(v) {
         document.getElementById('vistaTablaOC').style.display = v === 'form' ? 'none' : 'block';
         document.getElementById('vistaFormOC').style.display = v === 'form' ? 'block' : 'none';
-        if (v !== 'form') window.cargarDatosHistorialOC();
+        if (v === 'form') window.llenarSelectsModulo('Cotizador');
+        else window.cargarDatosHistorialOC();
       };
 
       window.agregarProductoMatrix = function() {
@@ -1161,8 +1162,11 @@
       window.toggleVistaTaller = function(v) {
         document.getElementById('vistaTablaTaller').style.display = v === 'form' ? 'none' : 'block';
         document.getElementById('vistaFormTaller').style.display = v === 'form' ? 'block' : 'none';
-        if(v === 'form') window.llenarSelectsModulo('Taller');
-        else window.cargarDatosTaller();
+        if(v === 'form') {
+          window.llenarSelectsModulo('Taller');
+          var pr = document.getElementById('proveedor');
+          if (pr) { pr.removeEventListener('change', window.toggleCamposTaller); pr.addEventListener('change', window.toggleCamposTaller); }
+        } else window.cargarDatosTaller();
       };
 
       window.toggleCamposTaller = function() {
@@ -1317,11 +1321,14 @@
       };
 
       window.seleccionarDropdown = function(hiddenId, valor) {
-        document.getElementById(hiddenId).value = valor;
+        var hidden = document.getElementById(hiddenId);
+        if (!hidden) return;
+        hidden.value = valor;
         var lbl = document.getElementById('lbl_' + hiddenId);
         if (lbl) { lbl.textContent = valor; lbl.style.color = '#1E252B'; }
         var btn = document.getElementById('btn_' + hiddenId);
         if (btn) { var d = bootstrap.Dropdown.getInstance(btn); if (d) d.hide(); }
+        hidden.dispatchEvent(new Event('change'));
       };
 
       window.toggleCheckDropdown = function(hiddenId, valor, chk) {
@@ -1683,7 +1690,9 @@
             ['cron_tipotrabajo', 'TIPO_TRABAJO'],
             ['cron_sede',        'SEDES'],
             ['cron_horario',     'HORARIO'],
-            ['editCronEstatus',  'ESTATUS_UNIDAD_CRON']
+            ['editCronEstatus',  'ESTATUS_UNIDAD_CRON'],
+            ['edCronTipo',       'TIPO_TRABAJO'],
+            ['edCronSede',       'SEDES']
           ],
           'Inventario': [],
           'Proveedores': [
@@ -1881,10 +1890,8 @@
         if(panelEjec) panelEjec.style.display = esEjec ? 'block' : 'none';
 
         if(esEjec) {
-          var tipo = document.getElementById('edCronTipo');
-          if(tipo) tipo.value = reg.tipoTrabajo || 'MANTENIMIENTO';
-          var sede = document.getElementById('edCronSede');
-          if(sede) sede.value = reg.sede || '';
+          window.seleccionarDropdown('edCronTipo', reg.tipoTrabajo || '');
+          window.seleccionarDropdown('edCronSede', reg.sede || '');
           var fechaEl = document.getElementById('edCronFecha');
           if(fechaEl && reg.fecha) {
             // Convertir DD/MM/YYYY a YYYY-MM-DD
@@ -1898,8 +1905,7 @@
           var duplaM = document.getElementById('duplaEditMsj');
           if(duplaM) duplaM.innerText = '';
         } else {
-          var sel = document.getElementById('editCronEstatus');
-          if(sel) { sel.value = 'EN REPARACION'; if(reg.estatusUnidad) sel.value = reg.estatusUnidad; }
+          window.seleccionarDropdown('editCronEstatus', reg.estatusUnidad || 'EN REPARACION');
           document.getElementById('editCronEvidencia').value = '';
           document.getElementById('editCronFormato').value   = '';
           var evAct = document.getElementById('evidenciaActualCron');

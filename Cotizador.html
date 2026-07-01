@@ -109,34 +109,42 @@
       <div class="row mb-4">
         <div class="col-md-3 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tipo de Solicitud</label>
-          <select id="oc_tsol" class="form-select">
-            <option value="SINIESTRO">SINIESTRO</option>
-            <option value="INSPECCIONES">INSPECCIONES</option>
-            <option value="SOLICITUD DEPARTAMENTO">SOLICITUD DEPARTAMENTO</option>
-            <option value="EQUIPAMIENTO">EQUIPAMIENTO</option>
-            <option value="REVISION SV">REVISIÓN SV</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_oc_tsol" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('oc_tsol','TIPO_SOLICITUD_OC')">
+              <span id="lbl_oc_tsol" class="text-truncate">— Tipo Solicitud —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="oc_tsol" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_oc_tsol')"></li>
+              <div id="lista_oc_tsol"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-3 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tipo de Servicio</label>
-          <select id="oc_tser" class="form-select">
-            <option value="SERVICIO PREVENTIVO">SERVICIO PREVENTIVO</option>
-            <option value="SERVICIO CORRECTIVO">SERVICIO CORRECTIVO</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_oc_tser" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('oc_tser','TIPO_SERVICIO_OC')">
+              <span id="lbl_oc_tser" class="text-truncate">— Tipo Servicio —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="oc_tser" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_oc_tser')"></li>
+              <div id="lista_oc_tser"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tipo de Partida</label>
-          <select id="oc_tpart" class="form-select">
-            <option value="INSUMO AUTOMOTRIZ">INSUMO AUTOMOTRIZ</option>
-            <option value="HERRAMIENTAS">HERRAMIENTAS</option>
-            <option value="SERVICIO AUTOMOTRIZ">SERVICIO AUTOMOTRIZ</option>
-            <option value="MANO DE OBRA AUTOMOTRIZ">MANO DE OBRA AUTOMOTRIZ</option>
-            <option value="HOJALATERIA Y PINTURA">HOJALATERÍA Y PINTURA</option>
-            <option value="CRISTALERIA AUTOMOTRIZ">CRISTALERÍA AUTOMOTRIZ</option>
-            <option value="ACCESORIO AUTOMOTRIZ">ACCESORIO AUTOMOTRIZ</option>
-            <option value="SERVICIO DE GRUA">SERVICIO DE GRÚA</option>
-            <option value="ARTICULOS DE LIMPIEZA AUTOMOTRIZ">ARTÍCULOS DE LIMPIEZA AUTOMOTRIZ</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_oc_tpart" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('oc_tpart','TIPO_PARTIDA_OC')">
+              <span id="lbl_oc_tpart" class="text-truncate">— Tipo Partida —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="oc_tpart" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_oc_tpart')"></li>
+              <div id="lista_oc_tpart"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tiempo Vida Est.</label>
@@ -144,11 +152,16 @@
         </div>
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Realizado por</label>
-          <select id="oc_intext" class="form-select">
-            <option value="INTERNO">INTERNO</option>
-            <option value="EXTERNO" selected>EXTERNO</option>
-            <option value="AMBOS">AMBOS</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_oc_intext" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('oc_intext','REALIZADO_POR')">
+              <span id="lbl_oc_intext" class="text-truncate">— Realizado Por —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="oc_intext" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_oc_intext')"></li>
+              <div id="lista_oc_intext"></div>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -165,18 +178,29 @@
       <div class="row mb-4">
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Forma de Pago (SAT)</label>
-          <select id="oc_fp" class="form-select">
-            <option value="03 (TRANSFERENCIA ELECTRÓNICA)">03 (TRANSFERENCIA ELECTRÓNICA)</option>
-            <option value="04 (TARJETA DE CRÉDITO)">04 (TARJETA DE CRÉDITO)</option>
-            <option value="99 (POR DEFINIR)">99 (POR DEFINIR)</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_oc_fp" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('oc_fp','FORMA_PAGO_OC')">
+              <span id="lbl_oc_fp" class="text-truncate">— Forma de Pago —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="oc_fp" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_oc_fp')"></li>
+              <div id="lista_oc_fp"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Método de Pago (SAT)</label>
-          <select id="oc_mpago" class="form-select">
-            <option value="PUE">PUE</option>
-            <option value="PPD">PPD</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_oc_mpago" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('oc_mpago','METODO_PAGO_OC')">
+              <span id="lbl_oc_mpago" class="text-truncate">— Método de Pago —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="oc_mpago" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_oc_mpago')"></li>
+              <div id="lista_oc_mpago"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Uso CFDI (SAT)</label>

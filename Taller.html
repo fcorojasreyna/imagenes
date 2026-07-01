@@ -116,32 +116,29 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tipo de Servicio *</label>
-          <select id="tipoServicio" class="form-select border-dark">
-            <option value="MANTENIMIENTO">MANTENIMIENTO</option>
-            <option value="REPARACION">REPARACIÓN</option>
-            <option value="DIAGNOSTICO">DIAGNÓSTICO</option>
-            <option value="HOJALATERIA Y PINTURA">HOJALATERÍA Y PINTURA</option>
-            <option value="REVISION SV">REVISIÓN SV</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_tipoServicio" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d; border: var(--bs-border-width) solid #212529 !important;" onclick="window.abrirDropdownCat('tipoServicio','TIPO_SERVICIO')">
+              <span id="lbl_tipoServicio" class="text-truncate">— Tipo de Servicio —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="tipoServicio" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_tipoServicio')"></li>
+              <div id="lista_tipoServicio"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Familia *</label>
-          <select id="familia" class="form-select border-dark">
-            <option value="AFINACION MAYOR">AFINACIÓN MAYOR</option>
-            <option value="AFINACION MENOR">AFINACIÓN MENOR</option>
-            <option value="SISTEMA DE FRENOS">SISTEMA DE FRENOS</option>
-            <option value="SISTEMA DE SUSPENSION">SISTEMA DE SUSPENSIÓN</option>
-            <option value="SISTEMA DE DIRECCION">SISTEMA DE DIRECCIÓN</option>
-            <option value="SISTEMA DE MOTOR">SISTEMA DE MOTOR</option>
-            <option value="SISTEMA DE ENFRIAMIENTO">SISTEMA DE ENFRIAMIENTO</option>
-            <option value="SISTEMA DE ILUMINACION">SISTEMA DE ILUMINACIÓN</option>
-            <option value="CLUTCH">CLUTCH</option>
-            <option value="BATERIA">BATERÍA</option>
-            <option value="LLANTAS">LLANTAS</option>
-            <option value="SISTEMA ELECTRICO">SISTEMA ELÉCTRICO</option>
-            <option value="HOJALATERIA Y PINTURA">HOJALATERÍA Y PINTURA</option>
-            <option value="REVISION SV">REVISIÓN SV</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_familia" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d; border: var(--bs-border-width) solid #212529 !important;" onclick="window.abrirDropdownCat('familia','FAMILIA')">
+              <span id="lbl_familia" class="text-truncate">— Familia —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="familia" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_familia')"></li>
+              <div id="lista_familia"></div>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -149,11 +146,16 @@
       <div class="row mb-3">
         <div class="col-md-3 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Realizado Por *</label>
-          <select id="proveedor" class="form-select border-primary" onchange="window.toggleCamposTaller()">
-            <option value="INTERNO">INTERNO</option>
-            <option value="EXTERNO">EXTERNO</option>
-            <option value="AMBOS">AMBOS</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_proveedor" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d; border-color: var(--bs-primary) !important;" onclick="window.abrirDropdownCat('proveedor','REALIZADO_POR')">
+              <span id="lbl_proveedor" class="text-truncate">— Realizado Por —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="proveedor" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_proveedor')"></li>
+              <div id="lista_proveedor"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-2 mb-3" id="divInterno">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">M. de Obra Interna</label>
@@ -193,11 +195,16 @@
       <div class="row align-items-center mb-3">
         <div class="col-md-5">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Estatus de la Unidad *</label>
-          <select id="estatusUnidad" class="form-select border-primary fw-bold">
-            <option value="PROGRAMADA" selected>📅 PROGRAMADA</option>
-            <option value="INGRESADA">⏳ INGRESADA</option>
-            <option value="FINALIZADA">✅ FINALIZADA</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_estatusUnidad" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d; border-color: var(--bs-primary) !important;" onclick="window.abrirDropdownCat('estatusUnidad','ESTATUS_TALLER')">
+              <span id="lbl_estatusUnidad" class="text-truncate">— Estatus Unidad —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="estatusUnidad" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_estatusUnidad')"></li>
+              <div id="lista_estatusUnidad"></div>
+            </ul>
+          </div>
         </div>
         <input type="hidden" id="evidencia" value="SIN EVIDENCIA">
         <input type="hidden" id="folioCpp" value="">

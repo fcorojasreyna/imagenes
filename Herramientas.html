@@ -63,21 +63,29 @@
       <div class="row">
         <div class="col-md-3 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tipo *</label>
-          <select id="herr_tipo" class="form-select">
-            <option value="HERRAMIENTA">HERRAMIENTA</option>
-            <option value="ARTICULO">ARTÍCULO</option>
-            <option value="EQUIPO">EQUIPO</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_herr_tipo" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('herr_tipo','TIPO_HERRAMIENTA')">
+              <span id="lbl_herr_tipo" class="text-truncate">— Tipo —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="herr_tipo" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_herr_tipo')"></li>
+              <div id="lista_herr_tipo"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-3 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tipo de Unidad</label>
-          <select id="herr_tipounidad" class="form-select">
-            <option value="PIEZA">PIEZA</option>
-            <option value="JUEGO">JUEGO</option>
-            <option value="KIT">KIT</option>
-            <option value="LITRO">LITRO</option>
-            <option value="METRO">METRO</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_herr_tipounidad" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('herr_tipounidad','UM')">
+              <span id="lbl_herr_tipounidad" class="text-truncate">— Tipo Unidad —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="herr_tipounidad" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_herr_tipounidad')"></li>
+              <div id="lista_herr_tipounidad"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-6 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Nombre del Artículo *</label>
@@ -92,28 +100,45 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Estado</label>
-          <select id="herr_estado" class="form-select">
-            <option value="NUEVO">NUEVO</option>
-            <option value="BUENO">BUENO</option>
-            <option value="REGULAR">REGULAR</option>
-            <option value="DAÑADO">DAÑADO</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_herr_estado" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('herr_estado','ESTADO_HERRAMIENTA')">
+              <span id="lbl_herr_estado" class="text-truncate">— Estado —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="herr_estado" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_herr_estado')"></li>
+              <div id="lista_herr_estado"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Lugar / Ubicación</label>
-          <input type="text" class="form-control form-control-sm mb-1" placeholder="🔍 Buscar ubicación..." oninput="window.filtrarSelect(this, 'herr_lugar')" autocomplete="off" style="border:1px solid #ccc;">
-          <select id="herr_lugar" class="form-select" size="4" style="height:auto; overflow-y:auto;"></select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_herr_lugar" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('herr_lugar','UBICACION_HERRAMIENTA')">
+              <span id="lbl_herr_lugar" class="text-truncate">— Ubicación —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="herr_lugar" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_herr_lugar')"></li>
+              <div id="lista_herr_lugar"></div>
+            </ul>
+          </div>
         </div>
       </div>
 
       <div class="row">
         <div class="col-md-3 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Estatus</label>
-          <select id="herr_estatus" class="form-select">
-            <option value="DISPONIBLE">DISPONIBLE</option>
-            <option value="EN USO">EN USO</option>
-            <option value="BAJA">BAJA</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_herr_estatus" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('herr_estatus','ESTATUS_HERRAMIENTA')">
+              <span id="lbl_herr_estatus" class="text-truncate">— Estatus —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="herr_estatus" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_herr_estatus')"></li>
+              <div id="lista_herr_estatus"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-3 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Existencia</label>
