@@ -74,7 +74,8 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Estado</label>
-          <input type="text" id="p_estado" class="form-control" style="text-transform:uppercase;">
+          <input type="text" class="form-control form-control-sm mb-1" placeholder="🔍 Buscar estado..." oninput="window.filtrarSelect(this, 'p_estado')" autocomplete="off" style="border:1px solid #ccc;">
+          <select id="p_estado" class="form-select" size="4" style="height:auto; overflow-y:auto;"></select>
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Dirección</label>
@@ -102,7 +103,8 @@
         </div>
         <div class="col-md-6 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Servicio</label>
-          <input type="text" id="p_servicio" class="form-control" style="text-transform:uppercase;">
+          <input type="text" class="form-control form-control-sm mb-1" placeholder="🔍 Buscar servicio..." oninput="window.filtrarSelect(this, 'p_servicio')" autocomplete="off" style="border:1px solid #ccc;">
+          <select id="p_servicio" class="form-select" size="4" style="height:auto; overflow-y:auto;"></select>
         </div>
       </div>
       <div class="row">
@@ -116,20 +118,17 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Razones Sociales Compatibles</label>
-          <input type="text" id="p_razonessociales" class="form-control" placeholder="EJ. CIB, FRO..." style="text-transform:uppercase;">
+          <input type="text" class="form-control form-control-sm mb-1" placeholder="🔍 Buscar razón social..." oninput="window.filtrarSelect(this, 'p_razonessociales')" autocomplete="off" style="border:1px solid #ccc;">
+          <select id="p_razonessociales" class="form-select" multiple size="4" style="height:auto; overflow-y:auto;"></select>
+          <small class="text-muted" style="font-size:0.72rem;">Ctrl+clic para seleccionar varias</small>
         </div>
       </div>
       <div class="row">
         <div class="col-md-6 mb-3">
           <label class="fw-bold text-muted" style="font-size: 0.85rem;">Régimen Fiscal</label>
-          <select id="p_regimenfiscal" class="form-select">
+          <input type="text" class="form-control form-control-sm mb-1" placeholder="🔍 Buscar régimen..." oninput="window.filtrarSelect(this, 'p_regimenfiscal')" autocomplete="off" style="border:1px solid #ccc;">
+          <select id="p_regimenfiscal" class="form-select" size="4" style="height:auto; overflow-y:auto;">
             <option value="">-- Selecciona --</option>
-            <option value="GENERAL DE LEY PM">GENERAL DE LEY PM (601)</option>
-            <option value="RESICO PM">RESICO PM (626)</option>
-            <option value="GENERAL DE LEY PF">GENERAL DE LEY PF</option>
-            <option value="RESICO PF">RESICO PF (625)</option>
-            <option value="ACTIVIDAD EMPRESARIAL PF">ACTIVIDAD EMPRESARIAL PF (612)</option>
-            <option value="SIN OBLIGACIONES FISCALES">SIN OBLIGACIONES FISCALES (616)</option>
           </select>
         </div>
         <div class="col-md-6 mb-3">

@@ -1237,16 +1237,29 @@
         else window.cargarDatosProv();
       };
 
+      window.filtrarSelect = function(inp, selectId) {
+        var sel = document.getElementById(selectId);
+        if (!sel) return;
+        var f = (inp.value || '').toUpperCase().trim();
+        Array.from(sel.options).forEach(function(o) {
+          o.hidden = f ? !o.value.toUpperCase().includes(f) : false;
+        });
+      };
+
       window.guardarProveedor = function() {
         var p = document.getElementById("p_proveedor").value.toUpperCase().trim(); if(!p) { window.mostrarAlerta("El Nombre Comercial es obligatorio."); return; }
         var btn = document.getElementById("btnGP"); btn.disabled = true; btn.innerText = "Guardando Ficha Comercial...";
+        var rsEl = document.getElementById("p_razonessociales");
+        var razonesSociales = rsEl ? Array.from(rsEl.selectedOptions).map(function(o){ return o.value; }).join(', ') : '';
         var d = {
           proveedor: p, razonSocial: document.getElementById("p_razonsocial").value.toUpperCase().trim(), rfc: document.getElementById("p_rfc").value.toUpperCase().trim(),
-          estado: document.getElementById("p_estado").value.toUpperCase().trim(), direccion: document.getElementById("p_direccion").value.toUpperCase().trim(),
+          estado: document.getElementById("p_estado") ? document.getElementById("p_estado").value.toUpperCase().trim() : "",
+          direccion: document.getElementById("p_direccion").value.toUpperCase().trim(),
           contacto: document.getElementById("p_contacto").value.toUpperCase().trim(), numero: document.getElementById("p_numero").value.trim(),
           correo: document.getElementById("p_correo").value.toLowerCase().trim(), segmentacion: document.getElementById("p_segmentacion").value.toUpperCase().trim(),
-          servicio: document.getElementById("p_servicio").value.toUpperCase().trim(), diasCredito: document.getElementById("p_diascredito").value,
-          totalCredito: document.getElementById("p_totalcredito").value.trim(), razonesSociales: document.getElementById("p_razonessociales").value.toUpperCase().trim(),
+          servicio: document.getElementById("p_servicio") ? document.getElementById("p_servicio").value.toUpperCase().trim() : "",
+          diasCredito: document.getElementById("p_diascredito").value,
+          totalCredito: document.getElementById("p_totalcredito").value.trim(), razonesSociales: razonesSociales,
           regimenFiscal: document.getElementById("p_regimenfiscal") ? document.getElementById("p_regimenfiscal").value : "",
           intercambio2: document.getElementById("p_intercambio2") ? document.getElementById("p_intercambio2").value : "NO"
         };
@@ -1539,7 +1552,7 @@
         var sel = document.getElementById(selectId);
         if (!sel) return;
         var valores = window.catalogosGlobal[catalogKey.toUpperCase()] || [];
-        if (valores.length === 0) return; // no sobreescribir si no hay datos
+        if (valores.length === 0) return;
         var primerOpt = sel.options[0] && sel.options[0].value === '' ? sel.options[0].outerHTML : '';
         sel.innerHTML = primerOpt;
         valores.forEach(function(v) {
@@ -1548,6 +1561,10 @@
           opt.textContent = v;
           sel.appendChild(opt);
         });
+        // Ajustar size automáticamente si es un listbox (tiene size > 1)
+        if (parseInt(sel.getAttribute('size') || 1) > 1) {
+          sel.size = Math.min(valores.length + (primerOpt ? 1 : 0), 6);
+        }
       };
 
       window.llenarSelectsModulo = function(modulo) {
