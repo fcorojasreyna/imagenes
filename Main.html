@@ -1298,6 +1298,15 @@
       };
 
       // Funciones para el dropdown estilo select2
+
+      // Lazy-loader: llama llenarSelect solo si la lista está vacía
+      window.abrirDropdownCat = function(hiddenId, catalogKey) {
+        var lista = document.getElementById('lista_' + hiddenId);
+        if (lista && lista.querySelectorAll('li').length === 0) {
+          window.llenarSelect(hiddenId, catalogKey);
+        }
+      };
+
       window.filtrarDropdownCat = function(inp, listaId) {
         var f = (inp.value || '').toUpperCase().trim();
         var lista = document.getElementById(listaId);
@@ -1678,10 +1687,10 @@
           ],
           'Inventario': [],
           'Proveedores': [
-            ['p_estado',        'ESTADO_REP'],
-            ['p_servicio',      'SERVICIO'],
-            ['p_regimenfiscal', 'REGIMEN_FISCAL'],
-            ['p_intercambio2',  'INTERCAMBIO']
+            ['p_estado',          'ESTADO_REP'],
+            ['p_servicio',        'SERVICIO'],
+            ['p_regimenfiscal',   'REGIMEN_FISCAL'],
+            ['p_razonessociales', 'RAZONES_SOCIALES_EMPRESA']
           ],
           'Cotizador': [
             ['oc_tsol',   'TIPO_SOLICITUD_OC'],
