@@ -196,7 +196,10 @@
           <a class="nav-pill nav-pill-azul" id="btnCot" onclick="window.cargarModulo('Cotizador', this)">Cotizaciones / OC</a>
           <a class="nav-pill" id="btnHerr" onclick="window.cargarModulo('Herramientas', this)">Herramientas</a>
           <a class="nav-pill" id="btnCron" onclick="window.cargarModulo('Cronograma', this)">Cronograma</a>
-          <a class="nav-pill" id="btnNotif" onclick="window.cargarModulo('Notificaciones', this)">Notificaciones 🔔</a>
+          <a class="nav-pill" id="btnNotif" onclick="window.cargarModulo('Notificaciones', this)" style="position:relative;">
+            Notificaciones 🔔
+            <span id="badgeNotif" style="display:none;position:absolute;top:-6px;right:-8px;background:#dc3545;color:white;border-radius:50%;font-size:0.65rem;font-weight:bold;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 3px;"></span>
+          </a>
         </div>
 
         <div class="logo-derecho" style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
@@ -1860,11 +1863,11 @@
             var panelPend = document.getElementById('panelPendientesAuth');
             if (panelPend) panelPend.style.display = rolesQueAutorizan.includes(_rolActual) ? '' : 'none';
 
-            // --- Badge: pendientes para autorizadores / resueltas para ejecutivos ---
+            // --- Badge: pendientes para autorizadores / resueltas (no GERENTE) para ejecutivos ---
             var pendientes = (res.pendientes || []);
             var miasBadge  = rolesQueAutorizan.includes(_rolActual)
               ? pendientes.length
-              : (res.mias || []).filter(function(m){ return m.estado !== 'PENDIENTE'; }).length;
+              : (res.mias || []).filter(function(m){ return m.estado === 'AUTORIZADO' || m.estado === 'RECHAZADO'; }).length;
             window.actualizarBadgeNotif(miasBadge);
 
             if (tbP) {

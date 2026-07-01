@@ -947,17 +947,92 @@ function subirArchivoEvidenciaCronograma(ticket, nombre, tipo, base64) {
 }
 
 function crearSolicitudAutorizacion(d) {
+  // Columnas sheet: A=ID, B=MODULO, C=TICKET, D=NUCO, E=CONCEPTO, F=MONTO,
+  //                 G=SOLICITANTE, H=FECHA, I=NIVEL_ACTUAL,
+  //                 J=DEC_GERENTE, K=FECHA_GER, L=QUIEN_GER,
+  //                 M=DEC_SUB, N=FECHA_SUB, O=QUIEN_SUB,
+  //                 P=DEC_DIR, Q=FECHA_DIR, R=QUIEN_DIR, S=DATO_EXTRA
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let hoja = ss.getSheetByName("Autorizaciones");
     if (!hoja) hoja = ss.insertSheet("Autorizaciones");
     const idGen = generarIdIncremental("Autorizaciones", "AUTH");
     hoja.appendRow([
-      idGen, d.tipo || "DUPLA", d.nivel || "GERENTE", d.ticket, d.nuco,
-      d.desc || "", d.quien, formatoDDMMYYYY(new Date()), "PENDIENTE", ""
+      idGen,
+      d.tipo || "DUPLA",          // B: MODULO
+      d.ticket || "",             // C: TICKET
+      d.nuco   || "",             // D: NUCO
+      d.descripcion || d.desc || "",  // E: CONCEPTO
+      d.monto  || "",             // F: MONTO
+      d.solicitante || d.quien || "", // G: SOLICITANTE
+      formatoDDMMYYYY(new Date()), // H: FECHA
+      d.nivel  || "GERENTE",      // I: NIVEL_ACTUAL
+      "PENDIENTE",                // J: DEC_GERENTE (inicial)
+      "", "", "", "", "", "", "", "", // K-R vacíos
+      d.datoExtra || ""           // S: DATO_EXTRA
     ]);
     SpreadsheetApp.flush();
     return { exito: true, msj: "Solicitud enviada.", id: idGen };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien) {
+  // Columnas: J=DEC_GERENTE(10), K=FECHA_GER(11), L=QUIEN_GER(12),
+  //           M=DEC_SUB(13), N=FECHA_SUB(14), O=QUIEN_SUB(15),
+  //           P=DEC_DIR(16), Q=FECHA_DIR(17), R=QUIEN_DIR(18)
+  //           I=NIVEL_ACTUAL(9)
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    const fechaHoy = formatoDDMMYYYY(new Date());
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() !== id.toString().trim()) continue;
+      const f = i + 1;
+      if (nivel === 'GERENTE') {
+        hoja.getRange(f, 10).setValue(decision);
+        hoja.getRange(f, 11).setValue(fechaHoy);
+        hoja.getRange(f, 12).setValue(quien);
+        if (decision === 'AUTORIZADO') hoja.getRange(f, 9).setValue('SUBDIRECTORA');
+        if (decision === 'RECHAZADO')  hoja.getRange(f, 9).setValue('RECHAZADO');
+      } else if (nivel === 'SUBDIRECTORA') {
+        hoja.getRange(f, 13).setValue(decision);
+        hoja.getRange(f, 14).setValue(fechaHoy);
+        hoja.getRange(f, 15).setValue(quien);
+        if (decision === 'AUTORIZADO') hoja.getRange(f, 9).setValue('DIRECTORA');
+        if (decision === 'RECHAZADO')  hoja.getRange(f, 9).setValue('RECHAZADO');
+      } else if (nivel === 'DIRECTORA') {
+        hoja.getRange(f, 16).setValue(decision);
+        hoja.getRange(f, 17).setValue(fechaHoy);
+        hoja.getRange(f, 18).setValue(quien);
+        hoja.getRange(f, 9).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
+      }
+      // Para DUPLA: solo gerente decide, cierra directo
+      if (tipo === 'DUPLA') {
+        hoja.getRange(f, 9).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
+      }
+      SpreadsheetApp.flush();
+      return { exito: true, msj: decision === 'AUTORIZADO' ? 'Autorizado correctamente.' : 'Solicitud rechazada.', decision: decision };
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function escalarAutorizacion(id, nivelActual, quien) {
+  // Avanza NIVEL_ACTUAL al siguiente nivel de aprobación
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    const mapaNext = { 'GERENTE': 'SUBDIRECTORA', 'SUBDIRECTORA': 'DIRECTORA', 'DIRECTORA': 'AUTORIZADO' };
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() !== id.toString().trim()) continue;
+      const siguiente = mapaNext[nivelActual] || nivelActual;
+      hoja.getRange(i + 1, 9).setValue(siguiente);
+      SpreadsheetApp.flush();
+      return { exito: true, msj: 'Solicitud escalada a ' + siguiente + '.' };
+    }
+    return { exito: false, error: "ID no encontrado." };
   } catch(e) { return { exito: false, error: e.message }; }
 }
 
@@ -1029,6 +1104,11 @@ function eliminarHerramienta(id) {
 }
 
 function obtenerDatosNotificaciones(quien) {
+  // Columnas: A=ID(0), B=MODULO(1), C=TICKET(2), D=NUCO(3), E=CONCEPTO(4),
+  //           F=MONTO(5), G=SOLICITANTE(6), H=FECHA(7), I=NIVEL_ACTUAL(8),
+  //           J=DEC_GERENTE(9), K=FECHA_GER(10), L=QUIEN_GER(11),
+  //           M=DEC_SUB(12), N=FECHA_SUB(13), O=QUIEN_SUB(14),
+  //           P=DEC_DIR(15), Q=FECHA_DIR(16), R=QUIEN_DIR(17), S=DATO_EXTRA(18)
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
     if (!hoja) return { exito: true, pendientes: [], mias: [] };
@@ -1037,18 +1117,19 @@ function obtenerDatosNotificaciones(quien) {
     let pendientes = [], mias = [];
     for (let i = 1; i < d.length; i++) {
       if (!d[i][0]) continue;
-      const id = d[i][0], tipo = d[i][1], nivel = d[i][2], ticket = d[i][3],
-            nuco = d[i][4], desc = d[i][5], sol = d[i][6], fecha = d[i][7], dec = d[i][8];
-      if (dec === 'PENDIENTE') {
+      const id     = d[i][0],  tipo  = d[i][1], ticket = d[i][2], nuco  = d[i][3],
+            desc   = d[i][4],  sol   = d[i][6], fecha  = d[i][7], nivel = d[i][8],
+            decG   = d[i][9],  decS  = d[i][12], decD  = d[i][15];
+      // Pendiente = DEC_GERENTE es "PENDIENTE" y NIVEL_ACTUAL no es "AUTORIZADO"/"RECHAZADO"
+      const estaActivo = nivel !== 'AUTORIZADO' && nivel !== 'RECHAZADO';
+      if (estaActivo && decG === 'PENDIENTE') {
         pendientes.push({ id: id, tipo: tipo, nivel: nivel, referencia: id,
           ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha });
       }
       if (sol === quien) {
-        var dG = nivel === 'GERENTE'      ? dec : (dec !== 'PENDIENTE' ? 'AUTORIZADO' : '—');
-        var dS = nivel === 'SUBDIRECTORA' ? dec : (dec === 'RECHAZADO' ? 'N/A' : '—');
-        var dD = nivel === 'DIRECTORA'    ? dec : (dec === 'RECHAZADO' ? 'N/A' : '—');
         mias.push({ tipo: tipo, ticket: ticket, descripcion: desc, nivelActual: nivel,
-          decisionGerente: dG, decisionSub: dS, decisionDir: dD, fecha: fecha });
+          decisionGerente: decG || '—', decisionSub: decS || '—', decisionDir: decD || '—',
+          fecha: fecha, estado: nivel });
       }
     }
     return { exito: true, pendientes: pendientes, mias: mias };
