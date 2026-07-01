@@ -926,6 +926,41 @@ function resolverAutorizacion(id, decision, comentario) {
   } catch(e) { return { exito: false, error: e.message }; }
 }
 
+function obtenerDatosHerramientas() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let hoja = ss.getSheetByName("Herramientas");
+    if (!hoja) return { exito: true, datos: [] };
+    const d = hoja.getDataRange().getDisplayValues();
+    if (d.length < 2) return { exito: true, datos: [] };
+    let filas = [];
+    for (let i = 1; i < d.length; i++) {
+      if (!d[i][0]) continue;
+      filas.push({ id: d[i][0], tipo: d[i][1], tipoUnidad: d[i][2], nombre: d[i][3], marca: d[i][4],
+        estadoHerr: d[i][5], lugar: d[i][6], estatus: d[i][7], existencia: d[i][8],
+        fecha: d[i][9], quienRegistra: d[i][10] });
+    }
+    return { exito: true, datos: filas };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function registrarHerramienta(d) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let hoja = ss.getSheetByName("Herramientas");
+    if (!hoja) hoja = ss.insertSheet("Herramientas");
+    const id = generarIdIncremental("Herramientas", "HRR");
+    hoja.appendRow([id, d.tipo, d.tipoUnidad, d.nombre, d.marca, d.estadoHerr,
+      d.lugar, d.estatus, d.existencia, d.fecha, d.quienRegistra]);
+    SpreadsheetApp.flush();
+    return { exito: true, msj: "Herramienta registrada correctamente." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function eliminarHerramienta(id) {
+  return _eliminarRegistro("Herramientas", id);
+}
+
 function obtenerDatosNotificaciones(quien) {
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");

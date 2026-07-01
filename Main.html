@@ -1401,7 +1401,7 @@
           if(!tbody) return;
           tbody.innerHTML = '';
           if(!res || !res.exito || res.datos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="12" class="text-center py-4 text-muted">Sin herramientas registradas.</td></tr>'; return;
+            tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">Sin herramientas registradas.</td></tr>'; return;
           }
           res.datos.forEach(function(f) {
             var badge = f.estatus === 'DISPONIBLE' ? '<span class="badge bg-success">DISPONIBLE</span>'
@@ -1418,7 +1418,6 @@
               '<td>' + f.lugar + '</td>' +
               '<td>' + badge + '</td>' +
               '<td>' + f.existencia + '</td>' +
-              '<td>' + (f.quienRegistra||'') + '</td>' +
               '<td>' + f.fecha + '</td>' +
               '<td class="text-center">' + btnElim + '</td></tr>';
           });
