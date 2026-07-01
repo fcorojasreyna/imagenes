@@ -926,6 +926,33 @@ function resolverAutorizacion(id, decision, comentario) {
   } catch(e) { return { exito: false, error: e.message }; }
 }
 
+function obtenerDatosNotificaciones(quien) {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: true, pendientes: [], mias: [] };
+    const d = hoja.getDataRange().getDisplayValues();
+    if (d.length < 2) return { exito: true, pendientes: [], mias: [] };
+    let pendientes = [], mias = [];
+    for (let i = 1; i < d.length; i++) {
+      if (!d[i][0]) continue;
+      const id = d[i][0], tipo = d[i][1], nivel = d[i][2], ticket = d[i][3],
+            nuco = d[i][4], desc = d[i][5], sol = d[i][6], fecha = d[i][7], dec = d[i][8];
+      if (dec === 'PENDIENTE') {
+        pendientes.push({ id: id, tipo: tipo, nivel: nivel, referencia: id,
+          ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha });
+      }
+      if (sol === quien) {
+        var dG = nivel === 'GERENTE'      ? dec : (dec !== 'PENDIENTE' ? 'AUTORIZADO' : '—');
+        var dS = nivel === 'SUBDIRECTORA' ? dec : (dec === 'RECHAZADO' ? 'N/A' : '—');
+        var dD = nivel === 'DIRECTORA'    ? dec : (dec === 'RECHAZADO' ? 'N/A' : '—');
+        mias.push({ tipo: tipo, ticket: ticket, descripcion: desc, nivelActual: nivel,
+          decisionGerente: dG, decisionSub: dS, decisionDir: dD, fecha: fecha });
+      }
+    }
+    return { exito: true, pendientes: pendientes, mias: mias };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
 // ============================================================
 
 function actualizarProveedorCompleto(d) {
