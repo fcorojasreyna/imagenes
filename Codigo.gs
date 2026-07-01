@@ -836,6 +836,20 @@ function guardarCronograma(d) {
     if (!hoja) hoja = ss.insertSheet("Cronograma");
     const idGen = generarIdIncremental("Cronograma", "CRON");
 
+    // Validar: máximo 2 vehículos por horario en la misma fecha
+    const fechaNorm = limpiarHoraLectura(d.fecha);
+    const existentes = hoja.getDataRange().getDisplayValues();
+    let contHorario = 0;
+    for (let i = 1; i < existentes.length; i++) {
+      const fila = existentes[i];
+      const fHora  = (fila[4] || '').toString().trim();  // E: HORARIO
+      const fFecha = (fila[5] || '').toString().trim();  // F: FECHA
+      if (fHora === d.horario && fFecha === fechaNorm) contHorario++;
+    }
+    if (contHorario >= 2) {
+      return { exito: false, error: 'Ya hay 2 vehículos programados para las ' + d.horario + ' del ' + fechaNorm + '. Elige otro horario.' };
+    }
+
     // Asignar mecánico aleatorio
     const mecResult = obtenerMecanicos();
     const mecList = (mecResult.exito && mecResult.mecanicos.length > 0) ? mecResult.mecanicos : [];
@@ -902,6 +916,20 @@ function actualizarCronograma(d) {
   } catch(e) { return { exito: false, error: e.message }; }
 }
 
+function _siguienteDiaHabil(fechaBase) {
+  // Recibe un objeto Date, devuelve el siguiente día L-V (no sábado ni domingo)
+  let d = new Date(fechaBase.getFullYear(), fechaBase.getMonth(), fechaBase.getDate());
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return d;
+}
+
+function _rawToDate(val) {
+  // getValues() puede devolver Date o string — los dos casos quedan cubiertos
+  if (val instanceof Date) return new Date(val.getFullYear(), val.getMonth(), val.getDate());
+  return parseFechaToDate(val.toString());
+}
+
 function actualizarEstatusCronogramaBackend(d) {
   // Columnas (1-based): O=ESTATUS(15), P=EVIDENCIA(16), Q=FORMATO(17), F=FECHA(6)
   try {
@@ -915,13 +943,9 @@ function actualizarEstatusCronogramaBackend(d) {
         if (d.urlEvidencia) hoja.getRange(f, 16).setValue(d.urlEvidencia);
         if (d.urlFormato)   hoja.getRange(f, 17).setValue(d.urlFormato);
         if (d.estatus === "SERVICIO POSPUESTO POR SV") {
-          // Fecha está en columna F (índice 5, col 6)
-          let fechaActual = parseFechaToDate(datos[i][5].toString());
-          fechaActual.setDate(fechaActual.getDate() + 1);
-          while (fechaActual.getDay() === 0 || fechaActual.getDay() === 6) {
-            fechaActual.setDate(fechaActual.getDate() + 1);
-          }
-          hoja.getRange(f, 6).setValue(formatoDDMMYYYY(fechaActual));
+          // F=índice 5. Usar _rawToDate para manejar tanto Date como string
+          const fechaSiguiente = _siguienteDiaHabil(_rawToDate(datos[i][5]));
+          hoja.getRange(f, 6).setValue(formatoDDMMYYYY(fechaSiguiente));
         }
         SpreadsheetApp.flush();
         return { exito: true, msj: "Registro actualizado." };

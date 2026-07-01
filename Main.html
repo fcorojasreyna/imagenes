@@ -1890,21 +1890,30 @@
             var panelPend = document.getElementById('panelPendientesAuth');
             if (panelPend) panelPend.style.display = rolesQueAutorizan.includes(_rolActual) ? '' : 'none';
 
-            // --- Badge: pendientes para autorizadores / resueltas (no GERENTE) para ejecutivos ---
+            // --- Visto/no visto: se persiste en localStorage por usuario ---
+            var _quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
+            var _lsKey = 'notif_vistas_' + _quien;
+            var _vistas = JSON.parse(localStorage.getItem(_lsKey) || '[]');
+
+            // --- Badge: solo no vistas ---
             var pendientes = (res.pendientes || []);
-            var miasBadge  = rolesQueAutorizan.includes(_rolActual)
-              ? pendientes.length
-              : (res.mias || []).filter(function(m){ return m.estado === 'AUTORIZADO' || m.estado === 'RECHAZADO'; }).length;
-            window.actualizarBadgeNotif(miasBadge);
+            var rolesQueAutorizan = ['GERENTE','SUBDIRECTORA','DIRECTORA','ADMIN'];
+            var candidatos = rolesQueAutorizan.includes(_rolActual)
+              ? pendientes.map(function(f){ return f.id; })
+              : (res.mias || []).filter(function(m){ return m.estado === 'AUTORIZADO' || m.estado === 'RECHAZADO'; }).map(function(m){ return m.ticket+'_'+m.estado; });
+            var sinVer = candidatos.filter(function(c){ return _vistas.indexOf(c) === -1; });
+            window.actualizarBadgeNotif(sinVer.length);
 
             if (tbP) {
               tbP.innerHTML = '';
               if (pendientes.length === 0) {
-                tbP.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No tienes autorizaciones pendientes.</td></tr>';
+                tbP.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No tienes autorizaciones pendientes.</td></tr>';
               } else {
                 pendientes.forEach(function(f) {
+                  var yaVista = _vistas.indexOf(f.id) !== -1;
                   var btnAcc = '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\')">Revisar</button>';
-                  tbP.innerHTML += '<tr>'
+                  var btnVisto = '<button class="btn btn-sm btn-outline-secondary ms-1" title="Marcar como visto" onclick="window.marcarVisto(\''+f.id+'\')" style="'+(yaVista?'opacity:0.4;':'')+'">✓</button>';
+                  tbP.innerHTML += '<tr style="'+(yaVista?'opacity:0.6;':'')+'">'
                     +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
                     +'<td class="fw-bold">'+f.referencia+'</td>'
                     +'<td>'+f.ticket+'</td>'
@@ -1912,7 +1921,7 @@
                     +'<td class="small">'+f.descripcion+'</td>'
                     +'<td>'+f.solicitante+'</td>'
                     +'<td>'+f.fecha+'</td>'
-                    +'<td class="text-center">'+btnAcc+'</td>'
+                    +'<td class="text-center">'+btnAcc+btnVisto+'</td>'
                     +'</tr>';
                 });
               }
@@ -1931,10 +1940,13 @@
                   var colorNivel = nivelFinal === 'AUTORIZADO' ? 'bg-success' : (nivelFinal === 'RECHAZADO' ? 'bg-danger' : 'bg-secondary');
                   var badgeNivel = '<span class="badge '+colorNivel+'">'+nivelFinal+'</span>';
                   var estG = window._badgeEst(f.decisionGerente);
-                  // DUPLA solo necesita gerente — sub y dir son N/A
                   var estS = esDupla ? '<span class="text-muted small">N/A</span>' : window._badgeEst(f.decisionSub);
                   var estD = esDupla ? '<span class="text-muted small">N/A</span>' : window._badgeEst(f.decisionDir);
-                  tbM.innerHTML += '<tr>'
+                  var _miaKey = f.ticket+'_'+nivelFinal;
+                  var yaVistaMia = _vistas.indexOf(_miaKey) !== -1;
+                  var esResuelta = nivelFinal === 'AUTORIZADO' || nivelFinal === 'RECHAZADO';
+                  var btnVistoMia = esResuelta ? '<button class="btn btn-sm btn-outline-secondary ms-1" title="Marcar como visto" onclick="window.marcarVisto(\''+_miaKey+'\')" style="'+(yaVistaMia?'opacity:0.4;':'')+'">✓</button>' : '';
+                  tbM.innerHTML += '<tr style="'+(esResuelta && yaVistaMia ? 'opacity:0.55;' : '')+'">'
                     +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
                     +'<td>'+f.ticket+'</td>'
                     +'<td class="small">'+f.descripcion+'</td>'
@@ -1942,7 +1954,7 @@
                     +'<td>'+estG+'</td>'
                     +'<td>'+estS+'</td>'
                     +'<td>'+estD+'</td>'
-                    +'<td>'+f.fecha+'</td>'
+                    +'<td>'+f.fecha+btnVistoMia+'</td>'
                     +'</tr>';
                 });
               }
@@ -1957,6 +1969,15 @@
         if (v === 'AUTORIZADO') return '<span class="badge bg-success">✔ Autorizado</span>';
         if (v === 'RECHAZADO')  return '<span class="badge bg-danger">✖ Rechazado</span>';
         return '<span class="badge bg-warning text-dark">⏳ Pendiente</span>';
+      };
+
+      window.marcarVisto = function(id) {
+        var _quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
+        var _lsKey = 'notif_vistas_' + _quien;
+        var _vistas = JSON.parse(localStorage.getItem(_lsKey) || '[]');
+        if (_vistas.indexOf(id) === -1) _vistas.push(id);
+        localStorage.setItem(_lsKey, JSON.stringify(_vistas));
+        window.cargarDatosNotificaciones(); // refrescar para actualizar badge y estilos
       };
 
       window.actualizarBadgeNotif = function(n) {
@@ -1984,6 +2005,8 @@
 
       window.abrirModalAuth = function(id, tipo, nivel, desc) {
         _authActual = { id: id, tipo: tipo, nivel: nivel, desc: decodeURIComponent(desc), decision: null };
+        // Marcar como vista al abrir
+        window.marcarVisto(id);
         document.getElementById('panelDecisionAuth').style.display = '';
         document.getElementById('panelEscalamientoAuth').style.display = 'none';
         document.getElementById('comentarioAuth').value = '';
