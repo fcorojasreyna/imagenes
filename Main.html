@@ -681,9 +681,9 @@
 
       window.exportarExcelConsumos = function() {
         if (!_consumosDatos.length) { window.mostrarAlerta('No hay datos cargados.'); return; }
-        var h = ['Ticket','Producto','Vehículo','Cantidad','Costo Total','Quien Registra','Fecha','Folio CPP','Importe Descuento'];
+        var h = ['ID','Producto','Quien Registra','Ticket','Vehículo','Fecha','Cantidad','Costo Total','Evidencia','Folio CPP','Importe Descuento','Refacción Stock'];
         var filas = _consumosDatos.map(function(f) {
-          return [f.ticketNuevo,f.producto,f.vehiculo,f.cantidad,f.costoTotal,f.quienRegistra,f.fecha,f.folioCpp,f.importeDescuento];
+          return [f.idConsumo,f.producto,f.quienRegistra,f.ticketNuevo,f.vehiculo,f.fecha,f.cantidad,f.costoTotal,f.evidencia,f.folioCpp,f.importeDescuento,f.refaccionStock];
         });
         _descargarCSV('Consumos_' + new Date().toISOString().slice(0,10) + '.csv', h, filas);
       };
@@ -1400,41 +1400,46 @@
         var lista = document.getElementById('lista_' + hiddenId);
         if (!lista) return;
 
-        // Si ya tiene opciones cargadas, no hacer nada
-        if (lista.querySelectorAll('li').length > 0) return;
+        // Si ya tiene opciones reales cargadas (no errores), no hacer nada
+        if (lista.querySelectorAll('li.opcion-cat').length > 0) return;
+
+        function _cargarEnLista() {
+          lista.innerHTML = '<li class="px-2 py-1 text-muted small">⏳ Cargando...</li>';
+          try {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                if (res && res.exito) {
+                  window.catalogosGlobal = res.catalogos || {};
+                  lista.innerHTML = '';
+                  window.llenarSelect(hiddenId, catalogKey);
+                  if (lista.querySelectorAll('li.opcion-cat').length === 0) {
+                    lista.innerHTML = '<li class="px-2 py-1 text-muted small">Sin valores para: <b>' + catalogKey + '</b></li>';
+                  }
+                } else {
+                  lista.innerHTML = '<li class="px-2 py-1 text-danger small">Error al cargar catálogo. <a href="#" onclick="event.preventDefault(); window.abrirDropdownCat(\''+hiddenId+'\',\''+catalogKey+'\')">Reintentar</a></li>';
+                }
+              })
+              .withFailureHandler(function(e) {
+                lista.innerHTML = '<li class="px-2 py-1 text-danger small">' + (e.message || 'Error') + '. <a href="#" onclick="event.preventDefault(); lista=document.getElementById(\'lista_'+hiddenId+'\'); if(lista)lista.innerHTML=\'\'; window.abrirDropdownCat(\''+hiddenId+'\',\''+catalogKey+'\')">Reintentar</a></li>';
+              })
+              .obtenerCatalogos();
+          } catch(e) {
+            lista.innerHTML = '<li class="px-2 py-1 text-danger small">No disponible fuera de GAS</li>';
+          }
+        }
 
         // Si el catálogo global ya tiene datos, llenar directamente
         if (Object.keys(window.catalogosGlobal).length > 0) {
+          lista.innerHTML = '';
           window.llenarSelect(hiddenId, catalogKey);
-          if (lista.querySelectorAll('li').length === 0) {
+          if (lista.querySelectorAll('li.opcion-cat').length === 0) {
             lista.innerHTML = '<li class="px-2 py-1 text-muted small">Sin valores para: <b>' + catalogKey + '</b></li>';
           }
           return;
         }
 
-        // Catálogo vacío → recargar desde el servidor y reintentar
-        lista.innerHTML = '<li class="px-2 py-1 text-muted small">⏳ Cargando catálogo...</li>';
-        try {
-          google.script.run
-            .withSuccessHandler(function(res) {
-              if (res && res.exito) {
-                window.catalogosGlobal = res.catalogos || {};
-                lista.innerHTML = '';
-                window.llenarSelect(hiddenId, catalogKey);
-                if (lista.querySelectorAll('li').length === 0) {
-                  lista.innerHTML = '<li class="px-2 py-1 text-muted small">Sin valores para: <b>' + catalogKey + '</b></li>';
-                }
-              } else {
-                lista.innerHTML = '<li class="px-2 py-1 text-danger small">Error al cargar catálogo</li>';
-              }
-            })
-            .withFailureHandler(function(e) {
-              lista.innerHTML = '<li class="px-2 py-1 text-danger small">Error: ' + (e.message || 'desconocido') + '</li>';
-            })
-            .obtenerCatalogos();
-        } catch(e) {
-          lista.innerHTML = '<li class="px-2 py-1 text-danger small">No disponible fuera de GAS</li>';
-        }
+        // Catálogo vacío → recargar desde el servidor
+        _cargarEnLista();
       };
 
       window.filtrarDropdownCat = function(inp, listaId) {
@@ -1687,7 +1692,8 @@
             var badge = f.estatus === 'DISPONIBLE' ? '<span class="badge bg-success">DISPONIBLE</span>'
               : f.estatus === 'EN USO' ? '<span class="badge bg-warning text-dark">EN USO</span>'
               : '<span class="badge bg-danger">' + f.estatus + '</span>';
-            var btnElim = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'Eliminar herramienta?\', function(){ window.ejecutarEliminarHerr(\'' + f.id + '\'); })">&#128465;</button>';
+            var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.editarHerramientaModal('+JSON.stringify(f)+')">✏️</button>';
+            var btnElim = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'Eliminar herramienta?\', function(){ window.ejecutarEliminarHerr(\'' + f.id + '\'); })">🗑️</button>';
             tbody.innerHTML += '<tr>' +
               '<td class="fw-bold text-muted">' + f.id + '</td>' +
               '<td>' + f.tipo + '</td>' +
@@ -1699,7 +1705,7 @@
               '<td>' + badge + '</td>' +
               '<td>' + f.existencia + '</td>' +
               '<td>' + f.fecha + '</td>' +
-              '<td class="text-center">' + btnElim + '</td></tr>';
+              '<td class="text-center">' + btnEditar + btnElim + '</td></tr>';
           });
         }).withFailureHandler(function(e) {
           var tbody = document.getElementById('cuerpoTablaHerramientas');
@@ -1731,6 +1737,60 @@
         }).withFailureHandler(function(e) {
           window.mostrarAlerta('Error: ' + e.message); if(btn){ btn.disabled = false; btn.innerText = 'Guardar Herramienta / Artículo'; }
         }).registrarHerramienta(d);
+      };
+
+      window.editarHerramientaModal = function(f) {
+        var html = '<div class="mb-3"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">ID</label><input type="text" class="form-control bg-light" readonly value="'+f.id+'"></div>' +
+          '<div class="row g-2">' +
+          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Tipo</label><input id="edHrTipo" class="form-control" value="'+(f.tipo||'').replace(/"/g,'&quot;')+'"></div>' +
+          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Tipo Unidad</label><input id="edHrTipoUnidad" class="form-control" value="'+(f.tipoUnidad||'').replace(/"/g,'&quot;')+'"></div>' +
+          '<div class="col-12 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Nombre *</label><input id="edHrNombre" class="form-control" style="text-transform:uppercase;" value="'+(f.nombre||'').replace(/"/g,'&quot;')+'"></div>' +
+          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Marca</label><input id="edHrMarca" class="form-control" style="text-transform:uppercase;" value="'+(f.marca||'').replace(/"/g,'&quot;')+'"></div>' +
+          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Estado</label><input id="edHrEstado" class="form-control" style="text-transform:uppercase;" value="'+(f.estadoHerr||'').replace(/"/g,'&quot;')+'"></div>' +
+          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Lugar / Ubicación</label><input id="edHrLugar" class="form-control" style="text-transform:uppercase;" value="'+(f.lugar||'').replace(/"/g,'&quot;')+'"></div>' +
+          '<div class="col-md-3 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Estatus</label><select id="edHrEstatus" class="form-select">' +
+            '<option value="DISPONIBLE"'+(f.estatus==='DISPONIBLE'?' selected':'')+'>DISPONIBLE</option>' +
+            '<option value="EN USO"'+(f.estatus==='EN USO'?' selected':'')+'>EN USO</option>' +
+            '<option value="BAJA"'+(f.estatus==='BAJA'?' selected':'')+'>BAJA</option>' +
+          '</select></div>' +
+          '<div class="col-md-3 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Existencia</label><input type="number" id="edHrExistencia" class="form-control" min="1" value="'+(f.existencia||1)+'"></div>' +
+          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Fecha</label><input type="date" id="edHrFecha" class="form-control" value="'+(f.fecha||'')+'"></div>' +
+          '</div>';
+
+        var body = document.getElementById('modalEdicionDinamicaCuerpo') || document.getElementById('modalDinamicoBody');
+        var titulo = document.getElementById('modalEdicionDinamicaTitulo') || document.getElementById('modalDinamicoTitulo');
+        var footer = document.getElementById('modalEdicionDinamicaFooter') || document.getElementById('modalDinamicoFooter');
+        if (!body) return;
+        if (titulo) titulo.innerText = 'Editar Herramienta — ' + f.id;
+        body.innerHTML = html;
+        if (footer) footer.innerHTML = '<button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>' +
+          '<button class="btn fw-bold text-white" style="background-color:var(--azul);" onclick="window.guardarEdicionHerramienta(\''+f.id+'\')">Guardar Cambios</button>';
+        new bootstrap.Modal(document.getElementById('modalEdicionDinamica')).show();
+      };
+
+      window.guardarEdicionHerramienta = function(id) {
+        var nombre = document.getElementById('edHrNombre') ? document.getElementById('edHrNombre').value.toUpperCase().trim() : '';
+        if (!nombre) { window.mostrarAlerta('El Nombre es obligatorio.'); return; }
+        var d = {
+          id: id,
+          tipo: document.getElementById('edHrTipo').value.toUpperCase().trim(),
+          tipoUnidad: document.getElementById('edHrTipoUnidad').value.toUpperCase().trim(),
+          nombre: nombre,
+          marca: document.getElementById('edHrMarca').value.toUpperCase().trim(),
+          estadoHerr: document.getElementById('edHrEstado').value.toUpperCase().trim(),
+          lugar: document.getElementById('edHrLugar').value.toUpperCase().trim(),
+          estatus: document.getElementById('edHrEstatus').value,
+          existencia: document.getElementById('edHrExistencia').value || 1,
+          fecha: document.getElementById('edHrFecha').value
+        };
+        google.script.run
+          .withSuccessHandler(function(r) {
+            window.mostrarAlerta(r.msj || r);
+            bootstrap.Modal.getInstance(document.getElementById('modalEdicionDinamica')).hide();
+            window.cargarDatosHerramientas();
+          })
+          .withFailureHandler(function(e) { window.mostrarAlerta('Error: ' + e.message); })
+          .actualizarHerramienta(d);
       };
 
       window.ejecutarEliminarHerr = function(id) {
@@ -1787,11 +1847,11 @@
           lista.innerHTML = valores.map(function(v) {
             var safe = v.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
             if (esMulti) {
-              return '<li><label class="dropdown-item d-flex align-items-center gap-2 py-1" onclick="event.stopPropagation()" style="cursor:pointer; white-space:normal;">' +
+              return '<li class="opcion-cat"><label class="dropdown-item d-flex align-items-center gap-2 py-1" onclick="event.stopPropagation()" style="cursor:pointer; white-space:normal;">' +
                 '<input type="checkbox" class="form-check-input flex-shrink-0" onchange="window.toggleCheckDropdown(\'' + selectId + '\',\'' + safe + '\',this)">' +
                 '<span>' + v + '</span></label></li>';
             } else {
-              return '<li><button type="button" class="dropdown-item py-1" style="white-space:normal;" onclick="window.seleccionarDropdown(\'' + selectId + '\',\'' + safe + '\')">' + v + '</button></li>';
+              return '<li class="opcion-cat"><button type="button" class="dropdown-item py-1" style="white-space:normal;" onclick="window.seleccionarDropdown(\'' + selectId + '\',\'' + safe + '\')">' + v + '</button></li>';
             }
           }).join('');
         } else if (sel.tagName === 'SELECT') {

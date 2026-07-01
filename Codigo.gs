@@ -1092,6 +1092,21 @@ function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien) {
       // Para DUPLA: solo gerente decide, cierra directo
       if (tipo === 'DUPLA') {
         hoja.getRange(f, 9).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
+        // Actualizar columnas S (MECANICO 2 ESTATUS) y T (MECANICO 2 FECHA) en Cronograma
+        const ticketRef = datos[i][2] ? datos[i][2].toString().trim() : '';
+        if (ticketRef) {
+          const hojaCron = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+          if (hojaCron) {
+            const cronDatos = hojaCron.getDataRange().getValues();
+            for (let j = 1; j < cronDatos.length; j++) {
+              if (cronDatos[j][6] && cronDatos[j][6].toString().trim() === ticketRef) {
+                hojaCron.getRange(j + 1, 19).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
+                hojaCron.getRange(j + 1, 20).setValue(fechaHoy);
+                break;
+              }
+            }
+          }
+        }
       }
       SpreadsheetApp.flush();
       return { exito: true, msj: decision === 'AUTORIZADO' ? 'Autorizado correctamente.' : 'Solicitud rechazada.', decision: decision };
@@ -1199,6 +1214,31 @@ function registrarHerramienta(d) {
 
 function eliminarHerramienta(id) {
   return _eliminarRegistro("Herramientas", id);
+}
+
+function actualizarHerramienta(d) {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Herramientas");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() === d.id.toString().trim()) {
+        const f = i + 1;
+        hoja.getRange(f, 2).setValue(d.tipo);
+        hoja.getRange(f, 3).setValue(d.tipoUnidad);
+        hoja.getRange(f, 4).setValue(d.nombre);
+        hoja.getRange(f, 5).setValue(d.marca);
+        hoja.getRange(f, 6).setValue(d.estadoHerr);
+        hoja.getRange(f, 7).setValue(d.lugar);
+        hoja.getRange(f, 8).setValue(d.estatus);
+        hoja.getRange(f, 9).setValue(d.existencia);
+        hoja.getRange(f, 10).setValue(d.fecha);
+        SpreadsheetApp.flush();
+        return { exito: true, msj: "Herramienta actualizada correctamente." };
+      }
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
 }
 
 function obtenerDatosNotificaciones(quien) {
