@@ -1649,7 +1649,8 @@
           registrosHoy.forEach(function(f) {
             var color = window._colorCronFila(f.estatusUnidad);
             var tr = document.createElement('tr');
-            tr.style.backgroundColor = color;
+            tr.style.setProperty('--bs-table-bg', color);
+            tr.style.setProperty('--bs-table-striped-bg', color);
             tr.style.cursor = 'pointer';
             tr.title = 'Clic para editar estatus / subir evidencias';
             tr.innerHTML =
