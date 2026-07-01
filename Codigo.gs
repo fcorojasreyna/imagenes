@@ -977,13 +977,17 @@ function actualizarEstatusCronogramaBackend(d) {
         if (d.estatus) hoja.getRange(f, 15).setValue(d.estatus);
         if (d.urlEvidencia) hoja.getRange(f, 16).setValue(d.urlEvidencia);
         if (d.urlFormato)   hoja.getRange(f, 17).setValue(d.urlFormato);
+        let msjRetorno = "Registro actualizado.";
         if (d.estatus === "SERVICIO POSPUESTO POR SV") {
-          // F=índice 5. Usar _rawToDate para manejar tanto Date como string
+          // Mover al siguiente día hábil y resetear estatus a EN REPARACION para ese día
           const fechaSiguiente = _siguienteDiaHabil(_rawToDate(datos[i][5]));
-          hoja.getRange(f, 6).setValue(formatoDDMMYYYY(fechaSiguiente));
+          const fechaSigStr = formatoDDMMYYYY(fechaSiguiente);
+          hoja.getRange(f, 6).setValue(fechaSigStr);
+          hoja.getRange(f, 15).setValue("EN REPARACION");
+          msjRetorno = "Pospuesto al " + fechaSigStr + ". Aparecerá como EN REPARACIÓN ese día con los mismos mecánicos.";
         }
         SpreadsheetApp.flush();
-        return { exito: true, msj: "Registro actualizado." };
+        return { exito: true, msj: msjRetorno };
       }
     }
     return { exito: false, error: "ID no encontrado." };
@@ -1192,8 +1196,8 @@ function obtenerDatosHerramientas() {
     for (let i = 1; i < d.length; i++) {
       if (!d[i][0]) continue;
       filas.push({ id: d[i][0], tipo: d[i][1], tipoUnidad: d[i][2], nombre: d[i][3], marca: d[i][4],
-        estadoHerr: d[i][5], lugar: d[i][6], estatus: d[i][7], existencia: d[i][8],
-        fecha: d[i][9], quienRegistra: d[i][10] });
+        estadoHerr: d[i][5], lugar: d[i][6], estatus: d[i][7], fecha: limpiarHoraLectura(d[i][8]),
+        existencia: d[i][9], quienRegistra: d[i][10] });
     }
     return { exito: true, datos: filas };
   } catch(e) { return { exito: false, error: e.message }; }
@@ -1206,7 +1210,7 @@ function registrarHerramienta(d) {
     if (!hoja) hoja = ss.insertSheet("Herramientas");
     const id = generarIdIncremental("Herramientas", "HRR");
     hoja.appendRow([id, d.tipo, d.tipoUnidad, d.nombre, d.marca, d.estadoHerr,
-      d.lugar, d.estatus, d.existencia, d.fecha, d.quienRegistra]);
+      d.lugar, d.estatus, d.fecha, d.existencia, d.quienRegistra]);
     SpreadsheetApp.flush();
     return { exito: true, msj: "Herramienta registrada correctamente." };
   } catch(e) { return { exito: false, error: e.message }; }
@@ -1231,8 +1235,8 @@ function actualizarHerramienta(d) {
         hoja.getRange(f, 6).setValue(d.estadoHerr);
         hoja.getRange(f, 7).setValue(d.lugar);
         hoja.getRange(f, 8).setValue(d.estatus);
-        hoja.getRange(f, 9).setValue(d.existencia);
-        hoja.getRange(f, 10).setValue(d.fecha);
+        hoja.getRange(f, 9).setValue(d.fecha);
+        hoja.getRange(f, 10).setValue(d.existencia);
         SpreadsheetApp.flush();
         return { exito: true, msj: "Herramienta actualizada correctamente." };
       }

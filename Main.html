@@ -1819,18 +1819,30 @@
       // CATÁLOGOS DINÁMICOS
       // ============================================================
       window.catalogosGlobal = {};
+      var _catIntentos = 0;
 
-      window.cargarCatalogos = function() {
+      window.cargarCatalogos = function(intento) {
+        intento = intento || 1;
         try {
           google.script.run
             .withSuccessHandler(function(res) {
-              if (res && res.exito) window.catalogosGlobal = res.catalogos || {};
+              if (res && res.exito && Object.keys(res.catalogos || {}).length > 0) {
+                window.catalogosGlobal = res.catalogos;
+                _catIntentos = 0;
+              } else if (intento < 5) {
+                // Reintento con espera exponencial
+                setTimeout(function(){ window.cargarCatalogos(intento + 1); }, intento * 1500);
+              }
             })
-            .withFailureHandler(function(e) {
-              console.warn('Catálogos no disponibles:', e.message);
+            .withFailureHandler(function() {
+              if (intento < 5) {
+                setTimeout(function(){ window.cargarCatalogos(intento + 1); }, intento * 1500);
+              }
             })
             .obtenerCatalogos();
-        } catch(e) { console.warn('obtenerCatalogos no desplegada aún.'); }
+        } catch(e) {
+          if (intento < 5) setTimeout(function(){ window.cargarCatalogos(intento + 1); }, intento * 1500);
+        }
       };
 
       window.llenarSelect = function(selectId, catalogKey) {
