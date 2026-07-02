@@ -166,8 +166,8 @@
 
     <div id="pantalla-login">
       <div class="caja-login">
-        <img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/CI%20-%20copia.png" alt="Control Interno" height="60" class="mb-4">
-        <h5 style="color: var(--azul); font-weight: bold; margin-bottom: 20px;">Acceso al Ecosistema</h5>
+        <img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/SV3.jpg" alt="Control Interno" height="60" class="mb-4">
+        <h5 style="color: var(--azul); font-weight: bold; margin-bottom: 20px;">Acceso al Sistema</h5>
 
         <input type="text" id="loginUser" class="form-control mb-3 text-center fw-bold" placeholder="Usuario"
                onkeydown="if(event.key === 'Enter' || event.keyCode === 13) window.procesarLogin()">
@@ -208,7 +208,7 @@
             <div style="color: var(--dorado); font-weight: bold; font-size: 0.78rem; white-space: nowrap;" id="nombreUsuarioUI"></div>
             <div style="color: #aaa; font-size: 0.68rem; white-space: nowrap;" id="rolUsuarioUI"></div>
           </div>
-          <img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/CI%20-%20copia.png" alt="Control Interno" height="38">
+          <img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/SV3.jpg" alt="Control Interno" height="38">
         </div>
       </nav>
 
@@ -446,7 +446,7 @@
       // ============================================================================
       window.mostrarInicio = function(e) {
         document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active')); if(e) e.classList.add('active');
-        document.getElementById('contenedor').innerHTML = '<div class="welcome-card text-center"><h2 style="color: var(--azul); font-weight: bold;">Ecosistema Integral de Control Interno</h2><h4 style="color: var(--dorado);">Servicios Vehiculares</h4></div>';
+        document.getElementById('contenedor').innerHTML = '<div class="welcome-card text-center"><h2 style="color: var(--azul); font-weight: bold;">Sistema de Servicios Vehiculares</h2></div>';
       };
 
       window.cargarModulo = function(n, el) {
@@ -1237,7 +1237,7 @@
 
         var cfgCorr = document.getElementById("oc_config_correo") ? document.getElementById("oc_config_correo").value : "NINGUNO";
         var mailDst = document.getElementById("correoUsuarioGlobal").value;
-        btn.disabled = true; btn.innerText = "⏳ Generando Ecosistema PDF...";
+        btn.disabled = true; btn.innerText = "⏳ Registrando en el Sistema y Generando PDF...";
 
         google.script.run
           .withSuccessHandler(function(r) {
