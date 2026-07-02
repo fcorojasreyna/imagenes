@@ -2270,67 +2270,94 @@
               window.mostrarToastNotif(sinVer.length);
             }
 
+            // --- Separar pendientes en no leídos (tabla principal) y leídos (historial) ---
+            var pendNoLeidos = pendientes.filter(function(f){ return _vistas.indexOf(f.id) === -1; });
+            var pendLeidos   = pendientes.filter(function(f){ return _vistas.indexOf(f.id) !== -1; });
+
+            var _filaPend = function(f, esHistorial) {
+              var btnAcc = '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);font-size:0.75rem;" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\')">Revisar</button>';
+              var btnVisto = esHistorial
+                ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" onclick="window.desmarcarVisto(\''+f.id+'\')">🔔 No leído</button>'
+                : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" onclick="window.marcarVisto(\''+f.id+'\')">✓ Leído</button>';
+              return '<tr>'
+                +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
+                +'<td class="fw-bold">'+f.referencia+'</td>'
+                +'<td>'+f.ticket+'</td>'
+                +(esHistorial ? '' : '<td>'+f.nuco+'</td>')
+                +'<td class="small">'+f.descripcion+'</td>'
+                +'<td>'+f.solicitante+'</td>'
+                +'<td>'+f.fecha+'</td>'
+                +'<td class="text-center">'+btnAcc+btnVisto+'</td>'
+                +'</tr>';
+            };
+
             if (tbP) {
-              tbP.innerHTML = '';
-              if (pendientes.length === 0) {
-                tbP.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No tienes autorizaciones pendientes.</td></tr>';
-              } else {
-                pendientes.forEach(function(f) {
-                  var yaVista = _vistas.indexOf(f.id) !== -1;
-                  var btnAcc = '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\')">Revisar</button>';
-                  var btnVisto = yaVista
-                    ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" title="Marcar como no leído" onclick="window.desmarcarVisto(\''+f.id+'\')">🔔 No leído</button>'
-                    : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" title="Marcar como leído" onclick="window.marcarVisto(\''+f.id+'\')">✓ Leído</button>';
-                  tbP.innerHTML += '<tr style="'+(yaVista?'opacity:0.6;':'')+'">'
-                    +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
-                    +'<td class="fw-bold">'+f.referencia+'</td>'
-                    +'<td>'+f.ticket+'</td>'
-                    +'<td>'+f.nuco+'</td>'
-                    +'<td class="small">'+f.descripcion+'</td>'
-                    +'<td>'+f.solicitante+'</td>'
-                    +'<td>'+f.fecha+'</td>'
-                    +'<td class="text-center">'+btnAcc+btnVisto+'</td>'
-                    +'</tr>';
-                });
-              }
+              var bPA = document.getElementById('badgePendientesActivos');
+              if(bPA) bPA.innerText = pendNoLeidos.length;
+              tbP.innerHTML = pendNoLeidos.length === 0
+                ? '<tr><td colspan="8" class="text-center py-4 text-muted">No tienes autorizaciones pendientes sin revisar.</td></tr>'
+                : pendNoLeidos.map(function(f){ return _filaPend(f, false); }).join('');
             }
 
-            // --- Mis solicitudes enviadas ---
+            // --- Mis solicitudes: separar no leídas resueltas / pendientes / leídas resueltas ---
             var mias = (res.mias || []);
+            var miasActivas  = []; // pendientes + resueltas no leídas
+            var miasLeidas   = []; // resueltas y ya leídas
+            mias.forEach(function(f) {
+              var nivelFinal = f.nivelActual;
+              var esResuelta = nivelFinal === 'AUTORIZADO' || nivelFinal === 'RECHAZADO';
+              var _miaKey = f.ticket+'_'+nivelFinal;
+              var yaVista = _vistas.indexOf(_miaKey) !== -1;
+              if (esResuelta && yaVista) miasLeidas.push(f);
+              else miasActivas.push(f);
+            });
+
+            var _filaMia = function(f, esHistorial) {
+              var esDupla = f.tipo === 'DUPLA';
+              var nivelFinal = f.nivelActual;
+              var esResuelta = nivelFinal === 'AUTORIZADO' || nivelFinal === 'RECHAZADO';
+              var _miaKey = f.ticket+'_'+nivelFinal;
+              var colorNivel = nivelFinal === 'AUTORIZADO' ? 'bg-success' : (nivelFinal === 'RECHAZADO' ? 'bg-danger' : 'bg-secondary');
+              var btnVistoMia = esResuelta
+                ? (esHistorial
+                    ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" onclick="window.desmarcarVisto(\''+_miaKey+'\')">🔔 No leído</button>'
+                    : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" onclick="window.marcarVisto(\''+_miaKey+'\')">✓ Leído</button>')
+                : '';
+              return '<tr>'
+                +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
+                +'<td>'+f.ticket+'</td>'
+                +'<td class="small">'+f.descripcion+'</td>'
+                +'<td><span class="badge '+colorNivel+'">'+nivelFinal+'</span></td>'
+                +'<td>'+window._badgeEst(f.decisionGerente)+'</td>'
+                +'<td>'+(esDupla?'<span class="text-muted small">N/A</span>':window._badgeEst(f.decisionSub))+'</td>'
+                +'<td>'+(esDupla?'<span class="text-muted small">N/A</span>':window._badgeEst(f.decisionDir))+'</td>'
+                +'<td>'+f.fecha+btnVistoMia+'</td>'
+                +'</tr>';
+            };
+
             if (tbM) {
-              tbM.innerHTML = '';
-              if (mias.length === 0) {
-                tbM.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No has enviado solicitudes.</td></tr>';
-              } else {
-                mias.forEach(function(f) {
-                  var esDupla = f.tipo === 'DUPLA';
-                  var nivelFinal = f.nivelActual;
-                  var colorNivel = nivelFinal === 'AUTORIZADO' ? 'bg-success' : (nivelFinal === 'RECHAZADO' ? 'bg-danger' : 'bg-secondary');
-                  var badgeNivel = '<span class="badge '+colorNivel+'">'+nivelFinal+'</span>';
-                  var estG = window._badgeEst(f.decisionGerente);
-                  var estS = esDupla ? '<span class="text-muted small">N/A</span>' : window._badgeEst(f.decisionSub);
-                  var estD = esDupla ? '<span class="text-muted small">N/A</span>' : window._badgeEst(f.decisionDir);
-                  var _miaKey = f.ticket+'_'+nivelFinal;
-                  var yaVistaMia = _vistas.indexOf(_miaKey) !== -1;
-                  var esResuelta = nivelFinal === 'AUTORIZADO' || nivelFinal === 'RECHAZADO';
-                  var btnVistoMia = esResuelta
-                    ? (yaVistaMia
-                        ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" title="Marcar como no leído" onclick="window.desmarcarVisto(\''+_miaKey+'\')">🔔 No leído</button>'
-                        : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" title="Marcar como leído" onclick="window.marcarVisto(\''+_miaKey+'\')">✓ Leído</button>')
-                    : '';
-                  tbM.innerHTML += '<tr style="'+(esResuelta && yaVistaMia ? 'opacity:0.55;' : '')+'">'
-                    +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
-                    +'<td>'+f.ticket+'</td>'
-                    +'<td class="small">'+f.descripcion+'</td>'
-                    +'<td>'+badgeNivel+'</td>'
-                    +'<td>'+estG+'</td>'
-                    +'<td>'+estS+'</td>'
-                    +'<td>'+estD+'</td>'
-                    +'<td>'+f.fecha+btnVistoMia+'</td>'
-                    +'</tr>';
-                });
-              }
+              var bMA = document.getElementById('badgeMiasActivas');
+              var noLeidasResueltas = miasActivas.filter(function(f){ var n=f.nivelActual; return n==='AUTORIZADO'||n==='RECHAZADO'; }).length;
+              if(bMA) bMA.innerText = noLeidasResueltas;
+              tbM.innerHTML = miasActivas.length === 0
+                ? '<tr><td colspan="8" class="text-center py-4 text-muted">No tienes solicitudes nuevas o sin leer.</td></tr>'
+                : miasActivas.map(function(f){ return _filaMia(f, false); }).join('');
             }
+
+            // --- Llenar historial ---
+            var hPend = document.getElementById('cuerpoHistorialPend');
+            var hMias = document.getElementById('cuerpoHistorialMias');
+            var totalLeidos = pendLeidos.length + miasLeidas.length;
+            var bH = document.getElementById('badgeHistorial');
+            if(bH) bH.innerText = totalLeidos;
+
+            if(hPend) hPend.innerHTML = pendLeidos.length === 0
+              ? '<tr><td colspan="7" class="text-center py-3 text-muted">Sin autorizaciones leídas.</td></tr>'
+              : pendLeidos.map(function(f){ return _filaPend(f, true); }).join('');
+
+            if(hMias) hMias.innerHTML = miasLeidas.length === 0
+              ? '<tr><td colspan="8" class="text-center py-3 text-muted">Sin solicitudes leídas.</td></tr>'
+              : miasLeidas.map(function(f){ return _filaMia(f, true); }).join('');
           })
           .withFailureHandler(function(e) { window.mostrarAlerta('Error al cargar notificaciones: ' + e.message); })
           .obtenerDatosNotificaciones(quien);
@@ -2350,6 +2377,12 @@
         if (_vistas.indexOf(id) === -1) _vistas.push(id);
         localStorage.setItem(_lsKey, JSON.stringify(_vistas));
         window.cargarDatosNotificaciones();
+      };
+
+      window.toggleHistorial = function() {
+        var panel = document.getElementById('panelHistorial');
+        if(!panel) return;
+        panel.style.display = panel.style.display === 'none' ? '' : 'none';
       };
 
       window.desmarcarVisto = function(id) {
