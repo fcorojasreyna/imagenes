@@ -2105,8 +2105,13 @@
         } else {
           var selEst = document.getElementById('editCronEstatus');
           if(selEst) selEst.value = reg.estatusUnidad || 'EN REPARACION';
-          document.getElementById('editCronEvidencia').value = '';
-          document.getElementById('editCronFormato').value   = '';
+          // Resetear listas de archivos a un solo input vacío
+          var _resetLista = function(listaId, clase, accept) {
+            var lista = document.getElementById(listaId);
+            if(lista) { lista.innerHTML = '<input type="file" class="form-control mb-1 '+clase+'" accept="'+accept+'">'; }
+          };
+          _resetLista('listaEvidencias', 'input-evidencia', 'image/*,application/pdf');
+          _resetLista('listaFormatos',   'input-formato',   'image/*,application/pdf,.doc,.docx,.xls,.xlsx');
           var evAct = document.getElementById('evidenciaActualCron');
           var foAct = document.getElementById('formatoActualCron');
           if(evAct) {
@@ -2115,7 +2120,12 @@
               evAct.innerHTML = urls.map(function(u,i){ return '📎 Actual '+(urls.length>1?'('+(i+1)+')':'')+': <a href="'+u+'" target="_blank">Ver archivo</a>'; }).join('<br>');
             } else { evAct.innerHTML = ''; }
           }
-          if(foAct) foAct.innerHTML = reg.formato   && reg.formato   !== '' ? '📄 Actual: <a href="'+reg.formato+'" target="_blank">Ver archivo</a>' : '';
+          if(foAct) {
+            if(reg.formato && reg.formato !== '') {
+              var urlsFo = reg.formato.split(' | ').filter(Boolean);
+              foAct.innerHTML = urlsFo.map(function(u,i){ return '📄 Actual '+(urlsFo.length>1?'('+(i+1)+')':'')+': <a href="'+u+'" target="_blank">Ver archivo</a>'; }).join('<br>');
+            } else { foAct.innerHTML = ''; }
+          }
         }
         document.getElementById('cronEditMsj').innerText = '';
         new bootstrap.Modal(document.getElementById('modalEditCronograma')).show();
@@ -2173,8 +2183,8 @@
         } else {
           // Gerente / Mecánico: actualiza estatus + archivos
           var estatus = document.getElementById('editCronEstatus').value;
-          var filesEv = Array.from(document.getElementById('editCronEvidencia').files || []);
-          var fileFo  = document.getElementById('editCronFormato').files[0];
+          var filesEv = Array.from(document.querySelectorAll('#listaEvidencias .input-evidencia')).map(function(i){ return i.files[0]; }).filter(Boolean);
+          var filesFo = Array.from(document.querySelectorAll('#listaFormatos .input-formato')).map(function(i){ return i.files[0]; }).filter(Boolean);
 
           function _actualizarEstatus(urlEv, urlFo) {
             google.script.run
@@ -2201,16 +2211,14 @@
             leerArchivo(lista[idx], function(u){ urls.push(u); subirEvidencias(lista, idx+1, urls, done); });
           }
 
-          if(filesEv.length > 0 && fileFo) {
+          if(filesEv.length > 0 && filesFo.length > 0) {
             subirEvidencias(filesEv, 0, [], function(urlsEv){
-              msj.innerText = 'Subiendo formato...';
-              leerArchivo(fileFo, function(uFo){ _actualizarEstatus(urlsEv, uFo); });
+              subirEvidencias(filesFo, 0, [], function(urlsFo){ _actualizarEstatus(urlsEv, urlsFo); });
             });
           } else if(filesEv.length > 0) {
             subirEvidencias(filesEv, 0, [], function(urlsEv){ _actualizarEstatus(urlsEv, ''); });
-          } else if(fileFo) {
-            msj.innerText = 'Subiendo formato...';
-            leerArchivo(fileFo, function(uFo){ _actualizarEstatus('', uFo); });
+          } else if(filesFo.length > 0) {
+            subirEvidencias(filesFo, 0, [], function(urlsFo){ _actualizarEstatus('', urlsFo); });
           } else {
             _actualizarEstatus('', '');
           }
@@ -2375,6 +2383,16 @@
           +'</div>';
         document.body.appendChild(div);
         setTimeout(function() { if (document.getElementById('toastNotifLogin')) document.getElementById('toastNotifLogin').remove(); }, 6000);
+      };
+
+      window.agregarInputArchivo = function(listaId, clase, accept) {
+        var lista = document.getElementById(listaId);
+        if(!lista) return;
+        var nuevo = document.createElement('div');
+        nuevo.className = 'd-flex align-items-center gap-2 mb-1';
+        nuevo.innerHTML = '<input type="file" class="form-control '+clase+'" accept="'+accept+'" style="flex:1;">'
+          +'<button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="this.parentElement.remove()" title="Quitar">✕</button>';
+        lista.appendChild(nuevo);
       };
 
       // ============================================================
