@@ -385,20 +385,34 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   let mensajeEconomia = difPorcentaje < 0 ? "MÁS ECONÓMICO A CRÉDITO" : (difPorcentaje <= 0.15 ? "SE ENCUENTRA DENTRO DEL 15% AUTORIZADO" : "SOBREPASA EL 15% AUTORIZADO");
   let colItem_C = [], colNombre_C = [], colFamilia_C = [], colCant_C = [], colUM_C = [];
   productosUnicos.forEach((u, i) => { colItem_C.push(i+1); colNombre_C.push(u.nombre); colFamilia_C.push(u.familia); colCant_C.push(u.cant); colUM_C.push(u.um); });
+  // Capturar fila de {{NOMBRE}} ANTES de reemplazar, para ajustar altura después
+  let nombreCeldaR = hojaComp.createTextFinder("{{NOMBRE}}").findNext();
+  let filaProductos = nombreCeldaR ? nombreCeldaR.getRow() : 0;
   hojaComp.createTextFinder("{{ITEM}}").replaceAllWith(colItem_C.join('\n'));
   hojaComp.createTextFinder("{{NOMBRE}}").replaceAllWith(colNombre_C.join('\n'));
   hojaComp.createTextFinder("{{FAMILIA}}").replaceAllWith(colFamilia_C.join('\n'));
   hojaComp.createTextFinder("{{CANTIDAD PRODUCTOS}}").replaceAllWith(colCant_C.join('\n'));
   hojaComp.createTextFinder("{{UNIDAD MEDIDA}}").replaceAllWith(colUM_C.join('\n'));
   hojaComp.createTextFinder("{{MOTIVO DE COMPRA}}").replaceAllWith(datosGenerales.motivoCompra || "");
-  // Colorear forma de pago ANTES del loop de proveedores (mientras las celdas de proveedor aún son placeholders)
+  // Colorear forma de pago ANTES del loop (mientras {{FORMA DE PAGO_Pn}} siguen siendo placeholders)
+  // Usa iteración con normalización de acentos para tolerancia ante diferencias de encoding
   if (datosGenerales.formaPagoComp) {
-    let fpListCell = hojaComp.createTextFinder(datosGenerales.formaPagoComp).matchCase(false).matchEntireCell(false).findNext();
-    if (fpListCell) fpListCell.getRange().setBackground('#B4A169').setFontColor('#FFFFFF').setFontWeight('bold');
+    let _norm = function(s){ return s.toString().normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim(); };
+    let buscar = _norm(datosGenerales.formaPagoComp);
+    let datosHoja = hojaComp.getDataRange().getValues();
+    let fpFound = false;
+    for (let ri = 0; ri < datosHoja.length && !fpFound; ri++) {
+      for (let ci = 0; ci < datosHoja[ri].length && !fpFound; ci++) {
+        if (_norm(datosHoja[ri][ci]) === buscar) {
+          hojaComp.getRange(ri+1, ci+1).setFontColor('#1B7E34').setFontWeight('bold');
+          fpFound = true;
+        }
+      }
+    }
   }
   let provKeys = [...new Set(todasLasCotizaciones.map(p => p.rfc))];
   let numProds = productosUnicos.length;
-  let alturaFilaProds = Math.max(42, numProds * 22); // 22px por línea de producto
+  let alturaFilaProds = Math.max(50, numProds * 24); // 24px por línea de producto
   for (let m = 0; m < 5; m++) {
     let pIdx = m + 1;
     if (m < provKeys.length) {
@@ -442,13 +456,14 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
         });
         subCeldaR.setValue(textoSub);
         subCeldaR.setRichTextValue(rtBuilder.build());
-        hojaComp.setRowHeight(subCeldaR.getRow(), alturaFilaProds);
       }
     } else {
       ["PROVEEDOR_P","RAZON SOCIAL_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","DESCRIPCION_P","SUBTOTAL_P","MARCA_P","TOTAL_IVA_P","TOTAL_P","COMENTARIOS_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
     }
   }
   SpreadsheetApp.flush();
+  // Ajustar altura de la fila de productos para mostrar todos los items
+  if (filaProductos > 0) hojaComp.setRowHeight(filaProductos, alturaFilaProds);
   hojaComp.createTextFinder("{{TOTAL_SIN_IVA}}").replaceAllWith("$" + (compGranTotal - compIvaTotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
   hojaComp.createTextFinder("{{IVA_TOTAL_COMP}}").replaceAllWith("$" + compIvaTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
   hojaComp.createTextFinder("{{GRAN_TOTAL_COMPRA}}").replaceAllWith("$" + compGranTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
