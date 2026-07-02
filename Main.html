@@ -2109,7 +2109,12 @@
           document.getElementById('editCronFormato').value   = '';
           var evAct = document.getElementById('evidenciaActualCron');
           var foAct = document.getElementById('formatoActualCron');
-          if(evAct) evAct.innerHTML = reg.evidencia && reg.evidencia !== 'SIN EVIDENCIA' ? '📎 Actual: <a href="'+reg.evidencia+'" target="_blank">Ver archivo</a>' : '';
+          if(evAct) {
+            if(reg.evidencia && reg.evidencia !== 'SIN EVIDENCIA') {
+              var urls = reg.evidencia.split(' | ').filter(Boolean);
+              evAct.innerHTML = urls.map(function(u,i){ return '📎 Actual '+(urls.length>1?'('+(i+1)+')':'')+': <a href="'+u+'" target="_blank">Ver archivo</a>'; }).join('<br>');
+            } else { evAct.innerHTML = ''; }
+          }
           if(foAct) foAct.innerHTML = reg.formato   && reg.formato   !== '' ? '📄 Actual: <a href="'+reg.formato+'" target="_blank">Ver archivo</a>' : '';
         }
         document.getElementById('cronEditMsj').innerText = '';
@@ -2168,7 +2173,7 @@
         } else {
           // Gerente / Mecánico: actualiza estatus + archivos
           var estatus = document.getElementById('editCronEstatus').value;
-          var fileEv  = document.getElementById('editCronEvidencia').files[0];
+          var filesEv = Array.from(document.getElementById('editCronEvidencia').files || []);
           var fileFo  = document.getElementById('editCronFormato').files[0];
 
           function _actualizarEstatus(urlEv, urlFo) {
@@ -2189,12 +2194,20 @@
             reader.readAsDataURL(file);
           }
 
-          if(fileEv && fileFo) {
-            msj.innerText = 'Subiendo archivos...';
-            leerArchivo(fileEv, function(uEv){ leerArchivo(fileFo, function(uFo){ _actualizarEstatus(uEv, uFo); }); });
-          } else if(fileEv) {
-            msj.innerText = 'Subiendo evidencia...';
-            leerArchivo(fileEv, function(uEv){ _actualizarEstatus(uEv, ''); });
+          // Subir múltiples evidencias en secuencia, luego unir con ' | '
+          function subirEvidencias(lista, idx, urls, done) {
+            if(idx >= lista.length) { done(urls.filter(Boolean).join(' | ')); return; }
+            msj.innerText = 'Subiendo evidencia '+(idx+1)+' de '+lista.length+'...';
+            leerArchivo(lista[idx], function(u){ urls.push(u); subirEvidencias(lista, idx+1, urls, done); });
+          }
+
+          if(filesEv.length > 0 && fileFo) {
+            subirEvidencias(filesEv, 0, [], function(urlsEv){
+              msj.innerText = 'Subiendo formato...';
+              leerArchivo(fileFo, function(uFo){ _actualizarEstatus(urlsEv, uFo); });
+            });
+          } else if(filesEv.length > 0) {
+            subirEvidencias(filesEv, 0, [], function(urlsEv){ _actualizarEstatus(urlsEv, ''); });
           } else if(fileFo) {
             msj.innerText = 'Subiendo formato...';
             leerArchivo(fileFo, function(uFo){ _actualizarEstatus('', uFo); });
