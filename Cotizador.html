@@ -168,11 +168,31 @@
       <h6 class="fw-bold mb-3 pb-2" style="color: var(--dorado); border-bottom: 1px solid #eaeaea;">C) Condiciones Comerciales y Facturación</h6>
 
       <div class="row">
-        <div class="col-md-9 mb-3">
+        <div class="col-md-7 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Razón Social (A nombre de quién se compra)</label>
           <input type="text" id="oc_rz" class="form-control border-warning" style="background-color: #fffdf8;">
         </div>
+        <div class="col-md-5 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Forma de Pago (Comparativa) <span class="text-danger">*</span></label>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_oc_fp_comp" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d;" onclick="window.abrirDropdownCat('oc_fp_comp','FORMA_PAGO_COMP')">
+              <span id="lbl_oc_fp_comp" class="text-truncate">— Forma de Pago —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="oc_fp_comp" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_oc_fp_comp')"></li>
+              <div id="lista_oc_fp_comp"></div>
+            </ul>
+          </div>
+        </div>
         <input type="hidden" id="oc_foliocpp" value="">
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Motivo de Compra</label>
+          <textarea id="oc_motivo" class="form-control" rows="2" placeholder="Describe el motivo de esta compra/cotización..."></textarea>
+        </div>
       </div>
 
       <div class="row mb-4">

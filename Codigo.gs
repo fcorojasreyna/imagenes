@@ -344,7 +344,7 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   let productosUnicos = [];
   todasLasCotizaciones.forEach(p => {
     if (!productosUnicos.find(u => u.nombre === p.nombreProducto)) {
-      productosUnicos.push({ nombre: p.nombreProducto, familia: p.familia, cant: p.cantidad, um: p.unidadMedida, marca: p.marca || '' });
+      productosUnicos.push({ nombre: p.nombreProducto, familia: p.familia, cant: p.cantidad, um: p.unidadMedida });
     }
   });
   const hojaCompOriginal = ss.getSheetByName("COMPARATIVA DOC");
@@ -390,17 +390,13 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   hojaComp.createTextFinder("{{FAMILIA}}").replaceAllWith(colFamilia_C.join('\n'));
   hojaComp.createTextFinder("{{CANTIDAD PRODUCTOS}}").replaceAllWith(colCant_C.join('\n'));
   hojaComp.createTextFinder("{{UNIDAD MEDIDA}}").replaceAllWith(colUM_C.join('\n'));
-  let colMarca_C = [];
-  productosUnicos.forEach(u => { colMarca_C.push(u.marca || ''); });
-  hojaComp.createTextFinder("{{MARCA}}").replaceAllWith(colMarca_C.join('\n'));
+  hojaComp.createTextFinder("{{MOTIVO DE COMPRA}}").replaceAllWith(datosGenerales.motivoCompra || "");
   let provKeys = [...new Set(todasLasCotizaciones.map(p => p.rfc))];
-  // Encontrar posiciones de celdas antes de reemplazar para colorear proveedor ganador
-  let celdas_FP = {}, celdas_Sub = {};
+  // Encontrar posición de celda {{SUBTOTAL_Pn}} antes de reemplazar para colorear ganador
+  let celdas_Sub = {};
   for (let m = 0; m < 5; m++) {
     let pIdx = m + 1;
-    let fpCell  = hojaComp.createTextFinder("{{FORMA DE PAGO_P"+pIdx+"}}").findNext();
     let subCell = hojaComp.createTextFinder("{{SUBTOTAL_P"+pIdx+"}}").findNext();
-    if (fpCell)  celdas_FP[pIdx]  = { r: fpCell.getRow(),  c: fpCell.getColumn()  };
     if (subCell) celdas_Sub[pIdx] = { r: subCell.getRow(), c: subCell.getColumn() };
   }
   for (let m = 0; m < 5; m++) {
@@ -410,15 +406,16 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
       let nombreP   = todasLasCotizaciones.find(p => p.rfc === rfcActual).nombreProveedor.toUpperCase();
       let provData  = datosProv.find(d => d[3].toString().toUpperCase().trim() === rfcActual) || [];
       let rzP       = provData[2] ? provData[2].toString().toUpperCase() : "";
-      let colDesc_P = [], colSub_P = []; let tot_P = 0; let ivaP = 0; let fp_P = datosGenerales.formaPago; let te_P = "";
+      let colDesc_P = [], colSub_P = [], colMarca_P = []; let tot_P = 0; let ivaP = 0; let fp_P = datosGenerales.formaPagoComp || datosGenerales.formaPago; let te_P = "";
       let colComent_P = [];
       productosUnicos.forEach(u => {
         let pItem = todasLasCotizaciones.find(p => p.rfc === rfcActual && p.nombreProducto === u.nombre);
-        if (pItem) { colDesc_P.push(pItem.descripcion); colSub_P.push("$" + parseFloat(pItem.subtotal).toLocaleString('es-MX',{minimumFractionDigits:2})); te_P = pItem.tiempoEntrega; tot_P += parseFloat(pItem.total); ivaP += parseFloat(pItem.iva)||0; if (pItem.comentario) colComent_P.push(u.nombre + ": " + pItem.comentario); }
-        else { colDesc_P.push("-"); colSub_P.push("-"); }
+        if (pItem) { colDesc_P.push(pItem.descripcion); colSub_P.push("$" + parseFloat(pItem.subtotal).toLocaleString('es-MX',{minimumFractionDigits:2})); colMarca_P.push(pItem.marca || ""); te_P = pItem.tiempoEntrega; tot_P += parseFloat(pItem.total); ivaP += parseFloat(pItem.iva)||0; if (pItem.comentario) colComent_P.push(u.nombre + ": " + pItem.comentario); }
+        else { colDesc_P.push("-"); colSub_P.push("-"); colMarca_P.push("-"); }
       });
       hojaComp.createTextFinder("{{PROVEEDOR_P"+pIdx+"}}").replaceAllWith(nombreP);
       hojaComp.createTextFinder("{{RAZON SOCIAL_P"+pIdx+"}}").replaceAllWith(rzP);
+      hojaComp.createTextFinder("{{MARCA_P"+pIdx+"}}").replaceAllWith(colMarca_P.join('\n'));
       hojaComp.createTextFinder("{{FORMA DE PAGO_P"+pIdx+"}}").replaceAllWith(fp_P);
       hojaComp.createTextFinder("{{TIEMPO ENTREGA_P"+pIdx+"}}").replaceAllWith(te_P);
       hojaComp.createTextFinder("{{DESCRIPCION_P"+pIdx+"}}").replaceAllWith(colDesc_P.join('\n'));
@@ -427,17 +424,21 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
       hojaComp.createTextFinder("{{TOTAL_P"+pIdx+"}}").replaceAllWith("$" + tot_P.toLocaleString('es-MX',{minimumFractionDigits:2}));
       hojaComp.createTextFinder("{{COMENTARIOS_P"+pIdx+"}}").replaceAllWith(colComent_P.length > 0 ? colComent_P.join('\n') : "N/A");
     } else {
-      ["PROVEEDOR_P","RAZON SOCIAL_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","DESCRIPCION_P","SUBTOTAL_P","TOTAL_IVA_P","TOTAL_P","COMENTARIOS_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
+      ["PROVEEDOR_P","RAZON SOCIAL_P","MARCA_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","DESCRIPCION_P","SUBTOTAL_P","TOTAL_IVA_P","TOTAL_P","COMENTARIOS_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
     }
   }
-  // Colorear forma de pago y subtotal del proveedor ganador en la comparativa
+  // Colorear celda de forma de pago seleccionada (TextFinder sobre el texto de la opción elegida)
+  if (datosGenerales.formaPagoComp) {
+    let fpCell = hojaComp.createTextFinder(datosGenerales.formaPagoComp).matchEntireCell(false).findNext();
+    if (fpCell) fpCell.getRange().setBackground('#B4A169').setFontColor('#FFFFFF').setFontWeight('bold');
+  }
+  // Colorear subtotal del proveedor ganador
   for (let m = 0; m < Math.min(provKeys.length, 5); m++) {
     let pIdx = m + 1;
     let rfcActual = provKeys[m];
     let esGanador = todasLasCotizaciones.some(p => p.rfc === rfcActual && p.esGanador);
-    if (esGanador) {
-      if (celdas_FP[pIdx])  hojaComp.getRange(celdas_FP[pIdx].r,  celdas_FP[pIdx].c).setBackground('#B4A169').setFontColor('#FFFFFF');
-      if (celdas_Sub[pIdx]) hojaComp.getRange(celdas_Sub[pIdx].r, celdas_Sub[pIdx].c).setBackground('#FFF2CC');
+    if (esGanador && celdas_Sub[pIdx]) {
+      hojaComp.getRange(celdas_Sub[pIdx].r, celdas_Sub[pIdx].c).setBackground('#FFF2CC');
     }
   }
   hojaComp.createTextFinder("{{TOTAL_SIN_IVA}}").replaceAllWith("$" + (compGranTotal - compIvaTotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
