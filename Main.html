@@ -196,6 +196,7 @@
           <a class="nav-pill nav-pill-azul" id="btnCot" onclick="window.cargarModulo('Cotizador', this)">Cotizaciones / OC</a>
           <a class="nav-pill" id="btnHerr" onclick="window.cargarModulo('Herramientas', this)">Herramientas</a>
           <a class="nav-pill" id="btnCron" onclick="window.cargarModulo('Cronograma', this)">Cronograma</a>
+          <a class="nav-pill" id="btnAgenda" onclick="window.cargarModulo('Agenda', this)">Agenda 📅</a>
           <a class="nav-pill" id="btnNotif" onclick="window.cargarModulo('Notificaciones', this)" style="position:relative;">
             Notificaciones 🔔
             <span id="badgeNotif" style="display:none;position:absolute;top:-6px;right:-8px;background:#dc3545;color:white;border-radius:50%;font-size:0.65rem;font-weight:bold;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 3px;"></span>
@@ -462,6 +463,7 @@
           if (n === 'Cronograma')    window.cargarDatosCronograma();
           if (n === 'Cotizador')        { window.llenarSelectsModulo('Cotizador'); window.cargarDatosHistorialOC(); google.script.run.withSuccessHandler(function(r){ if(r.exito){ listaProveedoresCotizador=r.datos; window.cargarSelectProveedores(); } }).obtenerDatosProveedores(); }
           if (n === 'Notificaciones')   window.cargarDatosNotificaciones();
+          if (n === 'Agenda')           window.iniciarAgenda();
         }).incluir(n);
       };
 
@@ -2362,8 +2364,184 @@
         setTimeout(function() { if (document.getElementById('toastNotifLogin')) document.getElementById('toastNotifLogin').remove(); }, 6000);
       };
 
+      // ============================================================
+      // MÓDULO AGENDA
+      // ============================================================
+      var _agendaDatos = []; // cache de todos los datos del cronograma
+
+      window.iniciarAgenda = function() {
+        // Poner fecha de hoy por defecto
+        var hoy = new Date();
+        var yyyy = hoy.getFullYear();
+        var mm = String(hoy.getMonth()+1).padStart(2,'0');
+        var dd = String(hoy.getDate()).padStart(2,'0');
+        var hoyStr = yyyy+'-'+mm+'-'+dd;
+        var d = document.getElementById('agendaDesde');
+        var h = document.getElementById('agendaHasta');
+        if(d) d.value = hoyStr;
+        if(h) h.value = hoyStr;
+        // Cargar datos frescos del cronograma
+        document.getElementById('agendaContenido').innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm" style="color:var(--dorado)"></div></div>';
+        google.script.run
+          .withSuccessHandler(function(r) {
+            if(r.exito) { _agendaDatos = r.datos || []; window.filtrarAgenda(); }
+            else document.getElementById('agendaContenido').innerHTML = '<div class="text-center text-danger py-4">'+(r.error||'Error al cargar')+'</div>';
+          })
+          .withFailureHandler(function(e) {
+            document.getElementById('agendaContenido').innerHTML = '<div class="text-center text-danger py-4">Error: '+e.message+'</div>';
+          })
+          .obtenerDatosCronograma();
+      };
+
+      window.agendaHoy = function() {
+        var hoy = new Date();
+        var s = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+        document.getElementById('agendaDesde').value = s;
+        document.getElementById('agendaHasta').value = s;
+        window.filtrarAgenda();
+      };
+
+      window.agendaSemana = function() {
+        var hoy = new Date();
+        var dia = hoy.getDay(); // 0=dom
+        var lunes = new Date(hoy); lunes.setDate(hoy.getDate() - (dia === 0 ? 6 : dia - 1));
+        var viernes = new Date(lunes); viernes.setDate(lunes.getDate() + 4);
+        var fmt = function(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+        document.getElementById('agendaDesde').value = fmt(lunes);
+        document.getElementById('agendaHasta').value = fmt(viernes);
+        window.filtrarAgenda();
+      };
+
+      window.filtrarAgenda = function() {
+        var desde = document.getElementById('agendaDesde') ? document.getElementById('agendaDesde').value : '';
+        var hasta = document.getElementById('agendaHasta') ? document.getElementById('agendaHasta').value : '';
+        if(!desde || !hasta) { window.mostrarAlerta('Selecciona las dos fechas.'); return; }
+
+        // Convertir dd/mm/yyyy del dato a yyyy-mm-dd para comparar
+        var _parseFecha = function(s) {
+          if(!s) return '';
+          if(s.indexOf('/') !== -1) { var p=s.split('/'); return (p[2]||'')+(p[1]||'').padStart(2,'0')+(p[0]||'').padStart(2,'0'); }
+          return s.replace(/-/g,'');
+        };
+        var desdeN = desde.replace(/-/g,'');
+        var hastaN = hasta.replace(/-/g,'');
+
+        var filtrados = _agendaDatos.filter(function(r){
+          var f = _parseFecha(r.fecha);
+          return f >= desdeN && f <= hastaN;
+        });
+
+        // Resumen
+        var resDiv = document.getElementById('agendaResumen');
+        var resTxt = document.getElementById('agendaResumenTxt');
+        if(resDiv && resTxt) {
+          resDiv.style.display = '';
+          var label = desde === hasta
+            ? 'Mostrando <b>'+filtrados.length+'</b> servicio(s) del día <b>'+_fmtFechaLabel(desde)+'</b>'
+            : 'Mostrando <b>'+filtrados.length+'</b> servicio(s) del <b>'+_fmtFechaLabel(desde)+'</b> al <b>'+_fmtFechaLabel(hasta)+'</b>';
+          resTxt.innerHTML = label;
+        }
+
+        window._agendaFiltrados = filtrados;
+        _renderAgenda(filtrados);
+      };
+
+      function _fmtFechaLabel(ymd) {
+        var p = ymd.split('-');
+        var meses = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        return p[2]+' '+meses[parseInt(p[1],10)]+' '+p[0];
+      }
+
+      function _colorEstatus(e) {
+        if(!e) return '#6c757d';
+        e = e.toUpperCase();
+        if(e.indexOf('CONCLUIDO') !== -1)   return '#198754';
+        if(e.indexOf('POSPUESTO') !== -1)   return '#fd7e14';
+        if(e.indexOf('NO PRESENTADA') !== -1) return '#dc3545';
+        return '#0d6efd';
+      }
+
+      function _renderAgenda(datos) {
+        var cont = document.getElementById('agendaContenido');
+        if(!cont) return;
+        if(datos.length === 0) {
+          cont.innerHTML = '<div class="text-center text-muted py-5">No hay servicios en el rango seleccionado.</div>';
+          return;
+        }
+
+        // Agrupar por fecha
+        var grupos = {};
+        datos.forEach(function(r) { var f = r.fecha||'—'; if(!grupos[f]) grupos[f]=[]; grupos[f].push(r); });
+
+        // Ordenar fechas
+        var fechasOrden = Object.keys(grupos).sort(function(a,b){
+          var pa=a.split('/'), pb=b.split('/');
+          var da=new Date(pa[2],pa[1]-1,pa[0]), db=new Date(pb[2],pb[1]-1,pb[0]);
+          return da-db;
+        });
+
+        var html = '';
+        fechasOrden.forEach(function(fecha) {
+          var filas = grupos[fecha];
+          // Ordenar por horario dentro del día
+          filas.sort(function(a,b){ return (a.horario||'').localeCompare(b.horario||''); });
+          html += '<div class="mb-4">'
+            +'<div class="fw-bold py-2 px-3 mb-2 rounded" style="background:var(--azul);color:white;font-size:0.95rem;">📅 '+fecha+' — '+filas.length+' servicio(s)</div>'
+            +'<div class="table-responsive">'
+            +'<table class="table table-hover table-sm align-middle mb-0">'
+            +'<thead style="background:#f0f0f0;">'
+            +'<tr>'
+            +'<th style="white-space:nowrap;">ID</th>'
+            +'<th style="white-space:nowrap;">Horario</th>'
+            +'<th style="white-space:nowrap;">Ticket</th>'
+            +'<th style="white-space:nowrap;">NUCO</th>'
+            +'<th style="white-space:nowrap;">Marca</th>'
+            +'<th style="white-space:nowrap;">Modelo</th>'
+            +'<th style="white-space:nowrap;">Placas</th>'
+            +'<th style="white-space:nowrap;">Tipo Trabajo</th>'
+            +'<th style="white-space:nowrap;">Mecánico</th>'
+            +'<th style="white-space:nowrap;">Mecánico 2</th>'
+            +'<th style="white-space:nowrap;">Estatus</th>'
+            +'<th style="white-space:nowrap;">Sede</th>'
+            +'<th style="white-space:nowrap;">Ejecutivo</th>'
+            +'<th style="white-space:nowrap;">Info</th>'
+            +'</tr></thead><tbody>';
+          filas.forEach(function(r) {
+            var color = _colorEstatus(r.estatusUnidad);
+            html += '<tr>'
+              +'<td class="small text-muted">'+( r.id||'')+'</td>'
+              +'<td><span class="badge fw-bold" style="background:var(--dorado);color:var(--azul);">'+(r.horario||'—')+'</span></td>'
+              +'<td class="fw-bold">'+(r.ticket||'—')+'</td>'
+              +'<td>'+(r.nuco||'—')+'</td>'
+              +'<td>'+(r.marca||'—')+'</td>'
+              +'<td>'+(r.modelo||'—')+'</td>'
+              +'<td>'+(r.placas||'—')+'</td>'
+              +'<td class="small">'+(r.tipoTrabajo||'—')+'</td>'
+              +'<td>'+(r.mecanico||'—')+'</td>'
+              +'<td>'+(r.mecanico2||'—')+'</td>'
+              +'<td><span class="badge" style="background:'+color+';color:white;white-space:normal;font-size:0.72rem;">'+(r.estatusUnidad||'—')+'</span></td>'
+              +'<td class="small">'+(r.sede||'—')+'</td>'
+              +'<td class="small">'+(r.ejecutivo||'—')+'</td>'
+              +'<td class="small">'+(r.info||'')+'</td>'
+              +'</tr>';
+          });
+          html += '</tbody></table></div></div>';
+        });
+        cont.innerHTML = html;
+      }
+
+      window.exportarExcelAgenda = function() {
+        var datos = window._agendaFiltrados || [];
+        if(!datos.length) { window.mostrarAlerta('No hay datos para exportar. Aplica un filtro primero.'); return; }
+        var headers = ['ID','Tipo Trabajo','Ejecutivo','Sede','Horario','Fecha','Ticket','NUCO','Marca','Modelo','Placas','Mecánico','Mecánico 2','Info Servicio','Estatus Unidad','Evidencia','Formato','Quien Registra','Mec2 Estatus','Mec2 Fecha Aprob'];
+        var filas = datos.map(function(r){ return [r.id,r.tipoTrabajo,r.ejecutivo,r.sede,r.horario,r.fecha,r.ticket,r.nuco,r.marca,r.modelo,r.placas,r.mecanico,r.mecanico2,r.info,r.estatusUnidad,r.evidencia,r.formato,r.quienRegistra,r.mec2Estatus,r.mec2Fecha]; });
+        var desde = document.getElementById('agendaDesde') ? document.getElementById('agendaDesde').value.replace(/-/g,'') : 'agenda';
+        var hasta = document.getElementById('agendaHasta') ? document.getElementById('agendaHasta').value.replace(/-/g,'') : '';
+        _descargarCSV('Agenda_'+desde+(hasta && hasta!==desde?'_'+hasta:''), headers, filas);
+      };
+
       window.aplicarControlRol = function(rol) {
-        var todosNav = ['btnInicio','btnDash','btnInv','btnTal','btnCon','btnProv','btnCot','btnHerr','btnCron','btnNotif'];
+        var todosNav = ['btnInicio','btnDash','btnInv','btnTal','btnCon','btnProv','btnCot','btnHerr','btnCron','btnAgenda','btnNotif'];
         if (rol === 'MECANICO') {
           todosNav.forEach(function(id) {
             var el = document.getElementById(id);
