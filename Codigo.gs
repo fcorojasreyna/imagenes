@@ -300,7 +300,7 @@ function registrarOC(datosGenerales, todasLasCotizaciones, configuracionCorreo, 
         idGenerado, "SV", folioGenerado, datosGenerales.ticket, fRegistro, datosGenerales.usuario,
         datosGenerales.nuco, datosGenerales.placas, datosGenerales.linea, datosGenerales.modelo,
         datosGenerales.departamento, datosGenerales.sede, datosGenerales.oficina, prod.nombreProveedor,
-        prod.rfc, prod.nombreProducto, prod.familia, prod.descripcion, prod.cantidad, prod.unidadMedida,
+        prod.rfc, prod.nombreProducto, prod.marca || '', prod.familia, prod.descripcion, prod.cantidad, prod.unidadMedida,
         prod.tiempoEntrega, prod.comentario || "", prod.precioUnitario, prod.subtotal, prod.intercambio, prod.costoIntercambio,
         prod.total, datosGenerales.razonSocialCompra, datosGenerales.odometroActual,
         datosGenerales.odometroUltimo, datosGenerales.formaPago, datosGenerales.comentarios,
@@ -344,7 +344,7 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   let productosUnicos = [];
   todasLasCotizaciones.forEach(p => {
     if (!productosUnicos.find(u => u.nombre === p.nombreProducto)) {
-      productosUnicos.push({ nombre: p.nombreProducto, familia: p.familia, cant: p.cantidad, um: p.unidadMedida });
+      productosUnicos.push({ nombre: p.nombreProducto, familia: p.familia, cant: p.cantidad, um: p.unidadMedida, marca: p.marca || '' });
     }
   });
   const hojaCompOriginal = ss.getSheetByName("COMPARATIVA DOC");
@@ -390,7 +390,19 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   hojaComp.createTextFinder("{{FAMILIA}}").replaceAllWith(colFamilia_C.join('\n'));
   hojaComp.createTextFinder("{{CANTIDAD PRODUCTOS}}").replaceAllWith(colCant_C.join('\n'));
   hojaComp.createTextFinder("{{UNIDAD MEDIDA}}").replaceAllWith(colUM_C.join('\n'));
+  let colMarca_C = [];
+  productosUnicos.forEach(u => { colMarca_C.push(u.marca || ''); });
+  hojaComp.createTextFinder("{{MARCA}}").replaceAllWith(colMarca_C.join('\n'));
   let provKeys = [...new Set(todasLasCotizaciones.map(p => p.rfc))];
+  // Encontrar posiciones de celdas antes de reemplazar para colorear proveedor ganador
+  let celdas_FP = {}, celdas_Sub = {};
+  for (let m = 0; m < 5; m++) {
+    let pIdx = m + 1;
+    let fpCell  = hojaComp.createTextFinder("{{FORMA DE PAGO_P"+pIdx+"}}").findNext();
+    let subCell = hojaComp.createTextFinder("{{SUBTOTAL_P"+pIdx+"}}").findNext();
+    if (fpCell)  celdas_FP[pIdx]  = { r: fpCell.getRow(),  c: fpCell.getColumn()  };
+    if (subCell) celdas_Sub[pIdx] = { r: subCell.getRow(), c: subCell.getColumn() };
+  }
   for (let m = 0; m < 5; m++) {
     let pIdx = m + 1;
     if (m < provKeys.length) {
@@ -415,7 +427,17 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
       hojaComp.createTextFinder("{{TOTAL_P"+pIdx+"}}").replaceAllWith("$" + tot_P.toLocaleString('es-MX',{minimumFractionDigits:2}));
       hojaComp.createTextFinder("{{COMENTARIOS_P"+pIdx+"}}").replaceAllWith(colComent_P.length > 0 ? colComent_P.join('\n') : "N/A");
     } else {
-      ["PROVEEDOR_P","RAZON SOCIAL_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","DESCRIPCION_P","SUBTOTAL_P","TOTAL_P","COMENTARIOS_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
+      ["PROVEEDOR_P","RAZON SOCIAL_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","DESCRIPCION_P","SUBTOTAL_P","TOTAL_IVA_P","TOTAL_P","COMENTARIOS_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
+    }
+  }
+  // Colorear forma de pago y subtotal del proveedor ganador en la comparativa
+  for (let m = 0; m < Math.min(provKeys.length, 5); m++) {
+    let pIdx = m + 1;
+    let rfcActual = provKeys[m];
+    let esGanador = todasLasCotizaciones.some(p => p.rfc === rfcActual && p.esGanador);
+    if (esGanador) {
+      if (celdas_FP[pIdx])  hojaComp.getRange(celdas_FP[pIdx].r,  celdas_FP[pIdx].c).setBackground('#B4A169').setFontColor('#FFFFFF');
+      if (celdas_Sub[pIdx]) hojaComp.getRange(celdas_Sub[pIdx].r, celdas_Sub[pIdx].c).setBackground('#FFF2CC');
     }
   }
   hojaComp.createTextFinder("{{TOTAL_SIN_IVA}}").replaceAllWith("$" + (compGranTotal - compIvaTotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
@@ -454,12 +476,12 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     let pCred   = pD[11] ? pD[11].toString()               : "";
     let lLeg    = "Mediante la aceptación vía correo electrónico de la presente orden de compra, el proveedor " + nombreProv + " asume de manera exclusiva y total la responsabilidad sobre la calidad, el estado y la integridad del producto hasta el momento en que se efectúe la entrega física y se firme por escrito la misma y conforme en el lugar estipulado en este documento.\n\nEn el supuesto de que la Orden de Compra sea cancelada, el proveedor " + nombreProv + " será responsable de cubrir todos los costos y gastos que se deriven de dicha cancelación en un plazo máximo de 5 días hábiles.";
     let pGTotal = 0; let pAhorro = 0; let pIvaTotal = 0;
-    let cItm=[],cNom=[],cFam=[],cCant=[],cUM=[],cDes=[],cPU=[],cInt=[],cSub=[],cCInt=[],cIva=[],cTot=[];
+    let cItm=[],cNom=[],cMarca=[],cFam=[],cCant=[],cUM=[],cDes=[],cPU=[],cInt=[],cSub=[],cCInt=[],cIva=[],cTot=[];
     pGanadores.forEach((p, idx) => {
       let sub=parseFloat(p.subtotal)||0; let tot=parseFloat(p.total)||0; let ci=parseFloat(p.costoIntercambio)||0;
       let iva=parseFloat(p.iva)||0;
       pGTotal+=tot; pAhorro+=ci; pIvaTotal+=iva;
-      cItm.push(idx+1); cNom.push(p.nombreProducto); cFam.push(p.familia);
+      cItm.push(idx+1); cNom.push(p.nombreProducto); cMarca.push(p.marca||''); cFam.push(p.familia);
       cCant.push(p.cantidad); cUM.push(p.unidadMedida); cDes.push(p.descripcion);
       cPU.push("$"+parseFloat(p.precioUnitario).toLocaleString('es-MX'));
       cInt.push(p.intercambio); cSub.push("$"+sub.toLocaleString('es-MX'));
@@ -490,6 +512,7 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     tempOC.createTextFinder("{{QUIEN REGISTRA}}").replaceAllWith(datosGenerales.usuario || "");
     tempOC.createTextFinder("{{ITEM}}").replaceAllWith(cItm.join('\n'));
     tempOC.createTextFinder("{{NOMBRE}}").replaceAllWith(cNom.join('\n'));
+    tempOC.createTextFinder("{{MARCA}}").replaceAllWith(cMarca.join('\n'));
     tempOC.createTextFinder("{{FAMILIA}}").replaceAllWith(cFam.join('\n'));
     tempOC.createTextFinder("{{CANTIDAD}}").replaceAllWith(cCant.join('\n'));
     tempOC.createTextFinder("{{UNIDAD MEDIDA}}").replaceAllWith(cUM.join('\n'));
@@ -539,7 +562,7 @@ function obtenerHistorialGlobalOC() {
       let folio = d[i][2];
       if (!foliosSet.has(folio)) {
         foliosSet.add(folio);
-        filas.push({ folio: folio, ticket: d[i][3], fecha: limpiarHoraLectura(d[i][4]), nuco: d[i][6], razonSocial: d[i][27], quienRegistro: d[i][5] });
+        filas.push({ folio: folio, ticket: d[i][3], fecha: limpiarHoraLectura(d[i][4]), nuco: d[i][6], razonSocial: d[i][28], quienRegistro: d[i][5] });
       }
     }
     return { exito: true, datos: filas };
