@@ -975,8 +975,8 @@ function actualizarEstatusCronogramaBackend(d) {
       if (datos[i][0].toString().trim() === d.id.toString().trim()) {
         const f = i + 1;
         if (d.estatus) hoja.getRange(f, 15).setValue(d.estatus);
-        if (d.urlEvidencia) hoja.getRange(f, 16).setValue(d.urlEvidencia);
-        if (d.urlFormato)   hoja.getRange(f, 17).setValue(d.urlFormato);
+        if (d.urlEvidencia !== undefined && d.urlEvidencia !== null) hoja.getRange(f, 16).setValue(d.urlEvidencia);
+        if (d.urlFormato   !== undefined && d.urlFormato   !== null) hoja.getRange(f, 17).setValue(d.urlFormato);
         let msjRetorno = "Registro actualizado.";
         if (d.estatus === "SERVICIO POSPUESTO POR SV") {
           // Mover al siguiente día hábil y resetear estatus a EN REPARACION para ese día

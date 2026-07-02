@@ -2111,18 +2111,24 @@
           var pf = document.getElementById('pilaFormatos');   if(pf) pf.innerHTML = '';
           var pk1 = document.getElementById('pickerEvidencia'); if(pk1) pk1.value = '';
           var pk2 = document.getElementById('pickerFormato');   if(pk2) pk2.value = '';
+          // Guardar URLs existentes para concatenar al guardar
+          window._cronEvidenciasExistentes = (reg.evidencia && reg.evidencia !== 'SIN EVIDENCIA') ? reg.evidencia.split(' | ').filter(Boolean) : [];
+          window._cronFormatosExistentes   = (reg.formato   && reg.formato   !== '')              ? reg.formato.split(' | ').filter(Boolean)   : [];
+
           var evAct = document.getElementById('evidenciaActualCron');
           var foAct = document.getElementById('formatoActualCron');
           if(evAct) {
-            if(reg.evidencia && reg.evidencia !== 'SIN EVIDENCIA') {
-              var urls = reg.evidencia.split(' | ').filter(Boolean);
-              evAct.innerHTML = urls.map(function(u,i){ return '📎 Actual '+(urls.length>1?'('+(i+1)+')':'')+': <a href="'+u+'" target="_blank">Ver archivo</a>'; }).join('<br>');
+            if(window._cronEvidenciasExistentes.length > 0) {
+              evAct.innerHTML = window._cronEvidenciasExistentes.map(function(u,i){
+                return '📎 Guardado ('+(i+1)+'): <a href="'+u+'" target="_blank">Ver archivo</a>';
+              }).join('<br>');
             } else { evAct.innerHTML = ''; }
           }
           if(foAct) {
-            if(reg.formato && reg.formato !== '') {
-              var urlsFo = reg.formato.split(' | ').filter(Boolean);
-              foAct.innerHTML = urlsFo.map(function(u,i){ return '📄 Actual '+(urlsFo.length>1?'('+(i+1)+')':'')+': <a href="'+u+'" target="_blank">Ver archivo</a>'; }).join('<br>');
+            if(window._cronFormatosExistentes.length > 0) {
+              foAct.innerHTML = window._cronFormatosExistentes.map(function(u,i){
+                return '📄 Guardado ('+(i+1)+'): <a href="'+u+'" target="_blank">Ver archivo</a>';
+              }).join('<br>');
             } else { foAct.innerHTML = ''; }
           }
         }
@@ -2185,10 +2191,17 @@
           var filesEv = (_pilaArchivos['pilaEvidencias'] || []).filter(Boolean);
           var filesFo = (_pilaArchivos['pilaFormatos']   || []).filter(Boolean);
 
-          function _actualizarEstatus(urlEv, urlFo) {
+          function _actualizarEstatus(urlsNuevasEv, urlsNuevasFo) {
+            // Concatenar existentes + nuevas
+            var existEv = window._cronEvidenciasExistentes || [];
+            var existFo = window._cronFormatosExistentes   || [];
+            var nuevasEv = urlsNuevasEv ? urlsNuevasEv.split(' | ').filter(Boolean) : [];
+            var nuevasFo = urlsNuevasFo ? urlsNuevasFo.split(' | ').filter(Boolean) : [];
+            var finalEv = existEv.concat(nuevasEv).join(' | ');
+            var finalFo = existFo.concat(nuevasFo).join(' | ');
             google.script.run
               .withSuccessHandler(_done).withFailureHandler(_fail)
-              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: urlEv, urlFormato: urlFo });
+              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: finalEv, urlFormato: finalFo });
           }
 
           function leerArchivo(file, callback) {
