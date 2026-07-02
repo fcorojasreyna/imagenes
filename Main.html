@@ -1395,51 +1395,37 @@
 
       // Funciones para el dropdown estilo select2
 
-      // Lazy-loader con recarga automática si el catálogo no ha llegado aún
+      // Lazy-loader: usa catalogosGlobal si está disponible; si no, espera a cargarCatalogos
       window.abrirDropdownCat = function(hiddenId, catalogKey) {
         var lista = document.getElementById('lista_' + hiddenId);
         if (!lista) return;
 
-        // Si ya tiene opciones reales cargadas (no errores), no hacer nada
+        // Ya tiene opciones reales → no hacer nada
         if (lista.querySelectorAll('li.opcion-cat').length > 0) return;
 
-        function _cargarEnLista() {
-          lista.innerHTML = '<li class="px-2 py-1 text-muted small">⏳ Cargando...</li>';
-          try {
-            google.script.run
-              .withSuccessHandler(function(res) {
-                if (res && res.exito) {
-                  window.catalogosGlobal = res.catalogos || {};
-                  lista.innerHTML = '';
-                  window.llenarSelect(hiddenId, catalogKey);
-                  if (lista.querySelectorAll('li.opcion-cat').length === 0) {
-                    lista.innerHTML = '<li class="px-2 py-1 text-muted small">Sin valores para: <b>' + catalogKey + '</b></li>';
-                  }
-                } else {
-                  lista.innerHTML = '<li class="px-2 py-1 text-danger small">Error al cargar catálogo. <a href="#" onclick="event.preventDefault(); window.abrirDropdownCat(\''+hiddenId+'\',\''+catalogKey+'\')">Reintentar</a></li>';
-                }
-              })
-              .withFailureHandler(function(e) {
-                lista.innerHTML = '<li class="px-2 py-1 text-danger small">' + (e.message || 'Error') + '. <a href="#" onclick="event.preventDefault(); lista=document.getElementById(\'lista_'+hiddenId+'\'); if(lista)lista.innerHTML=\'\'; window.abrirDropdownCat(\''+hiddenId+'\',\''+catalogKey+'\')">Reintentar</a></li>';
-              })
-              .obtenerCatalogos();
-          } catch(e) {
-            lista.innerHTML = '<li class="px-2 py-1 text-danger small">No disponible fuera de GAS</li>';
-          }
-        }
-
-        // Si el catálogo global ya tiene datos, llenar directamente
-        if (Object.keys(window.catalogosGlobal).length > 0) {
+        function _llenar() {
           lista.innerHTML = '';
           window.llenarSelect(hiddenId, catalogKey);
           if (lista.querySelectorAll('li.opcion-cat').length === 0) {
             lista.innerHTML = '<li class="px-2 py-1 text-muted small">Sin valores para: <b>' + catalogKey + '</b></li>';
           }
+        }
+
+        // Catálogo ya disponible → llenar de inmediato
+        if (Object.keys(window.catalogosGlobal).length > 0) {
+          _llenar();
           return;
         }
 
-        // Catálogo vacío → recargar desde el servidor
-        _cargarEnLista();
+        // Catálogo aún cargando → mostrar espera y encolar callback
+        lista.innerHTML = '<li class="px-2 py-1 text-muted small">⏳ Cargando...</li>';
+        _catCallbacks.push(function() {
+          if (lista.querySelectorAll('li.opcion-cat').length > 0) return; // ya fue llenado
+          _llenar();
+        });
+
+        // Si nadie está cargando, iniciar carga
+        if (!_catCargando) window.cargarCatalogos();
       };
 
       window.filtrarDropdownCat = function(inp, listaId) {
@@ -1819,28 +1805,33 @@
       // CATÁLOGOS DINÁMICOS
       // ============================================================
       window.catalogosGlobal = {};
-      var _catIntentos = 0;
+      var _catCargando = false;      // evita llamadas duplicadas simultáneas
+      var _catCallbacks = [];        // funciones esperando que cargue el catálogo
 
       window.cargarCatalogos = function(intento) {
         intento = intento || 1;
+        if (_catCargando) return;   // ya hay una llamada en vuelo
+        _catCargando = true;
         try {
           google.script.run
             .withSuccessHandler(function(res) {
+              _catCargando = false;
               if (res && res.exito && Object.keys(res.catalogos || {}).length > 0) {
                 window.catalogosGlobal = res.catalogos;
-                _catIntentos = 0;
+                // Notificar a dropdowns que estaban esperando
+                var cbs = _catCallbacks.splice(0);
+                cbs.forEach(function(cb){ try{ cb(); }catch(e){} });
               } else if (intento < 5) {
-                // Reintento con espera exponencial
                 setTimeout(function(){ window.cargarCatalogos(intento + 1); }, intento * 1500);
               }
             })
             .withFailureHandler(function() {
-              if (intento < 5) {
-                setTimeout(function(){ window.cargarCatalogos(intento + 1); }, intento * 1500);
-              }
+              _catCargando = false;
+              if (intento < 5) setTimeout(function(){ window.cargarCatalogos(intento + 1); }, intento * 1500);
             })
             .obtenerCatalogos();
         } catch(e) {
+          _catCargando = false;
           if (intento < 5) setTimeout(function(){ window.cargarCatalogos(intento + 1); }, intento * 1500);
         }
       };
