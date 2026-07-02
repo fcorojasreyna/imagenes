@@ -303,7 +303,7 @@ function registrarOC(datosGenerales, todasLasCotizaciones, configuracionCorreo, 
         prod.rfc, prod.nombreProducto, prod.marca || '', prod.familia, prod.descripcion, prod.cantidad, prod.unidadMedida,
         prod.tiempoEntrega, prod.comentario || "", prod.precioUnitario, prod.subtotal, prod.intercambio, prod.costoIntercambio,
         prod.total, datosGenerales.razonSocialCompra, datosGenerales.odometroActual,
-        datosGenerales.odometroUltimo, datosGenerales.formaPago, datosGenerales.comentarios,
+        datosGenerales.odometroUltimo, datosGenerales.formaPago, datosGenerales.formaPagoComp || "", datosGenerales.motivoCompra || "", datosGenerales.comentarios,
         datosGenerales.metodoPagoF, datosGenerales.usoCFDI,
         datosGenerales.puntosConsiderar, datosGenerales.tipoServicioPartida, datosGenerales.tipoSolicitud,
         datosGenerales.tipoServicio, datosGenerales.tiempoVida, datosGenerales.servicioIntExt
