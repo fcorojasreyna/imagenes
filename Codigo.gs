@@ -427,6 +427,7 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   hojaComp.createTextFinder("{{DIF_PORCENTAJE}}").replaceAllWith((difPorcentaje * 100).toFixed(0) + "%");
   hojaComp.createTextFinder("{{MENSAJE_ECONOMIA}}").replaceAllWith(mensajeEconomia);
   hojaComp.createTextFinder("{{¿INTERCAMBIO?}}").replaceAllWith(aplicoIntercambio);
+  hojaComp.autoResizeDimensions(SpreadsheetApp.Dimension.ROWS);
   ss.setActiveSheet(hojaComp);
   ss.moveActiveSheet(1);
   ss.getSheets().forEach(h => { if (h.getName() !== hojaComp.getName()) h.hideSheet(); });
@@ -507,6 +508,7 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     tempOC.createTextFinder("{{TEXTO_HOMOCLAVE}}").replaceAllWith(textoHomoclave);
     tempOC.createTextFinder("{{CHECK_INTERNO}}").replaceAllWith(marcaInterno);
     tempOC.createTextFinder("{{CHECK_EXTERNO}}").replaceAllWith(marcaExterno);
+    tempOC.autoResizeDimensions(SpreadsheetApp.Dimension.ROWS);
     ss.getSheets().forEach(h => { if (h.getName() !== tempOC.getName()) h.hideSheet(); });
     SpreadsheetApp.flush();
     let fileOC = folderPDF.createFile(ss.getAs('application/pdf').setName("OC_" + nombreProv.replace(/ /g,"_") + "_TICKET_" + ticket + "_FOLIO_" + folioOC + ".pdf"));
