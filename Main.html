@@ -2070,9 +2070,14 @@
         var mc = document.getElementById('filtroMecCron')    ? document.getElementById('filtroMecCron').value.toUpperCase().trim()    : '';
         var tbody = document.getElementById('cuerpoTablaCronograma'); if(!tbody) return;
         var trs = tbody.getElementsByTagName('tr');
+        // Columnas renderizadas: 0=Horario, 1=Ticket, 2=NUCO, 3=Marca+Modelo, 4=Placas, 5=TipoTrabajo, 6=Mecánico, 7=Estatus, 8=QuienRegistra
         for(var i=0; i<trs.length; i++) {
-          var txt = trs[i].innerText.toUpperCase();
-          trs[i].style.display = ((!tk||txt.includes(tk)) && (!nc||txt.includes(nc)) && (!mc||txt.includes(mc))) ? '' : 'none';
+          if(trs[i].cells.length > 1) {
+            var cTk = trs[i].cells[1] ? trs[i].cells[1].innerText.toUpperCase() : '';
+            var cNc = trs[i].cells[2] ? trs[i].cells[2].innerText.toUpperCase() : '';
+            var cMc = trs[i].cells[6] ? trs[i].cells[6].innerText.toUpperCase() : '';
+            trs[i].style.display = (!tk||cTk.includes(tk)) && (!nc||cNc.includes(nc)) && (!mc||cMc.includes(mc)) ? '' : 'none';
+          }
         }
       };
 
