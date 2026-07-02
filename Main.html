@@ -426,8 +426,8 @@
               window.aplicarControlRol(_rolActual);
               window.cargarCatalogos();
               window.mostrarInicio(document.getElementById('btnInicio'));
-              // Cargar badge de notificaciones al iniciar sesión (solo badge, sin llenar tablas)
-              setTimeout(function() { window.cargarDatosNotificaciones(true); }, 1000);
+              // Cargar badge de notificaciones al iniciar sesión
+              setTimeout(function() { window.cargarDatosNotificaciones(true, true); }, 1200);
             } else {
               msj.innerText = (res && res.error) ? res.error : 'Usuario o contraseña incorrectos.';
             }
@@ -2213,7 +2213,7 @@
       var _authActual = {}; // contexto del modal de autorización activo
       var _rolActual  = ''; // rol del usuario logueado
 
-      window.cargarDatosNotificaciones = function(solobadge) {
+      window.cargarDatosNotificaciones = function(solobadge, avisoLogin) {
         var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
         if (!quien) return; // sin sesión activa, no cargar
         var tbP = document.getElementById('cuerpoTablaPendientes');
@@ -2247,6 +2247,9 @@
               : (res.mias || []).filter(function(m){ return m.estado === 'AUTORIZADO' || m.estado === 'RECHAZADO'; }).map(function(m){ return m.ticket+'_'+m.estado; });
             var sinVer = candidatos.filter(function(c){ return _vistas.indexOf(c) === -1; });
             window.actualizarBadgeNotif(sinVer.length);
+            if (avisoLogin && sinVer.length > 0) {
+              window.mostrarToastNotif(sinVer.length);
+            }
 
             if (tbP) {
               tbP.innerHTML = '';
@@ -2256,7 +2259,9 @@
                 pendientes.forEach(function(f) {
                   var yaVista = _vistas.indexOf(f.id) !== -1;
                   var btnAcc = '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\')">Revisar</button>';
-                  var btnVisto = '<button class="btn btn-sm btn-outline-secondary ms-1" title="Marcar como visto" onclick="window.marcarVisto(\''+f.id+'\')" style="'+(yaVista?'opacity:0.4;':'')+'">✓</button>';
+                  var btnVisto = yaVista
+                    ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" title="Marcar como no leído" onclick="window.desmarcarVisto(\''+f.id+'\')">🔔 No leído</button>'
+                    : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" title="Marcar como leído" onclick="window.marcarVisto(\''+f.id+'\')">✓ Leído</button>';
                   tbP.innerHTML += '<tr style="'+(yaVista?'opacity:0.6;':'')+'">'
                     +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
                     +'<td class="fw-bold">'+f.referencia+'</td>'
@@ -2289,7 +2294,11 @@
                   var _miaKey = f.ticket+'_'+nivelFinal;
                   var yaVistaMia = _vistas.indexOf(_miaKey) !== -1;
                   var esResuelta = nivelFinal === 'AUTORIZADO' || nivelFinal === 'RECHAZADO';
-                  var btnVistoMia = esResuelta ? '<button class="btn btn-sm btn-outline-secondary ms-1" title="Marcar como visto" onclick="window.marcarVisto(\''+_miaKey+'\')" style="'+(yaVistaMia?'opacity:0.4;':'')+'">✓</button>' : '';
+                  var btnVistoMia = esResuelta
+                    ? (yaVistaMia
+                        ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" title="Marcar como no leído" onclick="window.desmarcarVisto(\''+_miaKey+'\')">🔔 No leído</button>'
+                        : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" title="Marcar como leído" onclick="window.marcarVisto(\''+_miaKey+'\')">✓ Leído</button>')
+                    : '';
                   tbM.innerHTML += '<tr style="'+(esResuelta && yaVistaMia ? 'opacity:0.55;' : '')+'">'
                     +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
                     +'<td>'+f.ticket+'</td>'
@@ -2321,7 +2330,17 @@
         var _vistas = JSON.parse(localStorage.getItem(_lsKey) || '[]');
         if (_vistas.indexOf(id) === -1) _vistas.push(id);
         localStorage.setItem(_lsKey, JSON.stringify(_vistas));
-        window.cargarDatosNotificaciones(); // refrescar para actualizar badge y estilos
+        window.cargarDatosNotificaciones();
+      };
+
+      window.desmarcarVisto = function(id) {
+        var _quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
+        var _lsKey = 'notif_vistas_' + _quien;
+        var _vistas = JSON.parse(localStorage.getItem(_lsKey) || '[]');
+        var idx = _vistas.indexOf(id);
+        if (idx !== -1) _vistas.splice(idx, 1);
+        localStorage.setItem(_lsKey, JSON.stringify(_vistas));
+        window.cargarDatosNotificaciones();
       };
 
       window.actualizarBadgeNotif = function(n) {
@@ -2329,6 +2348,22 @@
         if (!badge) return;
         badge.innerText = n > 99 ? '99+' : n;
         badge.style.display = n > 0 ? 'inline-block' : 'none';
+      };
+
+      window.mostrarToastNotif = function(n) {
+        var existente = document.getElementById('toastNotifLogin');
+        if (existente) existente.remove();
+        var div = document.createElement('div');
+        div.id = 'toastNotifLogin';
+        div.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;min-width:280px;';
+        div.innerHTML = '<div style="background:var(--azul);color:white;border-left:5px solid var(--dorado);border-radius:8px;padding:14px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.3);display:flex;align-items:center;gap:12px;">'
+          +'<span style="font-size:1.5rem;">🔔</span>'
+          +'<div><div class="fw-bold" style="font-size:0.95rem;">Tienes '+n+' notificaci'+(n===1?'ón':'ones')+' sin leer</div>'
+          +'<div style="font-size:0.78rem;opacity:0.85;margin-top:2px;">Revísalas en el módulo <b>Notificaciones</b></div></div>'
+          +'<button onclick="document.getElementById(\'toastNotifLogin\').remove()" style="margin-left:auto;background:none;border:none;color:white;font-size:1.1rem;cursor:pointer;">✕</button>'
+          +'</div>';
+        document.body.appendChild(div);
+        setTimeout(function() { if (document.getElementById('toastNotifLogin')) document.getElementById('toastNotifLogin').remove(); }, 6000);
       };
 
       window.aplicarControlRol = function(rol) {
