@@ -461,7 +461,7 @@
           if (n === 'Proveedores')   { window.cargarDatosProv(); window.llenarSelectsModulo('Proveedores'); }
           if (n === 'Herramientas')  { window.cargarDatosHerramientas(); var qH = document.getElementById('quienRegistraGlobal'); if(qH && document.getElementById('herr_quien')) document.getElementById('herr_quien').value = qH.value; }
           if (n === 'Cronograma')    window.cargarDatosCronograma();
-          if (n === 'Cotizador')        { window.llenarSelectsModulo('Cotizador'); window.cargarDatosHistorialOC(); google.script.run.withSuccessHandler(function(r){ if(r.exito){ listaProveedoresCotizador=r.datos; window.cargarSelectProveedores(); } }).obtenerDatosProveedores(); }
+          if (n === 'Cotizador')        { window.llenarSelectsModulo('Cotizador'); window.cargarDatosHistorialOC(); google.script.run.withSuccessHandler(function(r){ if(r.exito){ listaProveedoresCotizador=r.datos; window.catalogoProveedoresCache=r.datos; window.cargarSelectProveedores(); } }).obtenerDatosProveedores(); }
           if (n === 'Notificaciones')   window.cargarDatosNotificaciones();
           if (n === 'Agenda')           window.iniciarAgenda();
         }).incluir(n);
