@@ -775,8 +775,8 @@ function actualizarFilaConsumoBackend(d) {
 function obtenerCatalogos() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const hoja = ss.getSheetByName("Catalogos");
-    if (!hoja) return { exito: false, error: "Hoja 'Catalogos' no encontrada." };
+    const hoja = ss.getSheetByName("Catálogos") || ss.getSheetByName("Catalogos");
+    if (!hoja) return { exito: false, error: "Hoja 'Catálogos' no encontrada." };
     const datos = hoja.getDataRange().getDisplayValues();
     if (datos.length < 2) return { exito: true, catalogos: {} };
     const headers = datos[0];
