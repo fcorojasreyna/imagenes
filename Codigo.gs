@@ -541,7 +541,7 @@ function obtenerHistorialGlobalOC() {
       let folio = d[i][2];
       if (!foliosSet.has(folio)) {
         foliosSet.add(folio);
-        filas.push({ folio: folio, ticket: d[i][3], fecha: limpiarHoraLectura(d[i][4]), nuco: d[i][6], razonSocial: d[i][25] });
+        filas.push({ folio: folio, ticket: d[i][3], fecha: limpiarHoraLectura(d[i][4]), nuco: d[i][6], razonSocial: d[i][27], quienRegistro: d[i][5] });
       }
     }
     return { exito: true, datos: filas };
