@@ -1020,13 +1020,16 @@ function actualizarCamposEjecutivoCronograma(d) {
 
 function subirArchivoEvidenciaCronograma(ticket, nombre, tipo, base64) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let folder;
-    const folders = DriveApp.getFoldersByName("Evidencias_Cronograma");
-    folder = folders.hasNext() ? folders.next() : DriveApp.createFolder("Evidencias_Cronograma");
+    // Carpeta raíz Evidencias_Cronograma
+    const raizIter = DriveApp.getFoldersByName("Evidencias_Cronograma");
+    const raiz = raizIter.hasNext() ? raizIter.next() : DriveApp.createFolder("Evidencias_Cronograma");
+    // Subcarpeta por número de ticket
+    const ticketNombre = "TK_" + ticket;
+    const subIter = raiz.getFoldersByName(ticketNombre);
+    const subFolder = subIter.hasNext() ? subIter.next() : raiz.createFolder(ticketNombre);
+    // Crear archivo
     const blob = Utilities.newBlob(Utilities.base64Decode(base64), tipo, nombre);
-    const file = folder.createFile(blob);
-    file.setName("TK_" + ticket + "_" + nombre);
+    const file = subFolder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     return { exito: true, url: file.getUrl() };
   } catch(e) { return { exito: false, error: e.message }; }
