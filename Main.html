@@ -2622,8 +2622,6 @@
 
       window.abrirModalAuth = function(id, tipo, nivel, desc) {
         _authActual = { id: id, tipo: tipo, nivel: nivel, desc: decodeURIComponent(desc), decision: null };
-        // Marcar como vista al abrir
-        window.marcarVisto(id);
         document.getElementById('panelDecisionAuth').style.display = '';
         document.getElementById('panelEscalamientoAuth').style.display = 'none';
         document.getElementById('comentarioAuth').value = '';
