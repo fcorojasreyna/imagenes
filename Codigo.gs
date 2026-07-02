@@ -331,6 +331,9 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   let filesToEmail   = [];
   let tsUnique       = new Date().getTime();
   const hojasBase    = ["Accesos","Vehiculos","Taller","Inventario","Consumos","Proveedores","OC","COMPARATIVA DOC","OC DOC","FORMATO ALTA VEHICULOS"];
+  // Guardar qué hojas estaban visibles antes de generar PDFs para restaurarlas al final
+  const estadoVisibilidad = {};
+  ss.getSheets().forEach(h => { estadoVisibilidad[h.getName()] = !h.isSheetHidden(); });
   let rzCompra       = datosGenerales.razonSocialCompra ? datosGenerales.razonSocialCompra.toUpperCase() : "";
   let textoHomoclave = datosGenerales.departamento.toUpperCase().includes("OOAM") ? "HOMOCLAVE OOAM DE CONFORMIDAD CON EL TÍTULO DE CONCESIÓN OTORGADO POR LAS AUTORIDADES CORRESPONDIENTES A: " + rzCompra : "";
   let partidasGanadoras = todasLasCotizaciones.filter(c => c.esGanador === true);
@@ -432,7 +435,7 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   try { fileComp.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(e) {}
   resultadoLinks.comparativa = fileComp.getUrl();
   filesToEmail.push(fileComp);
-  ss.getSheets().forEach(h => { if (hojasBase.includes(h.getName())) h.showSheet(); });
+  ss.getSheets().forEach(h => { var n=h.getName(); if(estadoVisibilidad[n]) h.showSheet(); });
   ss.deleteSheet(hojaComp);
   const hojaOCOriginal   = ss.getSheetByName("OC DOC");
   let rfcUnicosGanadores = [...new Set(partidasGanadoras.map(p => p.rfc))];
@@ -510,10 +513,10 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     try { fileOC.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(e) {}
     resultadoLinks.ocs.push({ proveedor: nombreProv, url: fileOC.getUrl() });
     filesToEmail.push(fileOC);
-    ss.getSheets().forEach(h => { if (hojasBase.includes(h.getName())) h.showSheet(); });
+    ss.getSheets().forEach(h => { var n=h.getName(); if(estadoVisibilidad[n]) h.showSheet(); });
     ss.deleteSheet(tempOC);
   }
-  ss.getSheets().forEach(h => { if (hojasBase.includes(h.getName())) h.showSheet(); });
+  ss.getSheets().forEach(h => { var n=h.getName(); if(estadoVisibilidad[n]) h.showSheet(); });
   if (configCorreo !== "NINGUNO" && correoUsuarioDestino) {
     let adjuntos = configCorreo === "AMBOS" ? filesToEmail : filesToEmail.filter(f => f.getName().indexOf("OC_") > -1);
     MailApp.sendEmail({
