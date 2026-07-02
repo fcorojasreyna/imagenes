@@ -1184,7 +1184,10 @@
 
       window.recalcularTodoBloque = function(idProd) {
         var bloque = document.getElementById(idProd);
-        bloque.querySelectorAll('tbody tr').forEach(f => window.recalcularMatriz(idProd, f.querySelector('.prov-pu')));
+        bloque.querySelectorAll('tbody tr').forEach(function(f) {
+          var pu = f.querySelector('.prov-pu');
+          if (pu) window.recalcularMatriz(idProd, pu);
+        });
       };
 
       window.procesarOC = function() {
