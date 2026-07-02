@@ -2234,12 +2234,13 @@
             var _lsKey = 'notif_vistas_' + _quien;
             var _vistas = JSON.parse(localStorage.getItem(_lsKey) || '[]');
 
-            // --- Badge: solo no vistas ---
+            // --- Badge: pendientes a autorizar + respuestas a mis solicitudes ---
             var pendientes = (res.pendientes || []);
             var rolesQueAutorizan = ['GERENTE','SUBDIRECTORA','DIRECTORA','ADMIN'];
-            var candidatos = rolesQueAutorizan.includes(_rolActual)
-              ? pendientes.map(function(f){ return f.id; })
-              : (res.mias || []).filter(function(m){ return m.estado === 'AUTORIZADO' || m.estado === 'RECHAZADO'; }).map(function(m){ return m.ticket+'_'+m.estado; });
+            // Siempre incluir respuestas a solicitudes propias (cualquier rol puede ser solicitante)
+            var candidatosMias = (res.mias || []).filter(function(m){ return m.estado === 'AUTORIZADO' || m.estado === 'RECHAZADO'; }).map(function(m){ return m.ticket+'_'+m.estado; });
+            var candidatosPend = rolesQueAutorizan.includes(_rolActual) ? pendientes.map(function(f){ return f.id; }) : [];
+            var candidatos = candidatosPend.concat(candidatosMias.filter(function(c){ return candidatosPend.indexOf(c) === -1; }));
             var sinVer = candidatos.filter(function(c){ return _vistas.indexOf(c) === -1; });
             window.actualizarBadgeNotif(sinVer.length);
             if (avisoLogin && sinVer.length > 0) {
