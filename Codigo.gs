@@ -391,8 +391,14 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   hojaComp.createTextFinder("{{CANTIDAD PRODUCTOS}}").replaceAllWith(colCant_C.join('\n'));
   hojaComp.createTextFinder("{{UNIDAD MEDIDA}}").replaceAllWith(colUM_C.join('\n'));
   hojaComp.createTextFinder("{{MOTIVO DE COMPRA}}").replaceAllWith(datosGenerales.motivoCompra || "");
+  // Colorear forma de pago ANTES del loop de proveedores (mientras las celdas de proveedor aún son placeholders)
+  if (datosGenerales.formaPagoComp) {
+    let fpListCell = hojaComp.createTextFinder(datosGenerales.formaPagoComp).matchCase(false).matchEntireCell(false).findNext();
+    if (fpListCell) fpListCell.getRange().setBackground('#B4A169').setFontColor('#FFFFFF').setFontWeight('bold');
+  }
   let provKeys = [...new Set(todasLasCotizaciones.map(p => p.rfc))];
-  let rowsToResize = new Set(); // filas a auto-ajustar después de reemplazar
+  let numProds = productosUnicos.length;
+  let alturaFilaProds = Math.max(42, numProds * 22); // 22px por línea de producto
   for (let m = 0; m < 5; m++) {
     let pIdx = m + 1;
     if (m < provKeys.length) {
@@ -436,20 +442,13 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
         });
         subCeldaR.setValue(textoSub);
         subCeldaR.setRichTextValue(rtBuilder.build());
-        rowsToResize.add(subCeldaR.getRow());
+        hojaComp.setRowHeight(subCeldaR.getRow(), alturaFilaProds);
       }
     } else {
       ["PROVEEDOR_P","RAZON SOCIAL_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","DESCRIPCION_P","SUBTOTAL_P","MARCA_P","TOTAL_IVA_P","TOTAL_P","COMENTARIOS_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
     }
   }
-  // Auto-ajustar altura de filas con precios
   SpreadsheetApp.flush();
-  rowsToResize.forEach(r => { try { hojaComp.autoResizeRow(r); } catch(e) {} });
-  // Colorear forma de pago seleccionada (sin distinción mayúsculas)
-  if (datosGenerales.formaPagoComp) {
-    let fpCell = hojaComp.createTextFinder(datosGenerales.formaPagoComp).matchCase(false).matchEntireCell(false).findNext();
-    if (fpCell) fpCell.getRange().setBackground('#B4A169').setFontColor('#FFFFFF').setFontWeight('bold');
-  }
   hojaComp.createTextFinder("{{TOTAL_SIN_IVA}}").replaceAllWith("$" + (compGranTotal - compIvaTotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
   hojaComp.createTextFinder("{{IVA_TOTAL_COMP}}").replaceAllWith("$" + compIvaTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
   hojaComp.createTextFinder("{{GRAN_TOTAL_COMPRA}}").replaceAllWith("$" + compGranTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
