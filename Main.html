@@ -2105,13 +2105,12 @@
         } else {
           var selEst = document.getElementById('editCronEstatus');
           if(selEst) selEst.value = reg.estatusUnidad || 'EN REPARACION';
-          // Resetear listas de archivos a un solo input vacío
-          var _resetLista = function(listaId, clase, accept) {
-            var lista = document.getElementById(listaId);
-            if(lista) { lista.innerHTML = '<input type="file" class="form-control mb-1 '+clase+'" accept="'+accept+'">'; }
-          };
-          _resetLista('listaEvidencias', 'input-evidencia', 'image/*,application/pdf');
-          _resetLista('listaFormatos',   'input-formato',   'image/*,application/pdf,.doc,.docx,.xls,.xlsx');
+          // Resetear pilas de archivos
+          _pilaArchivos = { pilaEvidencias: [], pilaFormatos: [] };
+          var pe = document.getElementById('pilaEvidencias'); if(pe) pe.innerHTML = '';
+          var pf = document.getElementById('pilaFormatos');   if(pf) pf.innerHTML = '';
+          var pk1 = document.getElementById('pickerEvidencia'); if(pk1) pk1.value = '';
+          var pk2 = document.getElementById('pickerFormato');   if(pk2) pk2.value = '';
           var evAct = document.getElementById('evidenciaActualCron');
           var foAct = document.getElementById('formatoActualCron');
           if(evAct) {
@@ -2183,8 +2182,8 @@
         } else {
           // Gerente / Mecánico: actualiza estatus + archivos
           var estatus = document.getElementById('editCronEstatus').value;
-          var filesEv = Array.from(document.querySelectorAll('#listaEvidencias .input-evidencia')).map(function(i){ return i.files[0]; }).filter(Boolean);
-          var filesFo = Array.from(document.querySelectorAll('#listaFormatos .input-formato')).map(function(i){ return i.files[0]; }).filter(Boolean);
+          var filesEv = (_pilaArchivos['pilaEvidencias'] || []).filter(Boolean);
+          var filesFo = (_pilaArchivos['pilaFormatos']   || []).filter(Boolean);
 
           function _actualizarEstatus(urlEv, urlFo) {
             google.script.run
@@ -2418,14 +2417,33 @@
         setTimeout(function() { if (document.getElementById('toastNotifLogin')) document.getElementById('toastNotifLogin').remove(); }, 6000);
       };
 
-      window.agregarInputArchivo = function(listaId, clase, accept) {
-        var lista = document.getElementById(listaId);
-        if(!lista) return;
-        var nuevo = document.createElement('div');
-        nuevo.className = 'd-flex align-items-center gap-2 mb-1';
-        nuevo.innerHTML = '<input type="file" class="form-control '+clase+'" accept="'+accept+'" style="flex:1;">'
-          +'<button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="this.parentElement.remove()" title="Quitar">✕</button>';
-        lista.appendChild(nuevo);
+      // _pilaArchivos: almacena los File objects seleccionados por pila
+      var _pilaArchivos = { pilaEvidencias: [], pilaFormatos: [] };
+
+      window.apilarArchivo = function(input, pilaId) {
+        var file = input.files[0];
+        if(!file) return;
+        _pilaArchivos[pilaId] = _pilaArchivos[pilaId] || [];
+        _pilaArchivos[pilaId].push(file);
+        var pila = document.getElementById(pilaId);
+        if(pila) {
+          var idx = _pilaArchivos[pilaId].length - 1;
+          var item = document.createElement('div');
+          item.className = 'd-flex align-items-center gap-2 mb-1 px-2 py-1 rounded';
+          item.style.cssText = 'background:#f0f4ff;border:1px solid #c8d6f5;font-size:0.82rem;';
+          item.dataset.idx = idx;
+          item.innerHTML = '<span style="flex:1;">📎 '+file.name+'</span>'
+            +'<button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.75rem;" '
+            +'onclick="window.quitarArchivoApilado(\''+pilaId+'\','+idx+',this.parentElement)">✕</button>';
+          pila.appendChild(item);
+        }
+        // Resetear el picker para que pueda seleccionar otro
+        input.value = '';
+      };
+
+      window.quitarArchivoApilado = function(pilaId, idx, el) {
+        if(_pilaArchivos[pilaId]) _pilaArchivos[pilaId][idx] = null;
+        if(el) el.remove();
       };
 
       // ============================================================

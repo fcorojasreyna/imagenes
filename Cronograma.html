@@ -208,18 +208,14 @@
           </div>
           <div class="mb-3">
             <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">📎 Evidencia (foto / PDF)</label>
-            <div id="listaEvidencias">
-              <input type="file" class="form-control mb-1 input-evidencia" accept="image/*,application/pdf">
-            </div>
-            <button type="button" class="btn btn-sm mt-1 fw-bold" style="background:var(--dorado);color:var(--azul);" onclick="window.agregarInputArchivo('listaEvidencias','input-evidencia','image/*,application/pdf')">+ Agregar otra evidencia</button>
+            <input type="file" id="pickerEvidencia" class="form-control" accept="image/*,application/pdf" onchange="window.apilarArchivo(this,'pilaEvidencias')">
+            <div id="pilaEvidencias" class="mt-2"></div>
             <div id="evidenciaActualCron" class="mt-2 small text-muted"></div>
           </div>
           <div class="mb-3">
             <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">📄 Formato (documento)</label>
-            <div id="listaFormatos">
-              <input type="file" class="form-control mb-1 input-formato" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx">
-            </div>
-            <button type="button" class="btn btn-sm mt-1 fw-bold" style="background:var(--dorado);color:var(--azul);" onclick="window.agregarInputArchivo('listaFormatos','input-formato','image/*,application/pdf,.doc,.docx,.xls,.xlsx')">+ Agregar otro formato</button>
+            <input type="file" id="pickerFormato" class="form-control" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" onchange="window.apilarArchivo(this,'pilaFormatos')">
+            <div id="pilaFormatos" class="mt-2"></div>
             <div id="formatoActualCron" class="mt-2 small text-muted"></div>
           </div>
         </div>
