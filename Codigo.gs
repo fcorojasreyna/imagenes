@@ -400,39 +400,49 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
       let nombreP   = todasLasCotizaciones.find(p => p.rfc === rfcActual).nombreProveedor.toUpperCase();
       let provData  = datosProv.find(d => d[3].toString().toUpperCase().trim() === rfcActual) || [];
       let rzP       = provData[2] ? provData[2].toString().toUpperCase() : "";
-      let tot_P = 0; let ivaP = 0; let fp_P = datosGenerales.formaPagoComp || datosGenerales.formaPago; let te_P = "";
-      let colComent_P = [];
-      // Por-producto: usar findAll() para que cada fila de la plantilla tenga su propia celda
-      let descRanges  = hojaComp.createTextFinder("{{DESCRIPCION_P"+pIdx+"}}").findAll();
-      let subRanges   = hojaComp.createTextFinder("{{SUBTOTAL_P"+pIdx+"}}").findAll();
-      let marcaRanges = hojaComp.createTextFinder("{{MARCA_P"+pIdx+"}}").findAll();
-      productosUnicos.forEach((u, i) => {
+      let colDesc_P = [], colSub_P = [], colMarca_P = []; let tot_P = 0; let ivaP = 0; let fp_P = datosGenerales.formaPagoComp || datosGenerales.formaPago; let te_P = "";
+      let colComent_P = []; let ganadorFlags = [];
+      productosUnicos.forEach(u => {
         let pItem = todasLasCotizaciones.find(p => p.rfc === rfcActual && p.nombreProducto === u.nombre);
-        if (descRanges[i])  descRanges[i].setValue(pItem ? pItem.descripcion : "-");
-        if (marcaRanges[i]) marcaRanges[i].setValue(pItem ? (pItem.marca || "") : "-");
-        if (subRanges[i]) {
-          let subVal = pItem ? "$" + parseFloat(pItem.subtotal).toLocaleString('es-MX',{minimumFractionDigits:2}) : "-";
-          subRanges[i].setValue(subVal);
-          if (pItem && pItem.esGanador) subRanges[i].setBackground('#FFF2CC').setFontWeight('bold');
-          rowsToResize.add(subRanges[i].getRow());
-        }
-        if (pItem) { te_P = pItem.tiempoEntrega; tot_P += parseFloat(pItem.total); ivaP += parseFloat(pItem.iva)||0; if (pItem.comentario) colComent_P.push(u.nombre + ": " + pItem.comentario); }
+        if (pItem) {
+          colDesc_P.push(pItem.descripcion);
+          colSub_P.push("$" + parseFloat(pItem.subtotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
+          colMarca_P.push(pItem.marca || "");
+          ganadorFlags.push(!!pItem.esGanador);
+          te_P = pItem.tiempoEntrega; tot_P += parseFloat(pItem.total); ivaP += parseFloat(pItem.iva)||0;
+          if (pItem.comentario) colComent_P.push(u.nombre + ": " + pItem.comentario);
+        } else { colDesc_P.push("-"); colSub_P.push("-"); colMarca_P.push("-"); ganadorFlags.push(false); }
       });
       hojaComp.createTextFinder("{{PROVEEDOR_P"+pIdx+"}}").replaceAllWith(nombreP);
       hojaComp.createTextFinder("{{RAZON SOCIAL_P"+pIdx+"}}").replaceAllWith(rzP);
       hojaComp.createTextFinder("{{FORMA DE PAGO_P"+pIdx+"}}").replaceAllWith(fp_P);
       hojaComp.createTextFinder("{{TIEMPO ENTREGA_P"+pIdx+"}}").replaceAllWith(te_P);
+      hojaComp.createTextFinder("{{DESCRIPCION_P"+pIdx+"}}").replaceAllWith(colDesc_P.join('\n'));
+      hojaComp.createTextFinder("{{MARCA_P"+pIdx+"}}").replaceAllWith(colMarca_P.join('\n'));
       hojaComp.createTextFinder("{{TOTAL_IVA_P"+pIdx+"}}").replaceAllWith("$" + ivaP.toLocaleString('es-MX',{minimumFractionDigits:2}));
       hojaComp.createTextFinder("{{TOTAL_P"+pIdx+"}}").replaceAllWith("$" + tot_P.toLocaleString('es-MX',{minimumFractionDigits:2}));
       hojaComp.createTextFinder("{{COMENTARIOS_P"+pIdx+"}}").replaceAllWith(colComent_P.length > 0 ? colComent_P.join('\n') : "N/A");
+      // RichTextValue: precio ganador en verde, resto en negro
+      let subCeldaR = hojaComp.createTextFinder("{{SUBTOTAL_P"+pIdx+"}}").findNext();
+      if (subCeldaR) {
+        let textoSub = colSub_P.join('\n');
+        let rtBuilder = SpreadsheetApp.newRichTextValue().setText(textoSub);
+        let estiloNormal  = SpreadsheetApp.newTextStyle().setForegroundColor('#000000').setBold(false).build();
+        let estiloGanador = SpreadsheetApp.newTextStyle().setForegroundColor('#1B7E34').setBold(true).build();
+        let offset = 0;
+        colSub_P.forEach((txt, i) => {
+          rtBuilder.setTextStyle(offset, offset + txt.length, ganadorFlags[i] ? estiloGanador : estiloNormal);
+          offset += txt.length + 1; // +1 por el \n
+        });
+        subCeldaR.setValue(textoSub);
+        subCeldaR.setRichTextValue(rtBuilder.build());
+        rowsToResize.add(subCeldaR.getRow());
+      }
     } else {
-      ["PROVEEDOR_P","RAZON SOCIAL_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","TOTAL_IVA_P","TOTAL_P","COMENTARIOS_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
-      hojaComp.createTextFinder("{{DESCRIPCION_P"+pIdx+"}}").replaceAllWith("-");
-      hojaComp.createTextFinder("{{SUBTOTAL_P"+pIdx+"}}").replaceAllWith("-");
-      hojaComp.createTextFinder("{{MARCA_P"+pIdx+"}}").replaceAllWith("-");
+      ["PROVEEDOR_P","RAZON SOCIAL_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","DESCRIPCION_P","SUBTOTAL_P","MARCA_P","TOTAL_IVA_P","TOTAL_P","COMENTARIOS_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
     }
   }
-  // Auto-ajustar altura de filas con precios de productos
+  // Auto-ajustar altura de filas con precios
   SpreadsheetApp.flush();
   rowsToResize.forEach(r => { try { hojaComp.autoResizeRow(r); } catch(e) {} });
   // Colorear forma de pago seleccionada (sin distinción mayúsculas)
