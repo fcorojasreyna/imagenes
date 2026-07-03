@@ -1496,7 +1496,8 @@
           diasCredito: document.getElementById("p_diascredito").value,
           totalCredito: document.getElementById("p_totalcredito").value.trim(), razonesSociales: razonesSociales,
           regimenFiscal: document.getElementById("p_regimenfiscal") ? document.getElementById("p_regimenfiscal").value : "",
-          intercambio2: document.getElementById("p_intercambio2") ? document.getElementById("p_intercambio2").value : "NO"
+          intercambio2: document.getElementById("p_intercambio2") ? document.getElementById("p_intercambio2").value : "NO",
+          quienRegistra: document.getElementById("quienRegistraGlobal") ? document.getElementById("quienRegistraGlobal").value : ""
         };
         google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r.msj || r); setTimeout(function() { window.toggleVistaProv('tabla'); btn.disabled = false; btn.innerText = "Guardar Proveedor"; }, 2000); }).registrarProveedor(window.formatearDatos(d));
       };
@@ -1700,7 +1701,7 @@
             var badge = f.estatus === 'DISPONIBLE' ? '<span class="badge bg-success">DISPONIBLE</span>'
               : f.estatus === 'EN USO' ? '<span class="badge bg-warning text-dark">EN USO</span>'
               : '<span class="badge bg-danger">' + f.estatus + '</span>';
-            var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.editarHerramientaModal('+JSON.stringify(f)+')">✏️</button>';
+            var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.editarHerramientaModal(\''+f.id+'\')">✏️</button>';
             var btnElim = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'Eliminar herramienta?\', function(){ window.ejecutarEliminarHerr(\'' + f.id + '\'); })">🗑️</button>';
             tbody.innerHTML += '<tr>' +
               '<td class="fw-bold text-muted">' + f.id + '</td>' +
@@ -1747,7 +1748,9 @@
         }).registrarHerramienta(d);
       };
 
-      window.editarHerramientaModal = function(f) {
+      window.editarHerramientaModal = function(idOBJ) {
+        var f = (typeof idOBJ === 'string') ? _herramientasDatos.find(function(x){ return x.id === idOBJ; }) : idOBJ;
+        if (!f) { window.mostrarAlerta('No se encontró la herramienta.'); return; }
         var html = '<div class="mb-3"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">ID</label><input type="text" class="form-control bg-light" readonly value="'+f.id+'"></div>' +
           '<div class="row g-2">' +
           '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Tipo</label><input id="edHrTipo" class="form-control" value="'+(f.tipo||'').replace(/"/g,'&quot;')+'"></div>' +

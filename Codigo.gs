@@ -231,7 +231,7 @@ function registrarProveedor(d) {
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proveedores");
     const idGenerado = generarIdIncremental("Proveedores", "PROV");
-    hoja.appendRow([ idGenerado, d.proveedor, d.razonSocial, d.rfc, d.direccion, d.estado, d.contacto, d.numero, d.correo, d.segmentacion, d.diasCredito, d.totalCredito, d.servicio, d.razonesSociales, d.regimenFiscal || "", d.intercambio2 || "NO" ]);
+    hoja.appendRow([ idGenerado, d.proveedor, d.razonSocial, d.rfc, d.direccion, d.estado, d.contacto, d.numero, d.correo, d.segmentacion, d.diasCredito, d.totalCredito, d.servicio, d.razonesSociales, d.regimenFiscal || "", d.intercambio2 || "NO", d.quienRegistra || "" ]);
     SpreadsheetApp.flush();
     return { msj: "Proveedor registrado con éxito." };
   } catch(e) { return { msj: "Error: " + e.message }; }
@@ -676,7 +676,7 @@ function obtenerDatosProveedores() {
     let f = [];
     for (let i = 1; i < d.length; i++) {
       if (d[i][1].toString().trim()) {
-        f.push({ id: d[i][0], proveedor: d[i][1], razonSocial: d[i][2], rfc: d[i][3], direccion: d[i][4], estado: d[i][5], contacto: d[i][6], telefono: d[i][7], correo: d[i][8], segmentacion: d[i][9], diasCredito: d[i][10], totalCredito: d[i][11], servicio: d[i][12], razonesSociales: d[i][13], regimenFiscal: d[i][14] || "", intercambio2: d[i][15] || "NO" });
+        f.push({ id: d[i][0], proveedor: d[i][1], razonSocial: d[i][2], rfc: d[i][3], direccion: d[i][4], estado: d[i][5], contacto: d[i][6], telefono: d[i][7], correo: d[i][8], segmentacion: d[i][9], diasCredito: d[i][10], totalCredito: d[i][11], servicio: d[i][12], razonesSociales: d[i][13], regimenFiscal: d[i][14] || "", intercambio2: d[i][15] || "NO", quienRegistra: d[i][16] || "" });
       }
     }
     return { exito: true, datos: f.reverse() };
