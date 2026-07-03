@@ -440,7 +440,8 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
           colMarca_P.push(pItem.marca || "");
           ganadorFlags.push(!!pItem.esGanador);
           te_P = pItem.tiempoEntrega;
-          if (pItem.esGanador) { tot_P += parseFloat(pItem.subtotal); ivaP += parseFloat(pItem.iva)||0; }
+          ivaP += parseFloat(pItem.subtotal) || 0;  // TOTAL_IVA: suma todos los subtotales del proveedor
+          if (pItem.esGanador) { tot_P += parseFloat(pItem.subtotal); } // TOTAL: solo ganadores
           if (pItem.comentario) colComent_P.push(u.nombre + ": " + pItem.comentario);
         } else { colDesc_P.push("-"); colSub_P.push("-"); colMarca_P.push("-"); ganadorFlags.push(false); }
       });
