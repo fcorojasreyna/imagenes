@@ -1455,6 +1455,8 @@ function obtenerDatosNotificaciones(quien, rol) {
             decG   = d[i][9],  decS  = d[i][12], decD  = d[i][15];
       const estaActivo = nivel !== 'AUTORIZADO' && nivel !== 'RECHAZADO';
       // Mostrar pendiente según rol del autorizador
+      const datoExtra = d[i][18] ? d[i][18].toString() : '';
+      const folioOC = tipo === 'OC' ? datoExtra.split('|')[0].trim() : '';
       if (estaActivo) {
         const nivelUpper = nivel.toString().toUpperCase().trim();
         const rolPuede = rolUpper === 'ADMIN' ||
@@ -1463,13 +1465,13 @@ function obtenerDatosNotificaciones(quien, rol) {
           (rolUpper === 'DIRECTORA'    && nivelUpper === 'DIRECTORA');
         if (rolPuede) {
           pendientes.push({ id: id, tipo: tipo, nivel: nivel, referencia: id,
-            ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha });
+            ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha, folioOC: folioOC });
         }
       }
       if (sol === quien) {
         mias.push({ tipo: tipo, ticket: ticket, descripcion: desc, nivelActual: nivel,
           decisionGerente: decG || '—', decisionSub: decS || '—', decisionDir: decD || '—',
-          fecha: fecha, estado: nivel });
+          fecha: fecha, estado: nivel, folioOC: folioOC });
       }
     }
     return { exito: true, pendientes: pendientes, mias: mias };
