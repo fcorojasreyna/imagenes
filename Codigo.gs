@@ -308,12 +308,22 @@ function registrarOC(datosGenerales, todasLasCotizaciones, configuracionCorreo, 
         datosGenerales.puntosConsiderar, datosGenerales.tipoServicioPartida, datosGenerales.tipoSolicitud,
         datosGenerales.tipoServicio, datosGenerales.tiempoVida, datosGenerales.servicioIntExt
       ]);
-      let idInv = generarIdIncremental("Inventario", "INV");
-      hojaInventario.appendRow([ idInv, datosGenerales.ticket, fCpp, "ALTA AUTOMÁTICA DESDE OC: " + folioGenerado, prod.nombreProducto, prod.marca, datosGenerales.nuco, prod.unidadMedida, fRegistro, prod.cantidad, prod.total, prod.precioUnitario, "DISPONIBLE", datosGenerales.usuario ]);
     }
     SpreadsheetApp.flush();
     let resultadoArchivos = ejecutarCompilacionFormatosPDF(datosGenerales.ticket, folioGenerado, todasLasCotizaciones, configuracionCorreo, datosGenerales, correoDestino);
-    return { exito: true, msj: "¡Éxito! Documentos PDF generados.", archivos: resultadoArchivos };
+    // Crear solicitud de autorización — el inventario se registrará solo al finalizar la cadena
+    let montoTotal = partidasGanadoras.reduce(function(s, p) { return s + (parseFloat(p.total) || 0); }, 0);
+    crearSolicitudAutorizacion({
+      tipo: 'OC',
+      ticket: datosGenerales.ticket,
+      nuco: datosGenerales.nuco,
+      descripcion: 'OC ' + folioGenerado + ' — ' + datosGenerales.ticket,
+      monto: montoTotal,
+      solicitante: datosGenerales.usuario,
+      nivel: 'GERENTE',
+      datoExtra: folioGenerado
+    });
+    return { exito: true, msj: "OC registrada. Pendiente de autorización del Gerente.", archivos: resultadoArchivos };
   } catch(e) { return { exito: false, error: "Error al procesar: " + e.message }; }
 }
 
@@ -579,18 +589,67 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
 
 function obtenerHistorialGlobalOC() {
   try {
-    const d = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("OC").getDataRange().getDisplayValues();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const d = ss.getSheetByName("OC").getDataRange().getDisplayValues();
+    // Leer autorizaciones para cruzar por folio (DATO_EXTRA contiene "folioOC|cadena")
+    const authSheet = ss.getSheetByName("Autorizaciones");
+    let authMap = {};
+    if (authSheet) {
+      const dA = authSheet.getDataRange().getDisplayValues();
+      for (let i = 1; i < dA.length; i++) {
+        if (!dA[i][0] || dA[i][1] !== 'OC') continue;
+        const datoExtra = dA[i][18] ? dA[i][18].toString() : '';
+        const folioAuth = datoExtra.split('|')[0].trim();
+        const cadena = datoExtra.split('|')[1] || '';
+        if (folioAuth) {
+          authMap[folioAuth] = {
+            nivelActual: dA[i][8] || 'GERENTE',
+            decGerente: dA[i][9] || 'PENDIENTE',
+            decSub: dA[i][12] || '',
+            decDir: dA[i][15] || '',
+            cadena: cadena,
+            authId: dA[i][0]
+          };
+        }
+      }
+    }
     let filas = []; let foliosSet = new Set();
     for (let i = d.length - 1; i >= 1; i--) {
       if (!d[i][2]) continue;
       let folio = d[i][2];
       if (!foliosSet.has(folio)) {
         foliosSet.add(folio);
-        filas.push({ folio: folio, ticket: d[i][3], fecha: limpiarHoraLectura(d[i][4]), nuco: d[i][6], razonSocial: d[i][28], quienRegistro: d[i][5] });
+        const auth = authMap[folio] || { nivelActual: 'GERENTE', decGerente: 'PENDIENTE', decSub: '', decDir: '', cadena: '' };
+        filas.push({ folio: folio, ticket: d[i][3], fecha: limpiarHoraLectura(d[i][4]), nuco: d[i][6], razonSocial: d[i][28], quienRegistro: d[i][5],
+          nivelActual: auth.nivelActual, decGerente: auth.decGerente, decSub: auth.decSub, decDir: auth.decDir, cadena: auth.cadena, authId: auth.authId || '' });
       }
     }
     return { exito: true, datos: filas };
   } catch(e) { return { exito: false, error: "Fallo al leer la bitácora." }; }
+}
+
+function registrarInventarioDesdeOC(folioOC) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const hojaOC = ss.getSheetByName("OC");
+    const hojaInv = ss.getSheetByName("Inventario");
+    if (!hojaOC || !hojaInv) return { exito: false, error: "Hoja no encontrada." };
+    const dOC = hojaOC.getDataRange().getDisplayValues();
+    const fReg = formatoDDMMYYYY(new Date());
+    let registrados = 0;
+    for (let i = 1; i < dOC.length; i++) {
+      if (!dOC[i][2] || dOC[i][2].toString().trim() !== folioOC.toString().trim()) continue;
+      // col indices: ticket=3, fecha=4, usuario=5, nuco=6, producto=15, marca=16, um=20, cantidad=19, total=27, pu=23
+      const ticket = dOC[i][3], usuario = dOC[i][5], nuco = dOC[i][6];
+      const producto = dOC[i][15], marca = dOC[i][16], um = dOC[i][20];
+      const cantidad = dOC[i][19], total = dOC[i][27], pu = dOC[i][23];
+      const idInv = generarIdIncremental("Inventario", "INV");
+      hojaInv.appendRow([idInv, ticket, "", "ALTA AUTOMÁTICA DESDE OC: " + folioOC, producto, marca, nuco, um, fReg, cantidad, total, pu, "DISPONIBLE", usuario]);
+      registrados++;
+    }
+    SpreadsheetApp.flush();
+    return { exito: true, msj: "Inventario registrado. " + registrados + " partida(s)." };
+  } catch(e) { return { exito: false, error: e.message }; }
 }
 
 function buscarDocumentosGenerados(ticket, folio) {
@@ -1128,10 +1187,10 @@ function crearSolicitudAutorizacion(d) {
   } catch(e) { return { exito: false, error: e.message }; }
 }
 
-function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien) {
+function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien, cadena) {
   // Columnas: J=DEC_GERENTE(10), K=FECHA_GER(11), L=QUIEN_GER(12),
   //           M=DEC_SUB(13), N=FECHA_SUB(14), O=QUIEN_SUB(15),
-  //           P=DEC_DIR(16), Q=FECHA_DIR(17), R=QUIEN_DIR(18)
+  //           P=DEC_DIR(16), Q=FECHA_DIR(17), R=QUIEN_DIR(18), S=DATO_EXTRA(19)
   //           I=NIVEL_ACTUAL(9)
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
@@ -1141,28 +1200,15 @@ function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien) {
     for (let i = 1; i < datos.length; i++) {
       if (datos[i][0].toString().trim() !== id.toString().trim()) continue;
       const f = i + 1;
-      if (nivel === 'GERENTE') {
+      const tipoRow = datos[i][1] ? datos[i][1].toString().trim() : tipo;
+      // datoExtra col S (index 18) = folio OC (for OC type) or cadena guardada
+      const datoExtraActual = datos[i][18] ? datos[i][18].toString().trim() : '';
+
+      if (tipoRow === 'DUPLA') {
         hoja.getRange(f, 10).setValue(decision);
         hoja.getRange(f, 11).setValue(fechaHoy);
         hoja.getRange(f, 12).setValue(quien);
-        if (decision === 'AUTORIZADO') hoja.getRange(f, 9).setValue('SUBDIRECTORA');
-        if (decision === 'RECHAZADO')  hoja.getRange(f, 9).setValue('RECHAZADO');
-      } else if (nivel === 'SUBDIRECTORA') {
-        hoja.getRange(f, 13).setValue(decision);
-        hoja.getRange(f, 14).setValue(fechaHoy);
-        hoja.getRange(f, 15).setValue(quien);
-        if (decision === 'AUTORIZADO') hoja.getRange(f, 9).setValue('DIRECTORA');
-        if (decision === 'RECHAZADO')  hoja.getRange(f, 9).setValue('RECHAZADO');
-      } else if (nivel === 'DIRECTORA') {
-        hoja.getRange(f, 16).setValue(decision);
-        hoja.getRange(f, 17).setValue(fechaHoy);
-        hoja.getRange(f, 18).setValue(quien);
         hoja.getRange(f, 9).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
-      }
-      // Para DUPLA: solo gerente decide, cierra directo
-      if (tipo === 'DUPLA') {
-        hoja.getRange(f, 9).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
-        // Actualizar columnas S (MECANICO 2 ESTATUS) y T (MECANICO 2 FECHA) en Cronograma
         const ticketRef = datos[i][2] ? datos[i][2].toString().trim() : '';
         if (ticketRef) {
           const hojaCron = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
@@ -1177,7 +1223,62 @@ function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien) {
             }
           }
         }
+        SpreadsheetApp.flush();
+        return { exito: true, msj: decision === 'AUTORIZADO' ? 'Dupla autorizada.' : 'Dupla rechazada.', decision: decision };
       }
+
+      // Para OC: cadena define el flujo de escalamiento
+      if (nivel === 'GERENTE') {
+        hoja.getRange(f, 10).setValue(decision);
+        hoja.getRange(f, 11).setValue(fechaHoy);
+        hoja.getRange(f, 12).setValue(quien);
+        if (decision === 'RECHAZADO') {
+          hoja.getRange(f, 9).setValue('RECHAZADO');
+        } else {
+          // Guardar cadena elegida en DATO_EXTRA solo la primera vez (campo tiene folio OC antes de cadena)
+          // Usamos una columna auxiliar — guardamos cadena como sufijo separado con |
+          const folioOC = datoExtraActual.split('|')[0];
+          const cadenaGuardar = cadena || 'SOLO_GERENTE';
+          hoja.getRange(f, 19).setValue(folioOC + '|' + cadenaGuardar);
+          if (cadenaGuardar === 'SOLO_GERENTE') {
+            hoja.getRange(f, 9).setValue('AUTORIZADO');
+            registrarInventarioDesdeOC(folioOC);
+          } else if (cadenaGuardar === 'SUB' || cadenaGuardar === 'SUB_DIR') {
+            hoja.getRange(f, 9).setValue('SUBDIRECTORA');
+          } else if (cadenaGuardar === 'DIR') {
+            hoja.getRange(f, 9).setValue('DIRECTORA');
+          }
+        }
+      } else if (nivel === 'SUBDIRECTORA') {
+        hoja.getRange(f, 13).setValue(decision);
+        hoja.getRange(f, 14).setValue(fechaHoy);
+        hoja.getRange(f, 15).setValue(quien);
+        if (decision === 'RECHAZADO') {
+          hoja.getRange(f, 9).setValue('RECHAZADO');
+        } else {
+          const partes = datoExtraActual.split('|');
+          const folioOC = partes[0];
+          const cadenaGuardada = partes[1] || 'SUB';
+          if (cadenaGuardada === 'SUB_DIR') {
+            hoja.getRange(f, 9).setValue('DIRECTORA');
+          } else {
+            hoja.getRange(f, 9).setValue('AUTORIZADO');
+            registrarInventarioDesdeOC(folioOC);
+          }
+        }
+      } else if (nivel === 'DIRECTORA') {
+        hoja.getRange(f, 16).setValue(decision);
+        hoja.getRange(f, 17).setValue(fechaHoy);
+        hoja.getRange(f, 18).setValue(quien);
+        const folioOC = datoExtraActual.split('|')[0];
+        if (decision === 'AUTORIZADO') {
+          hoja.getRange(f, 9).setValue('AUTORIZADO');
+          registrarInventarioDesdeOC(folioOC);
+        } else {
+          hoja.getRange(f, 9).setValue('RECHAZADO');
+        }
+      }
+
       SpreadsheetApp.flush();
       return { exito: true, msj: decision === 'AUTORIZADO' ? 'Autorizado correctamente.' : 'Solicitud rechazada.', decision: decision };
     }
@@ -1311,7 +1412,7 @@ function actualizarHerramienta(d) {
   } catch(e) { return { exito: false, error: e.message }; }
 }
 
-function obtenerDatosNotificaciones(quien) {
+function obtenerDatosNotificaciones(quien, rol) {
   // Columnas: A=ID(0), B=MODULO(1), C=TICKET(2), D=NUCO(3), E=CONCEPTO(4),
   //           F=MONTO(5), G=SOLICITANTE(6), H=FECHA(7), I=NIVEL_ACTUAL(8),
   //           J=DEC_GERENTE(9), K=FECHA_GER(10), L=QUIEN_GER(11),
@@ -1323,16 +1424,24 @@ function obtenerDatosNotificaciones(quien) {
     const d = hoja.getDataRange().getDisplayValues();
     if (d.length < 2) return { exito: true, pendientes: [], mias: [] };
     let pendientes = [], mias = [];
+    const rolUpper = (rol || '').toString().toUpperCase().trim();
     for (let i = 1; i < d.length; i++) {
       if (!d[i][0]) continue;
       const id     = d[i][0],  tipo  = d[i][1], ticket = d[i][2], nuco  = d[i][3],
             desc   = d[i][4],  sol   = d[i][6], fecha  = d[i][7], nivel = d[i][8],
             decG   = d[i][9],  decS  = d[i][12], decD  = d[i][15];
-      // Pendiente = DEC_GERENTE es "PENDIENTE" y NIVEL_ACTUAL no es "AUTORIZADO"/"RECHAZADO"
       const estaActivo = nivel !== 'AUTORIZADO' && nivel !== 'RECHAZADO';
-      if (estaActivo && decG === 'PENDIENTE') {
-        pendientes.push({ id: id, tipo: tipo, nivel: nivel, referencia: id,
-          ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha });
+      // Mostrar pendiente según rol del autorizador
+      if (estaActivo) {
+        const nivelUpper = nivel.toString().toUpperCase().trim();
+        const rolPuede = rolUpper === 'ADMIN' ||
+          (rolUpper === 'GERENTE'      && nivelUpper === 'GERENTE') ||
+          (rolUpper === 'SUBDIRECTORA' && nivelUpper === 'SUBDIRECTORA') ||
+          (rolUpper === 'DIRECTORA'    && nivelUpper === 'DIRECTORA');
+        if (rolPuede) {
+          pendientes.push({ id: id, tipo: tipo, nivel: nivel, referencia: id,
+            ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha });
+        }
       }
       if (sol === quien) {
         mias.push({ tipo: tipo, ticket: ticket, descripcion: desc, nivelActual: nivel,

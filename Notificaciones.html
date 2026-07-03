@@ -79,8 +79,13 @@
 
   <!-- PANEL: Historial de leídos (oculto por defecto) -->
   <div id="panelHistorial" style="display:none;">
-    <div class="d-flex align-items-center gap-3 mb-3">
+    <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
       <h5 class="fw-bold m-0" style="color:var(--azul);">📂 Historial de Leídos</h5>
+      <select id="filtroTipoHistorial" class="form-select form-select-sm" style="width:auto; border:2px solid #B4A169;" onchange="window.filtrarTablaNotif('historial')">
+        <option value="">Todos los tipos</option>
+        <option value="DUPLA">Dupla (Cronograma)</option>
+        <option value="OC">Orden de Compra</option>
+      </select>
       <button class="btn btn-sm btn-outline-secondary" onclick="window.toggleHistorial()">✕ Cerrar historial</button>
     </div>
 
@@ -150,6 +155,28 @@
       <div class="modal-body p-4">
         <div id="panelDecisionAuth">
           <p class="fw-bold mb-3" id="textoModalAuth">¿Deseas autorizar este registro?</p>
+          <!-- Selector de cadena de autorización (solo visible para GERENTE autorizando OC) -->
+          <div id="panelCadenaAuth" class="mb-3 p-3 rounded" style="background:#f8f9fa; border:2px solid var(--dorado); display:none;">
+            <label class="fw-bold small mb-2" style="color:var(--azul);">¿Requiere validación adicional?</label>
+            <div class="d-flex flex-column gap-2">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="cadenaAuth" id="cadena_solo" value="SOLO_GERENTE" checked>
+                <label class="form-check-label small" for="cadena_solo">Solo yo (Gerente) — no requiere más firmas</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="cadenaAuth" id="cadena_sub" value="SUB">
+                <label class="form-check-label small" for="cadena_sub">Requiere Subdirección</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="cadenaAuth" id="cadena_dir" value="DIR">
+                <label class="form-check-label small" for="cadena_dir">Requiere Dirección</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="cadenaAuth" id="cadena_subdir" value="SUB_DIR">
+                <label class="form-check-label small" for="cadena_subdir">Requiere Subdirección y Dirección</label>
+              </div>
+            </div>
+          </div>
           <div class="mb-3">
             <label class="fw-bold small" style="color: var(--azul);">Comentario (opcional)</label>
             <textarea id="comentarioAuth" class="form-control" rows="2" placeholder="Observaciones..."></textarea>
@@ -159,17 +186,8 @@
             <button class="btn btn-danger fw-bold flex-grow-1" onclick="window.confirmarAutorizacion('RECHAZADO')">✖ Rechazar</button>
           </div>
         </div>
-        <!-- Panel escalamiento (aparece después de autorizar OC) -->
-        <div id="panelEscalamientoAuth" style="display:none;">
-          <div class="alert" style="background-color: #e8f5e9; border-left: 4px solid #28a745; color: #1b5e20;">
-            ✔ Autorización registrada exitosamente.
-          </div>
-          <p class="fw-bold mb-3" id="textoEscalamiento"></p>
-          <div class="d-flex gap-2">
-            <button class="btn fw-bold flex-grow-1 text-white" style="background-color: var(--dorado);" id="btnEscalarSi" onclick="window.escalarAutorizacion(true)">Sí, escalar</button>
-            <button class="btn btn-outline-secondary fw-bold flex-grow-1" onclick="window.escalarAutorizacion(false)">No, cerrar aquí</button>
-          </div>
-        </div>
+        <!-- Panel de escalamiento ya no se usa (cadena elegida al autorizar) -->
+        <div id="panelEscalamientoAuth" style="display:none;"></div>
       </div>
     </div>
   </div>

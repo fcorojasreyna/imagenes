@@ -730,6 +730,15 @@
             res.datos.forEach(function(f) {
               var folio  = f.folio  || '';
               var ticket = f.ticket || '';
+              var nivel  = f.nivelActual || '';
+              var nivelBadge = '';
+              if (nivel === 'AUTORIZADO') nivelBadge = '<span class="badge bg-success">✔ Autorizado</span>';
+              else if (nivel === 'RECHAZADO') nivelBadge = '<span class="badge bg-danger">✖ Rechazado</span>';
+              else nivelBadge = '<span class="badge bg-warning text-dark">⏳ ' + nivel + '</span>';
+              var decG = f.decGerente || '';
+              var decS = f.decSub || '';
+              var decD = f.decDir || '';
+              function _bf(v) { if(!v||v==='') return '<span class="text-muted small">—</span>'; if(v==='AUTORIZADO') return '<span class="badge bg-success small">✔</span>'; if(v==='RECHAZADO') return '<span class="badge bg-danger small">✖</span>'; return '<span class="badge bg-warning text-dark small">⏳</span>'; }
               var tr = document.createElement('tr');
               tr.innerHTML =
                 '<td class="fw-bold" style="color:var(--dorado);">' + folio + '</td>' +
@@ -738,6 +747,8 @@
                 '<td>' + (f.razonSocial||'') + '</td>' +
                 '<td>' + (f.fecha||'') + '</td>' +
                 '<td>' + (f.quienRegistro||'') + '</td>' +
+                '<td class="text-center">' + nivelBadge + '</td>' +
+                '<td class="text-center">' + _bf(decG) + ' ' + _bf(decS) + ' ' + _bf(decD) + '</td>' +
                 '<td class="text-center"></td>';
               var btn = document.createElement('button');
               btn.className = 'btn btn-sm fw-bold border-0';
@@ -746,13 +757,13 @@
               btn.addEventListener('click', (function(fo, ti) {
                 return function() { window.verDocumentosOC(fo, ti); };
               })(folio, ticket));
-              tr.cells[6].appendChild(btn);
+              tr.cells[8].appendChild(btn);
               tbody.appendChild(tr);
             });
           })
           .withFailureHandler(function(e) {
             var tbody = document.getElementById('cuerpoTablaOC');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-danger text-center">' + e.message + '</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">' + e.message + '</td></tr>';
           })
           .obtenerHistorialGlobalOC();
       };
@@ -1255,7 +1266,7 @@
 
         google.script.run
           .withSuccessHandler(function(r) {
-            if(r.exito) { window.mostrarAlerta(r.msj); window.cargarModulo('Cotizador', document.getElementById('btnCot')); }
+            if(r.exito) { window.mostrarAlerta(r.msj || "OC registrada. Pendiente de autorización del Gerente."); window.cargarModulo('Cotizador', document.getElementById('btnCot')); }
             else { window.mostrarAlerta("❌ " + r.error); btn.disabled = false; btn.innerText = "Registrar Cotización y Generar PDFs"; }
           })
           .withFailureHandler(function(err) { window.mostrarAlerta("Fallo servidor de PDFs: " + err.message); btn.disabled = false; btn.innerText = "Registrar Cotización"; })
@@ -2399,7 +2410,7 @@
               : miasLeidas.map(function(f){ return _filaMia(f, true); }).join('');
           })
           .withFailureHandler(function(e) { window.mostrarAlerta('Error al cargar notificaciones: ' + e.message); })
-          .obtenerDatosNotificaciones(quien);
+          .obtenerDatosNotificaciones(quien, _rolActual);
       };
 
       window._badgeEst = function(v) {
@@ -2686,6 +2697,16 @@
         var titulo = tipo === 'DUPLA' ? 'Autorización de Dupla' : 'Autorización de OC';
         document.getElementById('tituloModalAuth').innerText = titulo;
         document.getElementById('textoModalAuth').innerText = '¿Deseas autorizar el siguiente registro?\n"' + decodeURIComponent(desc) + '"';
+        // Mostrar selector de cadena solo para OC en nivel GERENTE
+        var panelCadena = document.getElementById('panelCadenaAuth');
+        if (panelCadena) {
+          panelCadena.style.display = (tipo === 'OC' && nivel === 'GERENTE' && _rolActual === 'GERENTE') ? '' : 'none';
+          // Resetear selección
+          var radios = panelCadena.querySelectorAll('input[type=radio]');
+          radios.forEach(function(r) { r.checked = false; });
+          var first = panelCadena.querySelector('input[value=SOLO_GERENTE]');
+          if (first) first.checked = true;
+        }
         new bootstrap.Modal(document.getElementById('modalAutorizacion')).show();
       };
 
@@ -2693,51 +2714,27 @@
         _authActual.decision = decision;
         var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
         var comentario = document.getElementById('comentarioAuth').value.trim();
-        google.script.run
-          .withSuccessHandler(function(r) {
-            if (!r.exito) { window.mostrarAlerta(r.msj || 'Error'); return; }
-            if (decision === 'RECHAZADO' || _authActual.tipo === 'DUPLA') {
-              // Duplas: no hay cadena. OC rechazada: tampoco.
-              bootstrap.Modal.getInstance(document.getElementById('modalAutorizacion')).hide();
-              window.mostrarAlerta(r.msj);
-              window.cargarDatosNotificaciones();
-              return;
-            }
-            // OC autorizada: preguntar si escalar
-            document.getElementById('panelDecisionAuth').style.display = 'none';
-            document.getElementById('panelEscalamientoAuth').style.display = '';
-            var siguienteNivel = _authActual.nivel === 'GERENTE' ? 'Subdirección' : 'Dirección';
-            document.getElementById('textoEscalamiento').innerText = '¿Es necesario que ' + siguienteNivel + ' valide esta OC?';
-            _authActual.msj = r.msj;
-          })
-          .withFailureHandler(function(e) { window.mostrarAlerta('Error: ' + e.message); })
-          .procesarAutorizacion(_authActual.id, _authActual.tipo, _authActual.nivel, decision, comentario, quien);
-      };
-
-      window.escalarAutorizacion = function(escalar) {
-        var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
-        bootstrap.Modal.getInstance(document.getElementById('modalAutorizacion')).hide();
-        if (!escalar) {
-          // Gerente decide no escalar → cerrar cadena como AUTORIZADO
-          google.script.run
-            .withSuccessHandler(function(r) {
-              window.mostrarAlerta(_authActual.msj || 'Autorización registrada. La cadena se cierra aquí.');
-              window.cargarDatosNotificaciones();
-            })
-            .withFailureHandler(function() {
-              window.mostrarAlerta(_authActual.msj || 'Autorización registrada.');
-              window.cargarDatosNotificaciones();
-            })
-            .cerrarCadenaAutorizacion(_authActual.id);
-          return;
+        var cadena = '';
+        if (_authActual.tipo === 'OC' && _authActual.nivel === 'GERENTE' && decision === 'AUTORIZADO') {
+          var radios = document.querySelectorAll('input[name=cadenaAuth]');
+          radios.forEach(function(r) { if (r.checked) cadena = r.value; });
+          if (!cadena) cadena = 'SOLO_GERENTE';
         }
         google.script.run
           .withSuccessHandler(function(r) {
-            window.mostrarAlerta(r.msj || 'Solicitud escalada correctamente.');
+            if (!r.exito) { window.mostrarAlerta(r.msj || 'Error'); return; }
+            bootstrap.Modal.getInstance(document.getElementById('modalAutorizacion')).hide();
+            window.mostrarAlerta(r.msj);
             window.cargarDatosNotificaciones();
           })
           .withFailureHandler(function(e) { window.mostrarAlerta('Error: ' + e.message); })
-          .escalarAutorizacion(_authActual.id, _authActual.nivel, quien);
+          .procesarAutorizacion(_authActual.id, _authActual.tipo, _authActual.nivel, decision, comentario, quien, cadena);
+      };
+
+      window.escalarAutorizacion = function(escalar) {
+        // Kept for compatibility but no longer used in new flow
+        bootstrap.Modal.getInstance(document.getElementById('modalAutorizacion')).hide();
+        window.cargarDatosNotificaciones();
       };
 
       window.toggleDuplaEdit = function() {
@@ -2788,17 +2785,32 @@
           .crearSolicitudAutorizacion({ tipo: 'DUPLA', ticket: ticket, nuco: nuco, descripcion: 'Solicitud de segundo mecánico para ticket ' + ticket, solicitante: quien, datoExtra: '', refId: ticket });
       };
 
-      window.filtrarTablaNotif = function() {
-        var tk = document.getElementById('filtroTicketNotif') ? document.getElementById('filtroTicketNotif').value.toUpperCase().trim() : '';
-        var tp = document.getElementById('filtroTipoNotif')   ? document.getElementById('filtroTipoNotif').value.toUpperCase().trim() : '';
-        var tbody = document.getElementById('cuerpoTablaPendientes'); if(!tbody) return;
-        var trs = tbody.getElementsByTagName('tr');
-        for(var i=0; i<trs.length; i++) {
-          if(trs[i].cells.length > 1) {
-            var c1 = trs[i].cells[0].innerText.toUpperCase();
-            var c2 = trs[i].cells[2].innerText.toUpperCase();
-            trs[i].style.display = (!tp||c1.includes(tp)) && (!tk||c2.includes(tk)) ? '' : 'none';
+      window.filtrarTablaNotif = function(panel) {
+        if (!panel || panel === 'pendientes') {
+          var tk = document.getElementById('filtroTicketNotif') ? document.getElementById('filtroTicketNotif').value.toUpperCase().trim() : '';
+          var tp = document.getElementById('filtroTipoNotif')   ? document.getElementById('filtroTipoNotif').value.toUpperCase().trim() : '';
+          var tbody = document.getElementById('cuerpoTablaPendientes'); if(!tbody) return;
+          var trs = tbody.getElementsByTagName('tr');
+          for(var i=0; i<trs.length; i++) {
+            if(trs[i].cells.length > 1) {
+              var c1 = trs[i].cells[0].innerText.toUpperCase();
+              var c2 = trs[i].cells[2].innerText.toUpperCase();
+              trs[i].style.display = (!tp||c1.includes(tp)) && (!tk||c2.includes(tk)) ? '' : 'none';
+            }
           }
+        }
+        if (panel === 'historial') {
+          var tph = document.getElementById('filtroTipoHistorial') ? document.getElementById('filtroTipoHistorial').value.toUpperCase().trim() : '';
+          ['cuerpoHistorialPend','cuerpoHistorialMias'].forEach(function(tbId) {
+            var tb = document.getElementById(tbId); if(!tb) return;
+            var trs = tb.getElementsByTagName('tr');
+            for(var i=0; i<trs.length; i++) {
+              if(trs[i].cells.length > 1) {
+                var c1 = trs[i].cells[0].innerText.toUpperCase();
+                trs[i].style.display = (!tph || c1.includes(tph)) ? '' : 'none';
+              }
+            }
+          });
         }
       };
 
