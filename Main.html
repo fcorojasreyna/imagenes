@@ -533,7 +533,7 @@
             res.datos.forEach(function(f) {
               var btnEliminar = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'¿Eliminar?\', function(){ window.ejecutarEliminar(\'Proveedores\', \''+f.id+'\'); })">🗑️</button>';
               var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.abrirEdicionProveedorCompleta(\''+f.id+'\')">✏️</button>';
-              tbody.innerHTML += '<tr><td class="fw-bold text-muted">'+f.id+'</td><td>'+f.proveedor+'</td><td>'+f.razonSocial+'</td><td>'+f.rfc+'</td><td>'+f.contacto+'</td><td>'+f.telefono+'</td><td>'+(f.quienRegistro||'')+'</td><td class="text-center">' + btnEditar + btnEliminar + '</td></tr>';
+              tbody.innerHTML += '<tr><td class="fw-bold text-muted">'+f.id+'</td><td>'+f.proveedor+'</td><td>'+f.razonSocial+'</td><td>'+f.rfc+'</td><td>'+f.contacto+'</td><td>'+f.telefono+'</td><td>'+(f.quienRegistra||'')+'</td><td class="text-center">' + btnEditar + btnEliminar + '</td></tr>';
             });
           }
         }).obtenerDatosProveedores();
