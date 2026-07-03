@@ -1117,9 +1117,10 @@ function actualizarEstatusCronogramaBackend(d) {
 }
 
 function actualizarCamposEjecutivoCronograma(d) {
-  // Columnas (1-based): B=TIPO TRABAJO(2), D=SEDE(4), E=HORARIO(5), F=FECHA(6)
+  // Columnas (1-based): B=TIPO TRABAJO(2), D=SEDE(4), E=HORARIO(5), F=FECHA(6), M=MECANICO2(13), N=INFO(14)
   try {
-    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const hoja = ss.getSheetByName("Cronograma");
     if (!hoja) return { exito: false, error: "Hoja 'Cronograma' no encontrada." };
     const datos = hoja.getDataRange().getValues();
     for (let i = 1; i < datos.length; i++) {
@@ -1131,6 +1132,28 @@ function actualizarCamposEjecutivoCronograma(d) {
         if (d.fecha) {
           const p = d.fecha.split('-');
           if (p.length === 3) hoja.getRange(f, 6).setValue(p[2]+'/'+p[1]+'/'+p[0]);
+        }
+        if (d.info !== undefined && d.info !== null) hoja.getRange(f, 14).setValue(d.info);
+        // Asignar mecánico 2 si se solicita dupla y aún no tiene
+        if (d.dupla === true) {
+          const mec1 = datos[i][11] ? datos[i][11].toString().trim() : '';
+          const mec2actual = datos[i][12] ? datos[i][12].toString().trim() : '';
+          if (!mec2actual) {
+            const mecResult = obtenerMecanicos();
+            const mecList = (mecResult.exito && mecResult.mecanicos.length > 0) ? mecResult.mecanicos : [];
+            if (mecList.length > 1) {
+              const lista2 = mecList.filter(function(m){ return m !== mec1; });
+              const filasC = hoja.getDataRange().getDisplayValues();
+              let conteos2 = {};
+              lista2.forEach(function(m){ conteos2[m] = 0; });
+              for (let j = 1; j < filasC.length; j++) {
+                let m2A = (filasC[j][12] || '').toString().trim();
+                if (conteos2.hasOwnProperty(m2A)) conteos2[m2A]++;
+              }
+              const mec2 = lista2.reduce(function(min, m){ return conteos2[m] < conteos2[min] ? m : min; }, lista2[0]);
+              hoja.getRange(f, 13).setValue(mec2);
+            }
+          }
         }
         SpreadsheetApp.flush();
         return { exito: true, msj: "Campos actualizados correctamente." };

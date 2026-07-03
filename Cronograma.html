@@ -40,10 +40,11 @@
               <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaCronograma', 6)">Mecánico ↕</th>
               <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaCronograma', 7)">Estatus Unidad ↕</th>
               <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaCronograma', 8)">Quien Registró ↕</th>
+              <th class="text-center" style="white-space:nowrap;">Acciones</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaCronograma">
-            <tr><td colspan="9" class="text-center py-4 text-muted">Cargando cronograma...</td></tr>
+            <tr><td colspan="10" class="text-center py-4 text-muted">Cargando cronograma...</td></tr>
           </tbody>
         </table>
       </div>
@@ -265,7 +266,11 @@
               </select>
             </div>
           </div>
-          <div class="text-center mt-2">
+          <div class="col-12 mt-1">
+            <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Información del Servicio / Observaciones</label>
+            <textarea id="edCronInfo" class="form-control" rows="2" placeholder="Describe el trabajo o corrección..."></textarea>
+          </div>
+          <div class="text-center mt-3">
             <button type="button" id="btnDuplaEdit" class="btn fw-bold text-white" style="background-color: var(--dorado); color: #1E252B !important;" onclick="window.toggleDuplaEdit()">👥 Solicitar Dupla</button>
             <div class="small text-muted mt-1" id="duplaEditMsj"></div>
           </div>

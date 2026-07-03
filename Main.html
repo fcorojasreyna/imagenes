@@ -2037,6 +2037,15 @@
             tr.style.setProperty('--bs-table-striped-bg', color);
             tr.style.cursor = 'pointer';
             tr.title = 'Clic para editar estatus / subir evidencias';
+            var accionesTd = '<td class="text-center" style="white-space:nowrap;">';
+            var puedeEditarCron = (_rolActual === 'GERENTE' || _rolActual === 'EJECUTIVO');
+            if (puedeEditarCron) {
+              accionesTd += '<button class="btn btn-sm btn-outline-primary me-1 border-0 btnEditCron" title="Editar">✏️</button>';
+            }
+            if (_rolActual === 'GERENTE') {
+              accionesTd += '<button class="btn btn-sm btn-outline-danger border-0 btnElimCron" title="Eliminar">🗑️</button>';
+            }
+            accionesTd += '</td>';
             tr.innerHTML =
               '<td class="fw-bold">'+(f.horario||'—')+'</td>'+
               '<td><b>'+(f.ticket||'')+'</b></td>'+
@@ -2046,8 +2055,20 @@
               '<td>'+(f.tipoTrabajo||'')+'</td>'+
               '<td>'+(f.mecanico||'')+(f.mecanico2?'<br><small class="text-muted">+'+f.mecanico2+'</small>':'')+'</td>'+
               '<td><span class="fw-bold small">'+(f.estatusUnidad||'—')+'</span></td>'+
-              '<td>'+(f.quienRegistra||'')+'</td>';
+              '<td>'+(f.quienRegistra||'')+'</td>'+
+              accionesTd;
+            // Row click for all roles (opens edit/estatus modal)
             tr.addEventListener('click', (function(reg){ return function(){ window.abrirEditCronograma(reg); }; })(f));
+            // Edit button
+            var btnEdit = tr.querySelector('.btnEditCron');
+            if (btnEdit) {
+              btnEdit.addEventListener('click', (function(reg){ return function(e){ e.stopPropagation(); window.abrirEditCronograma(reg); }; })(f));
+            }
+            // Delete button
+            var btnElim = tr.querySelector('.btnElimCron');
+            if (btnElim) {
+              btnElim.addEventListener('click', (function(reg){ return function(e){ e.stopPropagation(); window.mostrarConfirmacion('¿Eliminar este registro del cronograma?', function(){ window.ejecutarEliminarCron(reg.id); }); }; })(f));
+            }
             tbody.appendChild(tr);
           });
         }).withFailureHandler(function(e) {
@@ -2124,57 +2145,67 @@
         document.getElementById('editCronTicket').value = reg.ticket || '';
         document.getElementById('tituloModalCron').innerText = 'Editar — Ticket '+(reg.ticket||'')+' | '+(reg.nuco||'');
 
-        var esEjec = (_rolActual === 'EJECUTIVO');
-        var panelGer = document.getElementById('panelGerenteCron');
+        // EJECUTIVO y GERENTE ven panel de campos editables; MECÁNICO no
+        var puedeEditar = (_rolActual === 'EJECUTIVO' || _rolActual === 'GERENTE');
+        var panelGer  = document.getElementById('panelGerenteCron');
         var panelEjec = document.getElementById('panelEjecutivoCron');
-        if(panelGer)  panelGer.style.display  = esEjec ? 'none' : 'block';
-        if(panelEjec) panelEjec.style.display = esEjec ? 'block' : 'none';
 
-        if(esEjec) {
+        // Panel estatus+archivos: MECÁNICO y GERENTE
+        if (panelGer)  panelGer.style.display  = (_rolActual !== 'EJECUTIVO') ? 'block' : 'none';
+        // Panel campos editables: EJECUTIVO y GERENTE
+        if (panelEjec) panelEjec.style.display = puedeEditar ? 'block' : 'none';
+
+        if (puedeEditar) {
           window.seleccionarDropdown('edCronTipo', reg.tipoTrabajo || '');
           window.seleccionarDropdown('edCronSede', reg.sede || '');
           var fechaEl = document.getElementById('edCronFecha');
-          if(fechaEl && reg.fecha) {
-            // Convertir DD/MM/YYYY a YYYY-MM-DD
+          if (fechaEl && reg.fecha) {
             var partes = (reg.fecha||'').split('/');
             fechaEl.value = partes.length === 3 ? partes[2]+'-'+partes[1]+'-'+partes[0] : '';
-          } else if(fechaEl) { fechaEl.value = ''; }
+          } else if (fechaEl) { fechaEl.value = ''; }
           var hor = document.getElementById('edCronHorario');
-          if(hor) hor.value = reg.horario || '';
+          if (hor) hor.value = reg.horario || '';
+          var infoEl = document.getElementById('edCronInfo');
+          if (infoEl) infoEl.value = reg.info || '';
+          // Botón dupla: si ya tiene mec2, mostrar como ya asignado y desactivar
           var duplaBtn = document.getElementById('btnDuplaEdit');
-          if(duplaBtn) { duplaBtn.dataset.activo = 'no'; duplaBtn.innerHTML = '👥 Solicitar Dupla'; duplaBtn.style.backgroundColor = 'var(--dorado)'; }
           var duplaM = document.getElementById('duplaEditMsj');
-          if(duplaM) duplaM.innerText = '';
-        } else {
+          if (duplaBtn) {
+            if (reg.mecanico2 && reg.mecanico2.trim() !== '') {
+              duplaBtn.dataset.activo = 'si';
+              duplaBtn.innerHTML = '✔ Dupla Asignada (' + reg.mecanico2 + ')';
+              duplaBtn.style.backgroundColor = '#198754';
+              duplaBtn.disabled = true;
+              if (duplaM) duplaM.innerText = 'Ya tiene mecánico 2 asignado.';
+            } else {
+              duplaBtn.dataset.activo = 'no';
+              duplaBtn.innerHTML = '👥 Solicitar Dupla';
+              duplaBtn.style.backgroundColor = 'var(--dorado)';
+              duplaBtn.disabled = false;
+              if (duplaM) duplaM.innerText = '';
+            }
+          }
+        }
+
+        if (_rolActual !== 'EJECUTIVO') {
+          // Panel estatus + archivos
           var selEst = document.getElementById('editCronEstatus');
-          if(selEst) selEst.value = reg.estatusUnidad || 'EN REPARACION';
-          // Resetear pilas de archivos
+          if (selEst) selEst.value = reg.estatusUnidad || 'EN REPARACION';
           _pilaArchivos = { pilaEvidencias: [], pilaFormatos: [] };
           var pe = document.getElementById('pilaEvidencias'); if(pe) pe.innerHTML = '';
           var pf = document.getElementById('pilaFormatos');   if(pf) pf.innerHTML = '';
           var pk1 = document.getElementById('pickerEvidencia'); if(pk1) pk1.value = '';
           var pk2 = document.getElementById('pickerFormato');   if(pk2) pk2.value = '';
-          // Guardar URLs existentes para concatenar al guardar
           window._cronEvidenciasExistentes = (reg.evidencia && reg.evidencia !== 'SIN EVIDENCIA') ? reg.evidencia.split(' | ').filter(Boolean) : [];
           window._cronFormatosExistentes   = (reg.formato   && reg.formato   !== '')              ? reg.formato.split(' | ').filter(Boolean)   : [];
-
           var evAct = document.getElementById('evidenciaActualCron');
           var foAct = document.getElementById('formatoActualCron');
-          if(evAct) {
-            if(window._cronEvidenciasExistentes.length > 0) {
-              evAct.innerHTML = window._cronEvidenciasExistentes.map(function(u,i){
-                return '📎 Guardado ('+(i+1)+'): <a href="'+u+'" target="_blank">Ver archivo</a>';
-              }).join('<br>');
-            } else { evAct.innerHTML = ''; }
-          }
-          if(foAct) {
-            if(window._cronFormatosExistentes.length > 0) {
-              foAct.innerHTML = window._cronFormatosExistentes.map(function(u,i){
-                return '📄 Guardado ('+(i+1)+'): <a href="'+u+'" target="_blank">Ver archivo</a>';
-              }).join('<br>');
-            } else { foAct.innerHTML = ''; }
-          }
+          if (evAct) evAct.innerHTML = window._cronEvidenciasExistentes.length > 0
+            ? window._cronEvidenciasExistentes.map(function(u,i){ return '📎 Guardado ('+(i+1)+'): <a href="'+u+'" target="_blank">Ver archivo</a>'; }).join('<br>') : '';
+          if (foAct) foAct.innerHTML = window._cronFormatosExistentes.length > 0
+            ? window._cronFormatosExistentes.map(function(u,i){ return '📄 Guardado ('+(i+1)+'): <a href="'+u+'" target="_blank">Ver archivo</a>'; }).join('<br>') : '';
         }
+
         document.getElementById('cronEditMsj').innerText = '';
         new bootstrap.Modal(document.getElementById('modalEditCronograma')).show();
       };
@@ -2187,7 +2218,9 @@
         if(btn){ btn.disabled = true; btn.innerText = 'Guardando...'; }
         msj.innerText = '';
 
-        var esEjec = (_rolActual === 'EJECUTIVO');
+        var esEjec  = (_rolActual === 'EJECUTIVO');
+        var esGer   = (_rolActual === 'GERENTE');
+        var puedeEditar = esEjec || esGer;
 
         var _idEditando = document.getElementById('editCronId').value;
         function _done(r) {
@@ -2218,16 +2251,75 @@
         }
         function _fail(e){ if(btn){ btn.disabled=false; btn.innerText='Guardar Cambios'; } msj.innerText='✖ Error: '+e.message; }
 
-        if(esEjec) {
-          // Ejecutivo: actualiza tipo, fecha, horario, sede
+        if(puedeEditar && !esGer) {
+          // Solo Ejecutivo: actualiza campos editables
           var tipo  = document.getElementById('edCronTipo')    ? document.getElementById('edCronTipo').value    : '';
           var sede  = document.getElementById('edCronSede')    ? document.getElementById('edCronSede').value    : '';
           var fecha = document.getElementById('edCronFecha')   ? document.getElementById('edCronFecha').value   : '';
           var hor   = document.getElementById('edCronHorario') ? document.getElementById('edCronHorario').value : '';
-          var dupla = document.getElementById('btnDuplaEdit')  ? (document.getElementById('btnDuplaEdit').dataset.activo === 'si') : false;
+          var info  = document.getElementById('edCronInfo')    ? document.getElementById('edCronInfo').value    : '';
+          var duplaBtn = document.getElementById('btnDuplaEdit');
+          var dupla = duplaBtn ? (duplaBtn.dataset.activo === 'si' && !duplaBtn.disabled) : false;
           google.script.run
             .withSuccessHandler(_done).withFailureHandler(_fail)
-            .actualizarCamposEjecutivoCronograma({ id: id, tipoTrabajo: tipo, sede: sede, fecha: fecha, horario: hor, dupla: dupla });
+            .actualizarCamposEjecutivoCronograma({ id: id, tipoTrabajo: tipo, sede: sede, fecha: fecha, horario: hor, info: info, dupla: dupla });
+        } else if (esGer) {
+          // Gerente: actualiza campos editables Y después estatus + archivos
+          var tipo  = document.getElementById('edCronTipo')    ? document.getElementById('edCronTipo').value    : '';
+          var sede  = document.getElementById('edCronSede')    ? document.getElementById('edCronSede').value    : '';
+          var fecha = document.getElementById('edCronFecha')   ? document.getElementById('edCronFecha').value   : '';
+          var hor   = document.getElementById('edCronHorario') ? document.getElementById('edCronHorario').value : '';
+          var info  = document.getElementById('edCronInfo')    ? document.getElementById('edCronInfo').value    : '';
+          var duplaBtn = document.getElementById('btnDuplaEdit');
+          var dupla = duplaBtn ? (duplaBtn.dataset.activo === 'si' && !duplaBtn.disabled) : false;
+          var estatus = document.getElementById('editCronEstatus') ? document.getElementById('editCronEstatus').value : '';
+          var filesEv = (_pilaArchivos['pilaEvidencias'] || []).filter(Boolean);
+          var filesFo = (_pilaArchivos['pilaFormatos']   || []).filter(Boolean);
+
+          function _actualizarEstatusGer(urlsNuevasEv, urlsNuevasFo) {
+            var existEv = window._cronEvidenciasExistentes || [];
+            var existFo = window._cronFormatosExistentes   || [];
+            var finalEv = existEv.concat((urlsNuevasEv||'').split(' | ').filter(Boolean)).join(' | ');
+            var finalFo = existFo.concat((urlsNuevasFo||'').split(' | ').filter(Boolean)).join(' | ');
+            google.script.run
+              .withSuccessHandler(_done).withFailureHandler(_fail)
+              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: finalEv, urlFormato: finalFo });
+          }
+
+          function leerArchivoG(file, callback) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+              var base64 = e.target.result.split(',')[1];
+              google.script.run
+                .withSuccessHandler(function(r){ callback(r.exito ? r.url : ''); })
+                .withFailureHandler(function(){ callback(''); })
+                .subirArchivoEvidenciaCronograma(ticket, file.name, file.type, base64);
+            };
+            reader.readAsDataURL(file);
+          }
+
+          function subirArch(lista, idx, urls, done) {
+            if(idx >= lista.length) { done(urls.filter(Boolean).join(' | ')); return; }
+            msj.innerText = 'Subiendo archivo '+(idx+1)+' de '+lista.length+'...';
+            leerArchivoG(lista[idx], function(u){ urls.push(u); subirArch(lista, idx+1, urls, done); });
+          }
+
+          // Primero guarda campos editables, luego estatus+archivos
+          google.script.run
+            .withSuccessHandler(function(r) {
+              if (!r.exito) { _fail({ message: r.error || 'Error al actualizar campos.' }); return; }
+              if (filesEv.length > 0 && filesFo.length > 0) {
+                subirArch(filesEv, 0, [], function(urlsEv){ subirArch(filesFo, 0, [], function(urlsFo){ _actualizarEstatusGer(urlsEv, urlsFo); }); });
+              } else if (filesEv.length > 0) {
+                subirArch(filesEv, 0, [], function(urlsEv){ _actualizarEstatusGer(urlsEv, ''); });
+              } else if (filesFo.length > 0) {
+                subirArch(filesFo, 0, [], function(urlsFo){ _actualizarEstatusGer('', urlsFo); });
+              } else {
+                _actualizarEstatusGer('', '');
+              }
+            })
+            .withFailureHandler(_fail)
+            .actualizarCamposEjecutivoCronograma({ id: id, tipoTrabajo: tipo, sede: sede, fecha: fecha, horario: hor, info: info, dupla: dupla });
         } else {
           // Gerente / Mecánico: actualiza estatus + archivos
           var estatus = document.getElementById('editCronEstatus').value;
