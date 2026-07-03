@@ -1470,9 +1470,10 @@ function obtenerDatosNotificaciones(quien, rol) {
         }
       }
       if (sol === quien) {
+        const cadena = tipo === 'OC' ? (datoExtra.split('|')[1] || 'SOLO_GERENTE').trim() : '';
         mias.push({ tipo: tipo, ticket: ticket, descripcion: desc, nivelActual: nivel,
           decisionGerente: decG || '—', decisionSub: decS || '—', decisionDir: decD || '—',
-          fecha: fecha, estado: nivel, folioOC: folioOC });
+          fecha: fecha, estado: nivel, folioOC: folioOC, cadena: cadena });
       }
     }
     return { exito: true, pendientes: pendientes, mias: mias };

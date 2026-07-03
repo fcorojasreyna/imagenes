@@ -2460,10 +2460,15 @@
 
             var _filaMia = function(f, esHistorial) {
               var esDupla = f.tipo === 'DUPLA';
+              var cadena  = f.cadena || 'SUB_DIR';
               var nivelFinal = f.nivelActual;
               var _miaKey = f.ticket+'_'+nivelFinal;
               var colorNivel = nivelFinal === 'AUTORIZADO' ? 'bg-success' : (nivelFinal === 'RECHAZADO' ? 'bg-danger' : 'bg-secondary');
-              // Leído/No leído disponible para TODOS los items (cualquier avance de nivel)
+              var NA = '<span class="text-muted small">N/A</span>';
+              // Sub aplica si cadena es SUB o SUB_DIR
+              var aplicaSub = !esDupla && (cadena === 'SUB' || cadena === 'SUB_DIR');
+              // Dir aplica si cadena es DIR o SUB_DIR
+              var aplicaDir = !esDupla && (cadena === 'DIR' || cadena === 'SUB_DIR');
               var btnVistoMia = esHistorial
                 ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" onclick="window.desmarcarVisto(\''+_miaKey+'\')">🔔 No leído</button>'
                 : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" onclick="window.marcarVisto(\''+_miaKey+'\')">✓ Leído</button>';
@@ -2472,9 +2477,9 @@
                 +'<td>'+f.ticket+'</td>'
                 +'<td class="small">'+f.descripcion+'</td>'
                 +'<td><span class="badge '+colorNivel+'">'+nivelFinal+'</span></td>'
-                +'<td>'+window._badgeEst(f.decisionGerente)+'</td>'
-                +'<td>'+(esDupla?'<span class="text-muted small">N/A</span>':window._badgeEst(f.decisionSub))+'</td>'
-                +'<td>'+(esDupla?'<span class="text-muted small">N/A</span>':window._badgeEst(f.decisionDir))+'</td>'
+                +'<td>'+(esDupla ? NA : window._badgeEst(f.decisionGerente))+'</td>'
+                +'<td>'+(aplicaSub ? window._badgeEst(f.decisionSub) : NA)+'</td>'
+                +'<td>'+(aplicaDir ? window._badgeEst(f.decisionDir) : NA)+'</td>'
                 +'<td>'+f.fecha+btnVistoMia+'</td>'
                 +'</tr>';
             };
