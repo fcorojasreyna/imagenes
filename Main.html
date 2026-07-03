@@ -1324,7 +1324,7 @@
       };
 
       window.procesarInventario = function() {
-        if (!window.validarCampos(['ticket', 'folioCpp'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
+        if (!window.validarCampos(['ticket'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         var btn = document.getElementById("btnGI");
         var gen = { ticket: document.getElementById("ticket").value, folioCpp: document.getElementById("folioCpp").value, obsTicket: document.getElementById("obsTicket").value, estatus: "DISPONIBLE", quienRegistra: document.getElementById("quienRegistraGlobal").value };
         if(!gen.ticket) { window.mostrarAlerta("El Ticket es obligatorio."); return; }
