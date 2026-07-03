@@ -384,9 +384,8 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   hojaComp.createTextFinder("{{QUIEN REGISTRA}}").replaceAllWith(datosGenerales.usuario || "");
   let compGranTotal = 0; let compAhorroIntercambio = 0; let totalProveedorContado = 0; let compIvaTotal = 0;
   partidasGanadoras.forEach(p => {
-    let sub = parseFloat(p.subtotal) || 0; let tot = parseFloat(p.total) || 0; let iva = parseFloat(p.iva) || 0;
-    compGranTotal += tot;
-    compIvaTotal += iva;
+    let sub = parseFloat(p.subtotal) || 0;
+    compGranTotal += sub;  // subtotal ya incluye IVA
     if (p.intercambio === "SI") compAhorroIntercambio += (sub * 0.30);
     totalProveedorContado += sub;
   });
