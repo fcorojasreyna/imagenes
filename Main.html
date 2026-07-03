@@ -614,14 +614,22 @@
         if (!_historialDatosActual || _historialDatosActual.length === 0) {
           window.mostrarAlerta('No hay datos cargados para exportar.'); return;
         }
-        var headers = ['Módulo','Fecha Servicio','Ticket','Odómetro','Tipo Servicio / Producto','Familia','Realizado Por','MO Interna','MO Externa','# Refacciones','Costo Total','Estatus','Descripción','Registrado Por'];
+        var headers = ['Módulo','NUCO','Ticket','Serie','Placas','Línea','Modelo','Sede','Oficina','Departamento','Odómetro Actual','Fecha Servicio','Tipo de Servicio','Familia','Realizado Por','MO Interna','MO Externa','Cantidad Refacciones','Costo Total Servicio','Estatus','Descripción','Registrado Por'];
         var filas = _historialDatosActual.map(function(r) {
           return [
             r.modulo || '',
-            r.fecha || '',
+            r.nuco || _historialNucoActual || '',
             r.ticket || '',
+            r.serie || '',
+            r.placas || '',
+            r.linea || '',
+            r.modelo || '',
+            r.sede || '',
+            r.oficina || '',
+            r.departamento || '',
             r.odometro || '',
-            r.tipoServicio || r.servicio || r.descripcion || '',
+            r.fecha || '',
+            r.tipoServicio || r.servicio || '',
             r.familia || '',
             r.proveedor || '',
             r.servInterno ? parseFloat(r.servInterno).toFixed(2) : '',
@@ -634,7 +642,7 @@
           ];
         });
         var total = _historialDatosActual.reduce(function(s, r) { return s + parseFloat(r.costoTotal || 0); }, 0);
-        filas.push(['','','','','','','','','','','TOTAL ACUMULADO → $' + total.toLocaleString('es-MX',{minimumFractionDigits:2}),'','','']);
+        filas.push(['','','','','','','','','','','','','','','','','','','TOTAL ACUMULADO → $' + total.toLocaleString('es-MX',{minimumFractionDigits:2}),'','','']);
 
         var csv = [headers].concat(filas).map(function(row) {
           return row.map(function(c) { return '"' + (c+'').replace(/"/g,'""') + '"'; }).join(',');

@@ -692,7 +692,7 @@ function obtenerHistorialNuco(nucoBusqueda) {
     for (let i = 1; i < dT.length; i++) {
       if (dT[i][1] && dT[i][1].toString().toUpperCase().trim() === b) {
         let fS = limpiarHoraLectura(dT[i][8]);
-        h.push({ modulo: 'TALLER', timestamp: parseFechaToDate(fS).getTime(), fecha: fS, ticket: dT[i][2], odometro: dT[i][6], tipoServicio: dT[i][9], familia: dT[i][10], numeroPartes: dT[i][11], proveedor: dT[i][12], descripcion: dT[i][13], servInterno: dT[i][15], servExterno: dT[i][16], costoTotal: parseFloat(dT[i][17].replace(/[^0-9.-]+/g,"")) || 0, estatusUnidad: dT[i][18], quienRegistra: dT[i][14] });
+        h.push({ modulo: 'TALLER', timestamp: parseFechaToDate(fS).getTime(), fecha: fS, nuco: dT[i][1], ticket: dT[i][2], serie: dT[i][5], odometro: dT[i][6], tipoServicio: dT[i][9], familia: dT[i][10], numeroPartes: dT[i][11], proveedor: dT[i][12], descripcion: dT[i][13], quienRegistra: dT[i][14], servInterno: dT[i][15], servExterno: dT[i][16], costoTotal: parseFloat(dT[i][17].replace(/[^0-9.-]+/g,"")) || 0, estatusUnidad: dT[i][18], linea: dT[i][19], modelo: dT[i][20], placas: dT[i][21], sede: dT[i][22], oficina: dT[i][23], departamento: dT[i][24] });
       }
     }
     const dC = ss.getSheetByName("Consumos").getDataRange().getDisplayValues();
