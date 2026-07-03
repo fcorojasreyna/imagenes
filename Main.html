@@ -516,7 +516,7 @@
             var tbody = document.getElementById('cuerpoTablaConsumos'); if(!tbody) return; tbody.innerHTML = '';
             if (res.datos.length === 0) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4">No hay salidas registradas.</td></tr>'; return; }
             res.datos.forEach(function(fila) {
-              var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.editarConsumoModal(\''+fila.idConsumo+'\', \''+fila.ticketNuevo+'\', \''+fila.producto+'\', \''+fila.vehiculo+'\', \''+fila.fecha+'\', \''+fila.cantidad+'\', \''+fila.costoTotal+'\')">✏️</button>';
+              var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.editarConsumoModal(\''+fila.idConsumo+'\', \''+fila.ticketNuevo+'\', \''+fila.producto+'\', \''+fila.vehiculo+'\', \''+fila.fecha+'\', \''+fila.cantidad+'\', \''+fila.costoTotal+'\', \''+fila.refaccionStock+'\')">✏️</button>';
               var btnEliminar = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'¿Eliminar salida?\', function(){ window.ejecutarEliminar(\'Consumos\', \''+fila.idConsumo+'\'); })">🗑️</button>';
               tbody.innerHTML += '<tr><td><b>'+fila.ticketNuevo+'</b></td><td>'+fila.producto+'</td><td>'+fila.vehiculo+'</td><td>'+fila.cantidad+'</td><td class="fw-bold text-danger">$'+parseFloat(fila.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+fila.quienRegistra+'</td><td>'+fila.fecha+'</td><td>'+(fila.folioCpp||'—')+'</td><td>'+(fila.importeDescuento ? '$'+parseFloat(fila.importeDescuento).toLocaleString('es-MX') : '—')+'</td><td class="text-center">'+btnEditar+btnEliminar+'</td></tr>';
             });
@@ -848,11 +848,12 @@
         var tbody = document.getElementById('cuerpoModalProv');
         if (!tbody) return;
         var filtrados = f ? lista.filter(function(p) { return (p.proveedor||'').toUpperCase().includes(f) || (p.rfc||'').toUpperCase().includes(f); }) : lista;
-        if (filtrados.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Sin resultados</td></tr>'; return; }
+        if (filtrados.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Sin resultados</td></tr>'; return; }
         tbody.innerHTML = filtrados.map(function(p) {
           var nom = (p.proveedor||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
           return '<tr style="cursor:pointer;" onclick="window.seleccionarProvModal(\'' + p.id + '\',\'' + (p.rfc||'') + '\',\'' + nom + '\',\'' + (p.regimenFiscal||'') + '\')">' +
-            '<td><b>' + (p.proveedor||'') + '</b></td><td class="text-muted">' + (p.razonSocial||'') + '</td><td>' + (p.rfc||'') + '</td></tr>';
+            '<td><b>' + (p.proveedor||'') + '</b></td><td class="text-muted">' + (p.razonSocial||'') + '</td><td>' + (p.rfc||'') + '</td><td>' + (p.contacto||'') + '</td>' +
+            '<td class="text-center"><button class="btn btn-sm text-white fw-bold" style="background-color:var(--azul);font-size:0.75rem;" onclick="event.stopPropagation();window.seleccionarProvModal(\'' + p.id + '\',\'' + (p.rfc||'') + '\',\'' + nom + '\',\'' + (p.regimenFiscal||'') + '\')">+ Agregar</button></td></tr>';
         }).join('');
       };
 
@@ -1073,15 +1074,19 @@
       };
 
       // MODAL CONSUMOS
-      window.editarConsumoModal = function(id, ticket, prod, veh, fecha, cant, costoT) {
+      window.editarConsumoModal = function(id, ticket, prod, veh, fecha, cant, costoT, refStockId) {
         document.getElementById("tituloEdicionDinamica").innerText = "Modificar Salida / Consumo: " + id;
         var cU = window.sanitizarNumero(costoT) / window.sanitizarNumero(cant);
+        // stock disponible actual + cantidad ya consumida = máximo editable
+        var stockItem = _inventarioDatos.find(function(i){ return i.id === refStockId; });
+        var stockDisp = stockItem ? (parseFloat(stockItem.cantidad) || 0) : 0;
+        var maxCant = parseFloat(cant) + stockDisp;
         var html = '<div class="row">'+
           '<div class="col-md-6 mb-3"><label class="small fw-bold text-danger">Ticket Insumo (Bloqueado)</label><input type="text" class="form-control bg-light" readonly value="'+ticket+'"></div>'+
           '<div class="col-md-6 mb-3"><label class="small fw-bold text-danger">Vehículo (Bloqueado)</label><input type="text" class="form-control bg-light" readonly value="'+veh+'"></div>'+
           '<div class="col-md-12 mb-3"><label class="small fw-bold text-danger">Refacción (Bloqueado)</label><input type="text" class="form-control bg-light fw-bold" readonly value="'+prod+'"></div>'+
           '<div class="col-md-6 mb-3"><label class="small fw-bold">Fecha Salida</label><input type="date" id="edConsFecha" class="form-control" value="'+(fecha?fecha.split('/').reverse().join('-'):'')+'"></div>'+
-          '<div class="col-md-6 mb-3"><label class="small fw-bold">Cantidad a Descontar</label><input type="number" id="edConsCant" class="form-control" value="'+cant+'" oninput="document.getElementById(\'edConsTotal\').value = (this.value * '+cU+').toFixed(2)"></div>'+
+          '<div class="col-md-6 mb-3"><label class="small fw-bold">Cantidad a Descontar <span class="text-muted">(máx: '+maxCant+')</span></label><input type="number" id="edConsCant" class="form-control" value="'+cant+'" min="1" max="'+maxCant+'" oninput="var v=parseFloat(this.value)||1; if(v>'+maxCant+'){this.value='+maxCant+'; v='+maxCant+';} document.getElementById(\'edConsTotal\').value=(v*'+cU+').toFixed(2);"></div>'+
           '<div class="col-md-12 mb-3"><label class="small fw-bold text-muted">Costo Salida Actualizado (Calculado)</label><div class="input-group"><span class="input-group-text">$</span><input type="text" id="edConsTotal" class="form-control bg-light fw-bold text-dark" readonly value="'+window.sanitizarNumero(costoT).toFixed(2)+'"></div></div>'+
           '</div>';
         var edDin3 = document.getElementById("cuerpoEdicionDinamica"); if(!edDin3) return; edDin3.innerHTML = html;
@@ -1089,7 +1094,10 @@
         btn.onclick = function() {
           btn.disabled = true; btn.innerText = "Modificando stock...";
           var obj = { id: id, fecha: document.getElementById("edConsFecha").value, cantidad: window.sanitizarNumero(document.getElementById("edConsCant").value) };
-          google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r.msj || r); bootstrap.Modal.getInstance(document.getElementById('modalEdicionDinamica')).hide(); window.cargarDatosConsumos(); btn.disabled = false; btn.innerText = "Guardar Cambios"; }).actualizarFilaConsumoBackend(obj);
+          google.script.run
+            .withSuccessHandler(function(r) { window.mostrarAlerta(r.msj || r.error || 'Operación completada'); if(r.exito !== false) { bootstrap.Modal.getInstance(document.getElementById('modalEdicionDinamica')).hide(); window.cargarDatosConsumos(); } btn.disabled = false; btn.innerText = "Guardar Cambios"; })
+            .withFailureHandler(function(e) { window.mostrarAlerta('Error: ' + e.message); btn.disabled = false; btn.innerText = "Guardar Cambios"; })
+            .actualizarFilaConsumoBackend(obj);
         };
         new bootstrap.Modal(document.getElementById('modalEdicionDinamica')).show();
       };
@@ -1115,7 +1123,7 @@
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Límite de Crédito</label><div class="input-group"><span class="input-group-text">$</span><input type="text" id="edProvMontoCred" class="form-control" value="' + (prov.totalCredito || '') + '"></div></div>' +
           '<div class="col-md-12 mb-2"><label class="small fw-bold">Especialidad / Servicio</label><input type="text" id="edProvServ" class="form-control" value="' + (prov.servicio || '') + '"></div>' +
           '<div class="col-md-6 mb-3"><label class="small fw-bold">Régimen Fiscal (SAT)</label><input type="text" id="edProvRegFisc" class="form-control" value="' + (prov.regimenFiscal || '') + '"></div>' +
-          '<div class="col-md-6 mb-3"><label class="small fw-bold">Intercambio de Facturas</label><select id="edProvIntercambio" class="form-select"><option value="NO"' + (prov.intercambio2 !== 'SI' ? ' selected' : '') + '>NO</option><option value="SI"' + (prov.intercambio2 === 'SI' ? ' selected' : '') + '>S\xCD</option></select></div>' +
+          '<div class="col-md-6 mb-3"><label class="small fw-bold">¿Intercambio?</label><select id="edProvIntercambio" class="form-select"><option value="NO"' + (prov.intercambio2 !== 'SI' ? ' selected' : '') + '>NO</option><option value="SI"' + (prov.intercambio2 === 'SI' ? ' selected' : '') + '>S\xCD</option></select></div>' +
           '</div>';
         var edDin4 = document.getElementById("cuerpoEdicionDinamica"); if(!edDin4) return; edDin4.innerHTML = formEdicion;
         var btnGuardar = document.getElementById("btnGuardarEdicionDinamica");
@@ -1757,14 +1765,13 @@
           '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Fecha</label><input type="date" id="edHrFecha" class="form-control" value="'+(f.fecha||'')+'"></div>' +
           '</div>';
 
-        var body = document.getElementById('modalEdicionDinamicaCuerpo') || document.getElementById('modalDinamicoBody');
-        var titulo = document.getElementById('modalEdicionDinamicaTitulo') || document.getElementById('modalDinamicoTitulo');
-        var footer = document.getElementById('modalEdicionDinamicaFooter') || document.getElementById('modalDinamicoFooter');
+        var body = document.getElementById('cuerpoEdicionDinamica');
+        var titulo = document.getElementById('tituloEdicionDinamica');
         if (!body) return;
         if (titulo) titulo.innerText = 'Editar Herramienta — ' + f.id;
         body.innerHTML = html;
-        if (footer) footer.innerHTML = '<button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>' +
-          '<button class="btn fw-bold text-white" style="background-color:var(--azul);" onclick="window.guardarEdicionHerramienta(\''+f.id+'\')">Guardar Cambios</button>';
+        var btn = document.getElementById('btnGuardarEdicionDinamica');
+        if (btn) { btn.onclick = function() { window.guardarEdicionHerramienta(f.id); }; }
         new bootstrap.Modal(document.getElementById('modalEdicionDinamica')).show();
       };
 
