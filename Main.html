@@ -462,7 +462,8 @@
           if (n === 'Herramientas')  { window.cargarDatosHerramientas(); var qH = document.getElementById('quienRegistraGlobal'); if(qH && document.getElementById('herr_quien')) document.getElementById('herr_quien').value = qH.value; }
           if (n === 'Cronograma')    window.cargarDatosCronograma();
           if (n === 'Cotizador')        { window.llenarSelectsModulo('Cotizador'); window.cargarDatosHistorialOC(); google.script.run.withSuccessHandler(function(r){ if(r.exito){ listaProveedoresCotizador=r.datos; window.catalogoProveedoresCache=r.datos; window.cargarSelectProveedores(); } }).obtenerDatosProveedores(); }
-          if (n === 'Notificaciones')   window.cargarDatosNotificaciones();
+          if (n === 'Notificaciones')   { window.cargarDatosNotificaciones(); window.iniciarAutoRefreshNotif(); }
+          else window.detenerAutoRefreshNotif();
           if (n === 'Agenda')           window.iniciarAgenda();
         }).incluir(n);
       };
@@ -2920,6 +2921,46 @@
             }
           });
         }
+      };
+
+      // --- Filtros para "Mis Solicitudes" ---
+      window.filtrarMisSolicitudes = function() {
+        var tk = (document.getElementById('filtroTicketMias') || {}).value || '';
+        tk = tk.toUpperCase().trim();
+        var fc = (document.getElementById('filtroFechaMias') || {}).value || '';
+        var tbody = document.getElementById('cuerpoTablaMisSolicitudes');
+        if (!tbody) return;
+        Array.from(tbody.getElementsByTagName('tr')).forEach(function(tr) {
+          if (tr.cells.length < 2) return;
+          var ticket = tr.cells[1].innerText.toUpperCase();
+          var fecha  = tr.cells[7] ? tr.cells[7].innerText : '';
+          var okTk = !tk || ticket.includes(tk);
+          var okFc = !fc || fecha.includes(fc.split('-').reverse().join('/')) || fecha.includes(fc);
+          tr.style.display = (okTk && okFc) ? '' : 'none';
+        });
+      };
+
+      window.limpiarFiltrosMias = function() {
+        var tk = document.getElementById('filtroTicketMias');
+        var fc = document.getElementById('filtroFechaMias');
+        if (tk) tk.value = '';
+        if (fc) fc.value = '';
+        window.filtrarMisSolicitudes();
+      };
+
+      // --- Auto-refresh de notificaciones cada 60 s cuando el panel está visible ---
+      var _notifInterval = null;
+      window.iniciarAutoRefreshNotif = function() {
+        if (_notifInterval) clearInterval(_notifInterval);
+        _notifInterval = setInterval(function() {
+          var panel = document.getElementById('panelMisSolicitudes');
+          if (panel && panel.offsetParent !== null) {
+            window.cargarDatosNotificaciones(false, false);
+          }
+        }, 60000);
+      };
+      window.detenerAutoRefreshNotif = function() {
+        if (_notifInterval) { clearInterval(_notifInterval); _notifInterval = null; }
       };
 
     </script>
