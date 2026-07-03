@@ -446,7 +446,7 @@
       // ============================================================================
       window.mostrarInicio = function(e) {
         document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active')); if(e) e.classList.add('active');
-        document.getElementById('contenedor').innerHTML = '<div class="welcome-card text-center"><h2 style="color: var(--azul); font-weight: bold;">Sistema de Servicios Vehiculares</h2></div>';
+        document.getElementById('contenedor').innerHTML = '<div class="welcome-card text-center py-5"><p class="mb-1" style="color:var(--azul);font-size:1rem;font-weight:600;letter-spacing:0.05em;">Bienvenido/a a</p><h1 style="color:var(--azul);font-weight:900;font-size:3rem;letter-spacing:0.12em;">SIVET</h1><p class="mb-0" style="color:var(--dorado);font-size:0.85rem;font-weight:600;letter-spacing:0.08em;">SISTEMA DE INVENTARIO Y VEHÍCULOS EN TALLER</p><hr style="border-color:var(--dorado);width:60%;margin:1.5rem auto;"><p class="mb-0 text-muted" style="font-size:0.95rem;">Seleccione algún módulo para comenzar.</p></div>';
       };
 
       window.cargarModulo = function(n, el) {
@@ -2404,11 +2404,11 @@
             var _lsKey = 'notif_vistas_' + _quien;
             var _vistas = JSON.parse(localStorage.getItem(_lsKey) || '[]');
 
-            // --- Badge: pendientes a autorizar + respuestas a mis solicitudes ---
+            // --- Badge: pendientes a autorizar + cambios de nivel en mis solicitudes ---
             var pendientes = (res.pendientes || []);
             var rolesQueAutorizan = ['GERENTE','SUBDIRECTORA','DIRECTORA','ADMIN'];
-            // Siempre incluir respuestas a solicitudes propias (cualquier rol puede ser solicitante)
-            var candidatosMias = (res.mias || []).filter(function(m){ return m.estado === 'AUTORIZADO' || m.estado === 'RECHAZADO'; }).map(function(m){ return m.ticket+'_'+m.estado; });
+            // Clave por ticket+nivelActual: cualquier avance de nivel genera una notificación nueva
+            var candidatosMias = (res.mias || []).map(function(m){ return m.ticket+'_'+m.nivelActual; });
             var candidatosPend = rolesQueAutorizan.includes(_rolActual) ? pendientes.map(function(f){ return f.id; }) : [];
             var candidatos = candidatosPend.concat(candidatosMias.filter(function(c){ return candidatosPend.indexOf(c) === -1; }));
             var sinVer = candidatos.filter(function(c){ return _vistas.indexOf(c) === -1; });
@@ -2422,7 +2422,7 @@
             var pendLeidos   = pendientes.filter(function(f){ return _vistas.indexOf(f.id) !== -1; });
 
             var _filaPend = function(f, esHistorial) {
-              var btnAcc = '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);font-size:0.75rem;" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\')">Revisar</button>';
+              var btnAcc = '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);font-size:0.75rem;" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\',\''+encodeURIComponent(f.ticket||'')+'\',\''+encodeURIComponent(f.folioOC||'')+'\')">Revisar</button>';
               var btnVisto = esHistorial
                 ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" onclick="window.desmarcarVisto(\''+f.id+'\')">🔔 No leído</button>'
                 : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" onclick="window.marcarVisto(\''+f.id+'\')">✓ Leído</button>';
@@ -2446,30 +2446,26 @@
                 : pendNoLeidos.map(function(f){ return _filaPend(f, false); }).join('');
             }
 
-            // --- Mis solicitudes: separar no leídas resueltas / pendientes / leídas resueltas ---
+            // --- Mis solicitudes: no leídas (badge) / leídas (historial) por ticket+nivel ---
             var mias = (res.mias || []);
-            var miasActivas  = []; // pendientes + resueltas no leídas
-            var miasLeidas   = []; // resueltas y ya leídas
+            var miasActivas  = [];
+            var miasLeidas   = [];
             mias.forEach(function(f) {
-              var nivelFinal = f.nivelActual;
-              var esResuelta = nivelFinal === 'AUTORIZADO' || nivelFinal === 'RECHAZADO';
-              var _miaKey = f.ticket+'_'+nivelFinal;
+              var _miaKey = f.ticket+'_'+f.nivelActual;
               var yaVista = _vistas.indexOf(_miaKey) !== -1;
-              if (esResuelta && yaVista) miasLeidas.push(f);
+              if (yaVista) miasLeidas.push(f);
               else miasActivas.push(f);
             });
 
             var _filaMia = function(f, esHistorial) {
               var esDupla = f.tipo === 'DUPLA';
               var nivelFinal = f.nivelActual;
-              var esResuelta = nivelFinal === 'AUTORIZADO' || nivelFinal === 'RECHAZADO';
               var _miaKey = f.ticket+'_'+nivelFinal;
               var colorNivel = nivelFinal === 'AUTORIZADO' ? 'bg-success' : (nivelFinal === 'RECHAZADO' ? 'bg-danger' : 'bg-secondary');
-              var btnVistoMia = esResuelta
-                ? (esHistorial
-                    ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" onclick="window.desmarcarVisto(\''+_miaKey+'\')">🔔 No leído</button>'
-                    : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" onclick="window.marcarVisto(\''+_miaKey+'\')">✓ Leído</button>')
-                : '';
+              // Leído/No leído disponible para TODOS los items (cualquier avance de nivel)
+              var btnVistoMia = esHistorial
+                ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" onclick="window.desmarcarVisto(\''+_miaKey+'\')">🔔 No leído</button>'
+                : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" onclick="window.marcarVisto(\''+_miaKey+'\')">✓ Leído</button>';
               return '<tr>'
                 +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
                 +'<td>'+f.ticket+'</td>'
@@ -2484,8 +2480,7 @@
 
             if (tbM) {
               var bMA = document.getElementById('badgeMiasActivas');
-              var noLeidasResueltas = miasActivas.filter(function(f){ var n=f.nivelActual; return n==='AUTORIZADO'||n==='RECHAZADO'; }).length;
-              if(bMA) bMA.innerText = noLeidasResueltas;
+              if(bMA) bMA.innerText = miasActivas.length;
               tbM.innerHTML = miasActivas.length === 0
                 ? '<tr><td colspan="8" class="text-center py-4 text-muted">No tienes solicitudes nuevas o sin leer.</td></tr>'
                 : miasActivas.map(function(f){ return _filaMia(f, false); }).join('');
@@ -2786,25 +2781,41 @@
         });
       };
 
-      window.abrirModalAuth = function(id, tipo, nivel, desc) {
-        _authActual = { id: id, tipo: tipo, nivel: nivel, desc: decodeURIComponent(desc), decision: null };
+      window.abrirModalAuth = function(id, tipo, nivel, desc, ticket, folioOC) {
+        _authActual = {
+          id: id, tipo: tipo, nivel: nivel,
+          desc: decodeURIComponent(desc||''),
+          ticket: decodeURIComponent(ticket||''),
+          folioOC: decodeURIComponent(folioOC||''),
+          decision: null
+        };
         document.getElementById('panelDecisionAuth').style.display = '';
         document.getElementById('panelEscalamientoAuth').style.display = 'none';
         document.getElementById('comentarioAuth').value = '';
         var titulo = tipo === 'DUPLA' ? 'Autorización de Dupla' : 'Autorización de OC';
         document.getElementById('tituloModalAuth').innerText = titulo;
-        document.getElementById('textoModalAuth').innerText = '¿Deseas autorizar el siguiente registro?\n"' + decodeURIComponent(desc) + '"';
+        document.getElementById('textoModalAuth').innerText = '¿Deseas autorizar el siguiente registro?\n"' + decodeURIComponent(desc||'') + '"';
+        // Mostrar botón Ver PDFs solo para OC
+        var panelPDF = document.getElementById('panelVerPDFAuth');
+        if (panelPDF) panelPDF.style.display = tipo === 'OC' ? '' : 'none';
         // Mostrar selector de cadena solo para OC en nivel GERENTE
         var panelCadena = document.getElementById('panelCadenaAuth');
         if (panelCadena) {
           panelCadena.style.display = (tipo === 'OC' && nivel === 'GERENTE' && _rolActual === 'GERENTE') ? '' : 'none';
-          // Resetear selección
           var radios = panelCadena.querySelectorAll('input[type=radio]');
           radios.forEach(function(r) { r.checked = false; });
           var first = panelCadena.querySelector('input[value=SOLO_GERENTE]');
           if (first) first.checked = true;
         }
         new bootstrap.Modal(document.getElementById('modalAutorizacion')).show();
+      };
+
+      window.verPDFsDesdeAuth = function() {
+        if (_authActual && _authActual.folioOC) {
+          window.verDocumentosOC(_authActual.folioOC, _authActual.ticket);
+        } else {
+          window.mostrarAlerta('No se encontró el folio de OC.');
+        }
       };
 
       window.confirmarAutorizacion = function(decision) {
