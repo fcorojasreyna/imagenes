@@ -1709,6 +1709,10 @@
           }
           _herramientasDatos = res.datos || [];
           res.datos.forEach(function(f) {
+            var estadoColor = {NUEVO:'#0d6efd', BUENO:'#198754', DAÑADO:'#dc3545', REGULAR:'#ffc107'};
+            var estadoTextColor = {NUEVO:'white', BUENO:'white', DAÑADO:'white', REGULAR:'#1E252B'};
+            var eUp = (f.estadoHerr||'').toUpperCase().trim();
+            var estadoBadge = '<span class="badge" style="background:' + (estadoColor[eUp]||'#6c757d') + ';color:' + (estadoTextColor[eUp]||'white') + ';">' + (f.estadoHerr||'—') + '</span>';
             var badge = f.estatus === 'DISPONIBLE' ? '<span class="badge bg-success">DISPONIBLE</span>'
               : f.estatus === 'EN USO' ? '<span class="badge bg-warning text-dark">EN USO</span>'
               : '<span class="badge bg-danger">' + f.estatus + '</span>';
@@ -1720,11 +1724,12 @@
               '<td>' + f.tipoUnidad + '</td>' +
               '<td><b>' + f.nombre + '</b></td>' +
               '<td>' + f.marca + '</td>' +
-              '<td>' + f.estadoHerr + '</td>' +
+              '<td>' + estadoBadge + '</td>' +
               '<td>' + f.lugar + '</td>' +
               '<td>' + badge + '</td>' +
               '<td>' + f.existencia + '</td>' +
               '<td>' + f.fecha + '</td>' +
+              '<td>' + (f.quienRegistra||'—') + '</td>' +
               '<td class="text-center">' + btnEditar + btnElim + '</td></tr>';
           });
         }).withFailureHandler(function(e) {
