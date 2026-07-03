@@ -641,8 +641,6 @@
             r.quienRegistra || ''
           ];
         });
-        var total = _historialDatosActual.reduce(function(s, r) { return s + parseFloat(r.costoTotal || 0); }, 0);
-        filas.push(['','','','','','','','','','','','','','','','','','','TOTAL ACUMULADO → $' + total.toLocaleString('es-MX',{minimumFractionDigits:2}),'','','']);
 
         var csv = [headers].concat(filas).map(function(row) {
           return row.map(function(c) { return '"' + (c+'').replace(/"/g,'""') + '"'; }).join(',');
