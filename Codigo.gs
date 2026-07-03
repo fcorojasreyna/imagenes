@@ -439,7 +439,8 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
           colSub_P.push("$" + parseFloat(pItem.subtotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
           colMarca_P.push(pItem.marca || "");
           ganadorFlags.push(!!pItem.esGanador);
-          te_P = pItem.tiempoEntrega; tot_P += parseFloat(pItem.total); ivaP += parseFloat(pItem.iva)||0;
+          te_P = pItem.tiempoEntrega;
+          if (pItem.esGanador) { tot_P += parseFloat(pItem.subtotal); ivaP += parseFloat(pItem.iva)||0; }
           if (pItem.comentario) colComent_P.push(u.nombre + ": " + pItem.comentario);
         } else { colDesc_P.push("-"); colSub_P.push("-"); colMarca_P.push("-"); ganadorFlags.push(false); }
       });
