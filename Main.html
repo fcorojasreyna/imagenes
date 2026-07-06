@@ -2514,19 +2514,43 @@
           if(!res || !res.exito || !res.datos || res.datos.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">Sin actividades programadas para hoy.</td></tr>'; return;
           }
-          var registrosHoy = res.datos.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; });
           var _normK = function(v){ return (v||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim(); };
-          var totalPospuestos = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO POSPUESTO POR SV'; }).length;
-          var elBadgeTabla = document.getElementById('badgePospuestosTabla');
-          if (elBadgeTabla) { elBadgeTabla.textContent = '📌 Pospuestos (total): ' + totalPospuestos; elBadgeTabla.style.display = totalPospuestos > 0 ? '' : 'none'; }
+          var registrosHoy = res.datos.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; });
+          // Separated by status for badges
+          window._cronRegPospuestos    = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO POSPUESTO POR SV'; });
+          window._cronRegConcluidos    = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO CONCLUIDO'; });
+          window._cronRegNoPresentados = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'UNIDAD NO PRESENTADA A LA CITA'; });
+          // Active = only EN REPARACION (or no status) for the table
+          var registrosActivos = registrosHoy.filter(function(f){
+            var k = _normK(f.estatusUnidad);
+            return k !== 'SERVICIO CONCLUIDO' && k !== 'SERVICIO POSPUESTO POR SV' && k !== 'UNIDAD NO PRESENTADA A LA CITA';
+          });
+          // Update badges
+          var _setBadge = function(elId, count, label, tipo) {
+            var el = document.getElementById(elId);
+            if (!el) return;
+            if (count > 0) {
+              el.style.display = '';
+              el.innerHTML = label + ': <b>' + count + '</b>';
+              el.onclick = function(){ window._abrirPanelHistorialCron(tipo); };
+              el.style.cursor = 'pointer';
+              el.title = 'Clic para ver detalle';
+            } else { el.style.display = 'none'; }
+          };
+          _setBadge('badgePospuestosTabla',    window._cronRegPospuestos.length,    '📌 Pospuestos',     'pospuesto');
+          _setBadge('badgeConcluidos',          window._cronRegConcluidos.length,    '✅ Concluidos hoy', 'concluido');
+          _setBadge('badgeNoPresentados',       window._cronRegNoPresentados.length, '🚫 No Presentados', 'nopresentado');
           if (registrosHoy.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No hay actividades programadas para hoy.</td></tr>'; window._renderKanbanCronograma([], totalPospuestos); return;
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No hay actividades programadas para hoy.</td></tr>'; window._renderKanbanCronograma([], window._cronRegPospuestos.length); return;
           }
-          registrosHoy.sort(function(a,b){
+          registrosActivos.sort(function(a,b){
             var toMin = function(h){ var p=(h||'').split(':'); return (parseInt(p[0])||0)*60+(parseInt(p[1])||0); };
             return toMin(a.horario) - toMin(b.horario);
           });
-          registrosHoy.forEach(function(f) {
+          if (registrosActivos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">Todas las unidades de hoy tienen estatus final.</td></tr>';
+          }
+          registrosActivos.forEach(function(f) {
             var color = window._colorCronFila(f.estatusUnidad);
             var tr = document.createElement('tr');
             tr.dataset.id = f.id;
@@ -2569,7 +2593,7 @@
             tbody.appendChild(tr);
           });
           window._iniciarPaginacion('cuerpoTablaCronograma');
-          window._renderKanbanCronograma(registrosHoy, totalPospuestos);
+          window._renderKanbanCronograma(registrosHoy, window._cronRegPospuestos.length);
         }).withFailureHandler(function(e) {
           var tbody = document.getElementById('cuerpoTablaCronograma');
           if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">'+e.message+'</td></tr>';
@@ -2644,6 +2668,51 @@
         });
         html += '</div>';
         kan.innerHTML = html;
+      };
+
+      window._abrirPanelHistorialCron = function(tipo) {
+        var registros = tipo === 'pospuesto' ? (window._cronRegPospuestos||[])
+                      : tipo === 'concluido'  ? (window._cronRegConcluidos||[])
+                      : (window._cronRegNoPresentados||[]);
+        var titulo = tipo === 'pospuesto' ? '📌 Unidades Pospuestas'
+                   : tipo === 'concluido'  ? '✅ Unidades Concluidas Hoy'
+                   : '🚫 Unidades No Presentadas Hoy';
+        var colores = { pospuesto: '#ffe0b2', concluido: '#d4edda', nopresentado: '#f8d7da' };
+        var color = colores[tipo] || '#f0f0f0';
+        var modalEl = document.getElementById('modalHistorialCronograma');
+        if (!modalEl) {
+          var div = document.createElement('div');
+          div.innerHTML = '<div class="modal fade" id="modalHistorialCronograma" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header py-2" style="background:var(--azul);"><h5 class="modal-title text-white fw-bold" id="modalHistCronTitulo"></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-3" id="modalHistCronBody"></div></div></div></div>';
+          document.body.appendChild(div.firstChild);
+          modalEl = document.getElementById('modalHistorialCronograma');
+        }
+        document.getElementById('modalHistCronTitulo').innerText = titulo;
+        var body = document.getElementById('modalHistCronBody');
+        if (!registros.length) { body.innerHTML = '<p class="text-muted text-center py-3">Sin registros.</p>'; }
+        else {
+          var html = '<div class="list-group">';
+          registros.forEach(function(f) {
+            html += '<div class="list-group-item list-group-item-action p-2 mb-1" style="background:'+color+';border-radius:8px;border:none;cursor:pointer;" onclick="window._editarDesdeHistorial('+JSON.stringify(f).replace(/"/g,'&quot;')+')">';
+            html += '<div class="d-flex justify-content-between align-items-center">';
+            html += '<div>';
+            html += '<span class="fw-bold" style="color:var(--azul);">🎫 '+(f.ticket||'—')+'</span>';
+            html += ' &nbsp; <span class="text-muted small">📅 '+(f.fecha||'')+'</span>';
+            html += '<div class="small mt-1">🚗 <b>'+(f.nuco||'')+'</b> — '+(f.marca||'')+' '+(f.modelo||'')+'</div>';
+            html += '<div class="small text-muted">🔧 '+(f.tipoTrabajo||'—')+' &nbsp; 👷 '+(f.mecanico||'—')+'</div>';
+            html += '</div>';
+            html += '<span class="btn btn-sm text-white fw-bold" style="background:var(--azul);font-size:0.75rem;">✏️ Editar</span>';
+            html += '</div></div>';
+          });
+          html += '</div>';
+          body.innerHTML = html;
+        }
+        new bootstrap.Modal(modalEl).show();
+      };
+
+      window._editarDesdeHistorial = function(f) {
+        var modalH = bootstrap.Modal.getInstance(document.getElementById('modalHistorialCronograma'));
+        if (modalH) modalH.hide();
+        setTimeout(function(){ window.abrirEditCronograma(f); }, 350);
       };
 
       window.guardarCronograma = function() {
