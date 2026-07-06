@@ -1,25 +1,58 @@
 <style>
-  .card-modulo { border-radius: 10px; padding: 25px; background: white; border-top: 5px solid #B4A169; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+  .dash-kpi { background:white; border-radius:12px; padding:1.2rem 1.4rem; box-shadow:0 2px 8px rgba(0,0,0,0.08); border-left:5px solid var(--dorado); }
+  .dash-kpi .kpi-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:.05em; color:#888; font-weight:600; margin-bottom:4px; }
+  .dash-kpi .kpi-value { font-size:1.6rem; font-weight:800; color:var(--azul); line-height:1; }
+  .dash-kpi .kpi-sub { font-size:0.72rem; color:#aaa; margin-top:4px; }
+  .dash-chart-card { background:white; border-radius:12px; padding:1.2rem; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+  .dash-chart-title { font-size:0.82rem; font-weight:700; color:var(--azul); text-transform:uppercase; letter-spacing:.04em; margin-bottom:1rem; border-bottom:2px solid #f0e8d8; padding-bottom:.5rem; }
+  .dash-tab-btn { background:transparent; border:2px solid var(--azul); border-radius:25px; padding:6px 20px; font-size:0.82rem; font-weight:700; color:var(--azul); cursor:pointer; transition:.2s; }
+  .dash-tab-btn.active { background:var(--azul); color:white; }
+  .dash-tab-btn:hover:not(.active) { background:rgba(30,37,43,.07); }
+  .dash-bar-label { font-size:0.73rem; color:#444; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; }
+  .dash-bar-val { font-size:0.73rem; font-weight:700; color:var(--azul); white-space:nowrap; }
 </style>
 
-<div class="card-modulo">
-  <h3 class="text-center" style="color: #1E252B; font-weight: bold;">Dashboard de Taller e Inventario</h3>
-  <hr>
-  <div class="row">
+<div style="padding:1.2rem 1.5rem 2rem;">
 
-    <div class="col-md-12 mb-4">
-      <h5 class="fw-bold" style="color: #1E252B; border-bottom: 2px solid #eee; padding-bottom: 10px;">CI Taller y Refacciones: Taller</h5>
-      <div style="background: #f8f9fa; border: 1px dashed #ccc; height: 650px; display: flex; align-items: center; justify-content: center; border-radius: 8px; overflow: hidden;">
-        <iframe width="100%" height="100%" src="https://datastudio.google.com/embed/reporting/d7d887f8-c31d-4926-83f4-8103671dedba/page/HEKwF" frameborder="0" style="border:0" allowfullscreen></iframe>
-      </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;margin-bottom:1.4rem;">
+    <div>
+      <h4 style="color:var(--azul);font-weight:800;margin:0;">Dashboard</h4>
+      <p style="color:#aaa;font-size:0.78rem;margin:2px 0 0;">Indicadores en tiempo real desde Google Sheets</p>
     </div>
-
-    <div class="col-md-12">
-      <h5 class="fw-bold" style="color: #1E252B; border-bottom: 2px solid #eee; padding-bottom: 10px;">CI Taller y Refacciones: Inventario</h5>
-      <div style="background: #f8f9fa; border: 1px dashed #ccc; height: 650px; display: flex; align-items: center; justify-content: center; border-radius: 8px; overflow: hidden;">
-        <iframe width="100%" height="100%" src="https://datastudio.google.com/embed/reporting/537667ba-9364-4915-bdd4-62cb9ba21cab/page/4dVtF" frameborder="0" style="border:0" allowfullscreen></iframe>
-      </div>
+    <div style="display:flex;gap:8px;">
+      <button id="dashTabTaller" class="dash-tab-btn active" onclick="window._switchDashTab('taller')">Taller</button>
+      <button id="dashTabInventario" class="dash-tab-btn" onclick="window._switchDashTab('inventario')">Inventario</button>
     </div>
-
   </div>
+
+  <!-- TALLER PANEL -->
+  <div id="dashPanelTaller">
+    <div id="dashKpiTaller" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:.9rem;margin-bottom:1.2rem;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div id="dashDonutTipoServicio" class="dash-chart-card"></div>
+      <div id="dashDonutEstatusTaller" class="dash-chart-card"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div id="dashBarFamilias" class="dash-chart-card"></div>
+      <div id="dashBarModelos" class="dash-chart-card"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div id="dashBarProveedores" class="dash-chart-card"></div>
+      <div id="dashBarSedes" class="dash-chart-card"></div>
+    </div>
+  </div>
+
+  <!-- INVENTARIO PANEL -->
+  <div id="dashPanelInventario" style="display:none;">
+    <div id="dashKpiInventario" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:.9rem;margin-bottom:1.2rem;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div id="dashDonutEstatusInv" class="dash-chart-card"></div>
+      <div id="dashBarMarcasInv" class="dash-chart-card"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div id="dashBarProductosInv" class="dash-chart-card"></div>
+      <div id="dashBarVehiculosInv" class="dash-chart-card"></div>
+    </div>
+  </div>
+
 </div>
