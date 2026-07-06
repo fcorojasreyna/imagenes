@@ -773,6 +773,19 @@ function obtenerDatosProveedores() {
   } catch(e) { return { exito: false, error: "Error al leer proveedores." }; }
 }
 
+function obtenerMapaVehiculos() {
+  try {
+    const d = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vehiculos").getDataRange().getDisplayValues();
+    const mapa = {};
+    for (let i = 1; i < d.length; i++) {
+      const nuco  = d[i][4].toString().trim();  // col E = NUCO
+      const linea = d[i][21].toString().trim(); // col V = Línea
+      if (nuco && linea) mapa[nuco] = linea;
+    }
+    return { exito: true, datos: mapa };
+  } catch(e) { return { exito: false, datos: {} }; }
+}
+
 function obtenerHistorialNuco(nucoBusqueda) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();

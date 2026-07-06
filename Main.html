@@ -3431,6 +3431,7 @@
       var _DP = ['#1E252B','#B4A169','#2d3a45','#c8ae7e','#3d5060','#8a7a4f','#6a8a7a','#c49a6a','#9a6a45','#4a6a5a'];
       var _DASH_TABS = ['taller','inventario','consumos','proveedores','oc','herramientas','cronograma','ejecutivos','mecanicos'];
       var _dashCronDatos = [];
+      var _mapaVehiculos = {}; // NUCO → línea
       window._dashCurrentTab = 'taller';
 
       // ---- Month filter helpers ----
@@ -3500,10 +3501,12 @@
       };
 
       // ---- Init ----
-      window.iniciarDashboard = function() {
+      window.iniciarDashboard = function(forzar) {
         window._dashInitYearSelect();
+        if (forzar) { _tallerDatos=[]; _inventarioDatos=[]; _consumosDatos=[]; _proveedoresDatos=[]; _ocDatosGlobal=[]; _herramientasDatos=[]; _dashCronDatos=[]; _mapaVehiculos={}; }
         var pending = 0;
-        function tryRender() { if (--pending <= 0) window._renderDashTaller(); }
+        function tryRender() { if (--pending <= 0) window._switchDashTab(window._dashCurrentTab); }
+        pending++; google.script.run.withSuccessHandler(function(r){ if(r.exito) _mapaVehiculos=r.datos||{}; tryRender(); }).withFailureHandler(function(){tryRender();}).obtenerMapaVehiculos();
         if (!_tallerDatos.length)      { pending++; google.script.run.withSuccessHandler(function(r){ if(r.exito) _tallerDatos=r.datos||[];      tryRender(); }).withFailureHandler(function(){tryRender();}).obtenerDatosTaller(); }
         else { pending++; tryRender(); }
         if (!_inventarioDatos.length)  { google.script.run.withSuccessHandler(function(r){ if(r.exito) _inventarioDatos=r.datos||[]; }).obtenerDatosInventario(); }
@@ -3512,6 +3515,13 @@
         if (!_ocDatosGlobal.length)    { google.script.run.withSuccessHandler(function(r){ if(r.exito) _ocDatosGlobal=r.datos||[]; }).obtenerHistorialGlobalOC(); }
         if (!_herramientasDatos.length){ google.script.run.withSuccessHandler(function(r){ if(r.exito) _herramientasDatos=r.datos||[]; }).obtenerDatosHerramientas(); }
         if (!_dashCronDatos.length)    { google.script.run.withSuccessHandler(function(r){ if(r.exito) _dashCronDatos=r.datos||[]; }).obtenerDatosCronograma(); }
+      };
+
+      window._dashRefresh = function() {
+        var btn = document.getElementById('dashRefreshBtn');
+        if (btn) { btn.disabled = true; btn.innerText = '⏳ Actualizando...'; }
+        window.iniciarDashboard(true);
+        setTimeout(function(){ if(btn){ btn.disabled=false; btn.innerText='🔄 Actualizar'; } }, 3000);
       };
 
       // ---- CSV Export ----
@@ -3683,10 +3693,8 @@
         window._dashBars('dBar_invProductos','Top 10 Productos por Costo',
           window._dashGroupK(d,function(f){return f.producto||'Sin producto';},function(f){return parseFloat(f.costoTotal)||0;}),
           function(i){return i%2===0?'var(--azul)':'var(--dorado)';},true);
-        var _nucoLinea={};
-        (_tallerDatos||[]).forEach(function(f){if(f.nuco&&f.linea)_nucoLinea[f.nuco.toString().trim()]=f.linea;});
         window._dashBars('dBar_invVehiculos','Top Vehículos por Refacciones (registros)',
-          window._dashGroupK(d,function(f){var v=(f.vehiculo||'').trim();return _nucoLinea[v]||v||'Sin vehículo';}),function(i){return _DP[i%_DP.length];},false);
+          window._dashGroupK(d,function(f){var v=(f.vehiculo||'').trim();return _mapaVehiculos[v]||v||'Sin vehículo';}),function(i){return _DP[i%_DP.length];},false);
       };
 
       // ---- CONSUMOS ----
