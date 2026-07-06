@@ -72,7 +72,7 @@
         justify-content: center;
         align-items: center;
         height: 100vh;
-        background-color: var(--azul);
+        background: linear-gradient(135deg, var(--azul) 0%, #2d4059 50%, #B4A169 100%);
       }
       .caja-login {
         background: white;
@@ -508,6 +508,71 @@
             });
           }
         }).obtenerDatosInventario();
+      };
+
+      // ============================================================================
+      // HISTÓRICO DE PRODUCTOS ADQUIRIDOS (Inventario)
+      // ============================================================================
+      window.mostrarHistoricoProductos = function() {
+        var tbl = document.getElementById('vistaTablaInventario');
+        var hist = document.getElementById('vistaHistoricoInv');
+        var form = document.getElementById('vistaFormInventario');
+        if(tbl) tbl.style.display = 'none';
+        if(form) form.style.display = 'none';
+        if(hist) hist.style.display = 'block';
+        window.cargarHistoricoProductos();
+      };
+
+      window.regresarDesdHistorico = function() {
+        var tbl = document.getElementById('vistaTablaInventario');
+        var hist = document.getElementById('vistaHistoricoInv');
+        if(hist) hist.style.display = 'none';
+        if(tbl) tbl.style.display = 'block';
+        window.cargarDatosInventario();
+      };
+
+      window.cargarHistoricoProductos = function() {
+        var tbody = document.getElementById('cuerpoHistoricoProductos');
+        var canvas = document.getElementById('chartHistorico');
+        if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">Cargando...</td></tr>';
+        google.script.run.withSuccessHandler(function(res) {
+          if (!res || !res.exito) { if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error al cargar datos.</td></tr>'; return; }
+          var datos = res.datos || [];
+          var top10 = datos.slice(0, 10);
+          var resto = datos.slice(10);
+          // Draw bar chart
+          if(canvas && top10.length) {
+            var ctx = canvas.getContext('2d');
+            var W = canvas.offsetWidth || 600; canvas.width = W; canvas.height = Math.max(260, top10.length * 32 + 40);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            var maxVal = top10[0].totalGasto || 1;
+            var barH = 24; var gapY = 8; var leftPad = 180; var rightPad = 20; var topPad = 16;
+            var barW = canvas.width - leftPad - rightPad;
+            top10.forEach(function(item, idx) {
+              var y = topPad + idx * (barH + gapY);
+              var w = Math.max(4, Math.round((item.totalGasto / maxVal) * barW));
+              ctx.fillStyle = '#1E252B'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+              var label = item.producto.length > 24 ? item.producto.slice(0,22)+'…' : item.producto;
+              ctx.fillText(label, leftPad - 6, y + barH/2 + 4);
+              var grad = ctx.createLinearGradient(leftPad, 0, leftPad + w, 0);
+              grad.addColorStop(0, '#1E252B'); grad.addColorStop(1, '#B4A169');
+              ctx.fillStyle = grad; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(leftPad, y, w, barH, 4) : ctx.rect(leftPad, y, w, barH); ctx.fill();
+              ctx.fillStyle = '#fff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'left';
+              ctx.fillText('$'+parseFloat(item.totalGasto).toLocaleString('es-MX'), leftPad + w + 4, y + barH/2 + 4);
+            });
+          }
+          // Render full list
+          if(tbody) {
+            tbody.innerHTML = '';
+            datos.forEach(function(item, idx) {
+              var avg = item.compras > 0 ? (item.totalGasto / item.compras) : 0;
+              var rowBg = idx < 10 ? 'style="background:#fff9e6;"' : '';
+              tbody.innerHTML += '<tr '+rowBg+'><td class="fw-bold">'+(idx<10?'<span class="badge me-1" style="background:var(--azul);color:white;">'+(idx+1)+'°</span>':'')+item.producto+'</td><td>'+item.totalQty+'</td><td class="fw-bold text-success">$'+parseFloat(item.totalGasto).toLocaleString('es-MX')+'</td><td>'+item.compras+'</td><td>$'+parseFloat(avg).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})+'</td></tr>';
+            });
+            if(!datos.length) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Sin registros.</td></tr>';
+          }
+        }).withFailureHandler(function(e){ if(tbody) tbody.innerHTML='<tr><td colspan="5" class="text-center text-danger">'+e.message+'</td></tr>'; })
+        .obtenerHistoricoProductos();
       };
 
       window.cargarDatosConsumos = function() {
@@ -1315,6 +1380,18 @@
       window.procesarTaller = function() {
         if (!window.validarCampos(['ticket', 'nuco', 'tipoServicio', 'familia', 'descripcion'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         var btn = document.getElementById("btnGT"); btn.disabled = true; btn.innerText = "Guardando...";
+        // Minimum 2-day advance restriction for scheduling
+        var _fechaSvcVal = document.getElementById("fechaServicio") ? document.getElementById("fechaServicio").value : '';
+        if (_fechaSvcVal) {
+          var _hoy = new Date(); _hoy.setHours(0,0,0,0);
+          var _fSvc = new Date(_fechaSvcVal + 'T00:00:00');
+          var _diffDias = Math.round((_fSvc - _hoy) / 86400000);
+          if (_diffDias < 2) {
+            window.mostrarAlerta('La fecha de servicio debe programarse con al menos 2 días de anticipación.');
+            btn.disabled = false; btn.innerText = "Guardar Registro Taller";
+            return;
+          }
+        }
         var p = document.getElementById("proveedor").value;
         var d = {
           nuco: document.getElementById("nuco").value, ticket: document.getElementById("ticket").value, folioCpp: document.getElementById("folioCpp").value,
@@ -1330,6 +1407,8 @@
       };
 
       window.toggleVistaInv = function(v) {
+        var histEl = document.getElementById('vistaHistoricoInv');
+        if(histEl) histEl.style.display = 'none';
         document.getElementById('vistaTablaInventario').style.display = v === 'form' ? 'none' : 'block';
         document.getElementById('vistaFormInventario').style.display = v === 'form' ? 'block' : 'none';
         if(v === 'form') window.llenarSelectsModulo('Inventario');
@@ -2235,27 +2314,45 @@
           if(btn){ btn.disabled = false; btn.innerText = 'Guardar Cambios'; }
           if(!r.exito){ msj.innerText = '✖ '+(r.error||'Error'); return; }
           bootstrap.Modal.getInstance(document.getElementById('modalEditCronograma')).hide();
-          window.mostrarAlerta(r.msj || 'Registro actualizado.');
-          // Pintar inmediatamente la fila con el nuevo color antes de recargar
-          if (!esEjec) {
-            var nuevoEstatus = document.getElementById('editCronEstatus') ? document.getElementById('editCronEstatus').value : '';
-            var nuevoColor = window._colorCronFila(nuevoEstatus);
-            var tbody = document.getElementById('cuerpoTablaCronograma');
-            if(tbody) {
-              var filas = tbody.getElementsByTagName('tr');
-              for(var i=0; i<filas.length; i++) {
-                if(filas[i].dataset && filas[i].dataset.id === _idEditando) {
-                  filas[i].style.setProperty('--bs-table-bg', nuevoColor);
-                  filas[i].style.setProperty('--bs-table-striped-bg', nuevoColor);
-                  // Actualizar texto del estatus en la celda
-                  var celdas = filas[i].getElementsByTagName('td');
-                  if(celdas[7]) celdas[7].innerHTML = '<span class="fw-bold small">'+nuevoEstatus+'</span>';
+          // Posponer: highlight row with message, then reload after delay
+          var esPosponer = r.msj && r.msj.indexOf('Pospuesto al') !== -1;
+          if (esPosponer) {
+            var tbody2 = document.getElementById('cuerpoTablaCronograma');
+            if(tbody2) {
+              var fs = tbody2.getElementsByTagName('tr');
+              for(var ii=0; ii<fs.length; ii++) {
+                if(fs[ii].dataset && fs[ii].dataset.id === _idEditando) {
+                  fs[ii].style.background = '#ffe0b2';
+                  var cols = fs[ii].getElementsByTagName('td').length || 10;
+                  fs[ii].innerHTML = '<td colspan="'+cols+'" class="text-center fw-bold py-3" style="color:#e65100;">✔ ' + r.msj + '</td>';
                   break;
                 }
               }
             }
+            window.mostrarAlerta(r.msj);
+            setTimeout(function() { window.cargarDatosCronograma(); }, 3500);
+          } else {
+            window.mostrarAlerta(r.msj || 'Registro actualizado.');
+            // Pintar inmediatamente la fila con el nuevo color antes de recargar
+            if (!esEjec) {
+              var nuevoEstatus = document.getElementById('editCronEstatus') ? document.getElementById('editCronEstatus').value : '';
+              var nuevoColor = window._colorCronFila(nuevoEstatus);
+              var tbody = document.getElementById('cuerpoTablaCronograma');
+              if(tbody) {
+                var filas = tbody.getElementsByTagName('tr');
+                for(var i=0; i<filas.length; i++) {
+                  if(filas[i].dataset && filas[i].dataset.id === _idEditando) {
+                    filas[i].style.setProperty('--bs-table-bg', nuevoColor);
+                    filas[i].style.setProperty('--bs-table-striped-bg', nuevoColor);
+                    var celdas = filas[i].getElementsByTagName('td');
+                    if(celdas[7]) celdas[7].innerHTML = '<span class="fw-bold small">'+nuevoEstatus+'</span>';
+                    break;
+                  }
+                }
+              }
+            }
+            window.cargarDatosCronograma();
           }
-          window.cargarDatosCronograma();
         }
         function _fail(e){ if(btn){ btn.disabled=false; btn.innerText='Guardar Cambios'; } msj.innerText='✖ Error: '+e.message; }
 

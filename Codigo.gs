@@ -683,6 +683,26 @@ function obtenerDatosInventario() {
   } catch(e) { return { exito: false, error: "Error de lectura de inventario." }; }
 }
 
+function obtenerHistoricoProductos() {
+  try {
+    const d = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventario").getDataRange().getDisplayValues();
+    let mapa = {};
+    for (let i = 1; i < d.length; i++) {
+      let prod = d[i][4] ? d[i][4].toString().trim() : '';
+      if (!prod) continue;
+      let qty = parseFloat(d[i][9]) || 0;
+      let cUnit = parseFloat((d[i][11]||'').toString().replace(/[^0-9.-]+/g,'')) || 0;
+      let cTot = parseFloat((d[i][10]||'').toString().replace(/[^0-9.-]+/g,'')) || (qty * cUnit);
+      if (!mapa[prod]) mapa[prod] = { producto: prod, totalQty: 0, totalGasto: 0, compras: 0 };
+      mapa[prod].totalQty += qty;
+      mapa[prod].totalGasto += cTot;
+      mapa[prod].compras++;
+    }
+    let lista = Object.values(mapa).sort(function(a, b) { return b.totalGasto - a.totalGasto; });
+    return { exito: true, datos: lista };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
 function obtenerDatosTaller() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1242,6 +1262,9 @@ function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien, cade
               if (cronDatos[j][6] && cronDatos[j][6].toString().trim() === ticketRef) {
                 hojaCron.getRange(j + 1, 19).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
                 hojaCron.getRange(j + 1, 20).setValue(fechaHoy);
+                if (decision === 'RECHAZADO') {
+                  hojaCron.getRange(j + 1, 13).setValue(''); // Clear mecánico 2 (col M, index 12)
+                }
                 break;
               }
             }
