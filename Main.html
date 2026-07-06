@@ -24,6 +24,7 @@
         box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         flex-wrap: nowrap;
         gap: 10px;
+        position: relative;
       }
       .nav-pills-container {
         display: flex;
@@ -31,6 +32,37 @@
         flex-wrap: wrap;
         justify-content: center;
         align-items: center;
+      }
+      .nav-hamburger {
+        display: none;
+        background: transparent;
+        border: 1px solid white;
+        border-radius: 6px;
+        color: white;
+        padding: 5px 10px;
+        font-size: 1.2rem;
+        cursor: pointer;
+        line-height: 1;
+      }
+      .nav-hamburger:hover { background: rgba(255,255,255,0.15); }
+      @media (max-width: 768px) {
+        .nav-hamburger { display: block; }
+        .nav-pills-container {
+          display: none;
+          flex-direction: column;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: var(--azul);
+          z-index: 9999;
+          padding: 10px 16px 16px;
+          box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+          gap: 8px;
+          align-items: flex-start;
+        }
+        .nav-pills-container.open { display: flex; }
+        .nav-pill { width: 100%; text-align: left; }
       }
       .nav-pill {
         background: transparent;
@@ -186,8 +218,9 @@
           <img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/CMTC.png" alt="Ciudad Maderas" height="45">
         </div>
 
-        <div class="nav-pills-container">
-          <a class="nav-pill active" id="btnInicio" onclick="window.mostrarInicio(this)">Inicio</a>
+        <button class="nav-hamburger" onclick="window._toggleNavMenu()" title="Menú">&#9776;</button>
+        <div class="nav-pills-container" id="navPillsContainer">
+          <a class="nav-pill active" id="btnInicio" onclick="window.mostrarInicio(this);window._cerrarNavMenu()">Inicio</a>
           <a class="nav-pill" id="btnDash" onclick="window.cargarModulo('Dashboard', this)">Dashboard 📊</a>
           <a class="nav-pill" id="btnInv" onclick="window.cargarModulo('Inventario', this)">Inventario</a>
           <a class="nav-pill" id="btnTal" onclick="window.cargarModulo('Taller', this)">Taller</a>
@@ -553,7 +586,26 @@
           '</div>';
       };
 
+      window._toggleNavMenu = function() {
+        var c = document.getElementById('navPillsContainer');
+        if (c) c.classList.toggle('open');
+      };
+      window._cerrarNavMenu = function() {
+        var c = document.getElementById('navPillsContainer');
+        if (c) c.classList.remove('open');
+      };
+
       window.cargarModulo = function(n, el) {
+        window._cerrarNavMenu();
+        // Unsaved changes guard
+        var indicadores = ['ind_sin_guardar_vistaFormTaller','ind_sin_guardar_vistaFormInventario','ind_sin_guardar_vistaFormConsumos','ind_sin_guardar_vistaFormProv','_indicadorBorradorOC'];
+        for (var _i = 0; _i < indicadores.length; _i++) {
+          var _ind = document.getElementById(indicadores[_i]);
+          if (_ind && _ind.style && _ind.style.display !== 'none' && _ind.innerText && _ind.innerText.trim() !== '') {
+            if (!confirm('Tienes cambios sin guardar. ¿Seguro que deseas salir sin guardar?')) return;
+            break;
+          }
+        }
         if(el) { document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active')); el.classList.add('active'); }
         document.getElementById('contenedor').innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" style="color: var(--dorado) !important;"></div></div>';
         google.script.run.withSuccessHandler(function(h) {
@@ -2767,6 +2819,8 @@
             var rolesQueAutorizan = ['GERENTE','SUBDIRECTORA','DIRECTORA','ADMIN'];
             var panelPend = document.getElementById('panelPendientesAuth');
             if (panelPend) panelPend.style.display = rolesQueAutorizan.includes(_rolActual) ? '' : 'none';
+            var histPendCard = document.getElementById('historialPendCard');
+            if (histPendCard) histPendCard.style.display = rolesQueAutorizan.includes(_rolActual) ? '' : 'none';
 
             // --- Visto/no visto: se persiste en localStorage por usuario ---
             var _quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
