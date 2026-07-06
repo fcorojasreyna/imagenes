@@ -488,6 +488,8 @@
               window.mostrarInicio(document.getElementById('btnInicio'));
               // Cargar badge de notificaciones al iniciar sesión
               setTimeout(function() { window.cargarDatosNotificaciones(true, true); }, 1200);
+              // Precarga silenciosa de datos para búsqueda global
+              setTimeout(function() { window._precargarDatosGlobal(); }, 2000);
             } else {
               msj.innerText = (res && res.error) ? res.error : 'Usuario o contraseña incorrectos.';
             }
@@ -3323,10 +3325,25 @@
       // ============================================================================
       // Feature 5 — Global search bar
       // ============================================================================
+      window._precargarDatosGlobal = function() {
+        if (!_tallerDatos.length)      google.script.run.withSuccessHandler(function(r){ if(r.exito) _tallerDatos      = r.datos||[]; }).obtenerDatosTaller();
+        if (!_inventarioDatos.length)  google.script.run.withSuccessHandler(function(r){ if(r.exito) _inventarioDatos  = r.datos||[]; }).obtenerDatosInventario();
+        if (!_consumosDatos.length)    google.script.run.withSuccessHandler(function(r){ if(r.exito) _consumosDatos    = r.datos||[]; }).obtenerDatosConsumos();
+        if (!_proveedoresDatos.length) google.script.run.withSuccessHandler(function(r){ if(r.exito) _proveedoresDatos = r.datos||[]; }).obtenerDatosProveedores();
+      };
+
       window._busquedaGlobal = function(q) {
         var panel = document.getElementById('panelBusquedaGlobal');
         if (!q || !q.trim()) { if (panel) panel.style.display = 'none'; return; }
         var qLow = q.trim().toLowerCase();
+        var sinDatos = !_tallerDatos.length && !_inventarioDatos.length && !_consumosDatos.length && !_proveedoresDatos.length;
+        if (sinDatos) {
+          if (!panel) { panel = document.createElement('div'); panel.id = 'panelBusquedaGlobal'; panel.style.cssText = 'position:fixed;top:60px;right:10px;width:380px;max-height:500px;overflow-y:auto;z-index:9999;background:white;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);padding:12px;'; document.body.appendChild(panel); }
+          panel.innerHTML = '<div style="color:#999;font-size:0.82rem;padding:8px;">⏳ Cargando datos... intenta en unos segundos.</div>';
+          panel.style.display = 'block';
+          window._precargarDatosGlobal();
+          return;
+        }
         var modulos = [
           { nombre: 'Taller', datos: _tallerDatos, btnId: 'btnTal' },
           { nombre: 'Inventario', datos: _inventarioDatos, btnId: 'btnInv' },
