@@ -1491,7 +1491,7 @@ function obtenerDatosNotificaciones(quien, rol) {
     if (!hoja) return { exito: true, pendientes: [], mias: [] };
     const d = hoja.getDataRange().getDisplayValues();
     if (d.length < 2) return { exito: true, pendientes: [], mias: [] };
-    let pendientes = [], mias = [];
+    let pendientes = [], revisados = [], mias = [];
     const rolUpper = (rol || '').toString().toUpperCase().trim();
     for (let i = 1; i < d.length; i++) {
       if (!d[i][0]) continue;
@@ -1499,7 +1499,6 @@ function obtenerDatosNotificaciones(quien, rol) {
             desc   = d[i][4],  sol   = d[i][6], fecha  = d[i][7], nivel = d[i][8],
             decG   = d[i][9],  decS  = d[i][12], decD  = d[i][15];
       const estaActivo = nivel !== 'AUTORIZADO' && nivel !== 'RECHAZADO';
-      // Mostrar pendiente según rol del autorizador
       const datoExtra = d[i][18] ? d[i][18].toString() : '';
       const folioOC = tipo === 'OC' ? datoExtra.split('|')[0].trim() : '';
       if (estaActivo) {
@@ -1512,6 +1511,13 @@ function obtenerDatosNotificaciones(quien, rol) {
           pendientes.push({ id: id, tipo: tipo, nivel: nivel, referencia: id,
             ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha, folioOC: folioOC });
         }
+      } else {
+        // Ya resueltos: incluir para que el Gerente pueda verlos en su historial
+        const rolAutorizo = rolUpper === 'ADMIN' || rolUpper === 'GERENTE' || rolUpper === 'SUBDIRECTORA' || rolUpper === 'DIRECTORA';
+        if (rolAutorizo) {
+          revisados.push({ id: id, tipo: tipo, nivel: nivel, referencia: id,
+            ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha, folioOC: folioOC });
+        }
       }
       if (sol === quien) {
         const cadena = tipo === 'OC' ? (datoExtra.split('|')[1] || 'SOLO_GERENTE').trim() : '';
@@ -1520,7 +1526,7 @@ function obtenerDatosNotificaciones(quien, rol) {
           fecha: fecha, estado: nivel, folioOC: folioOC, cadena: cadena });
       }
     }
-    return { exito: true, pendientes: pendientes, mias: mias };
+    return { exito: true, pendientes: pendientes, revisados: revisados, mias: mias };
   } catch(e) { return { exito: false, error: e.message }; }
 }
 

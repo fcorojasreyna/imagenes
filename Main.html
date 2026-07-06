@@ -358,7 +358,13 @@
       // ============================================================================
       window.mostrarAlerta = function(msj) {
         document.getElementById('modalAlertaMensaje').innerText = msj;
-        new bootstrap.Modal(document.getElementById('modalAlerta')).show();
+        var m = new bootstrap.Modal(document.getElementById('modalAlerta'));
+        m.show();
+        var _onKey = function(e) {
+          if (e.key === 'Enter') { m.hide(); document.removeEventListener('keydown', _onKey); }
+        };
+        document.addEventListener('keydown', _onKey);
+        document.getElementById('modalAlerta').addEventListener('hidden.bs.modal', function(){ document.removeEventListener('keydown', _onKey); }, { once: true });
       };
 
       window.mostrarConfirmacion = function(msj, callback) {
@@ -2608,8 +2614,13 @@
             }
 
             // --- Separar pendientes en no leídos (tabla principal) y leídos (historial) ---
+            var revisados    = (res.revisados || []);
             var pendNoLeidos = pendientes.filter(function(f){ return _vistas.indexOf(f.id) === -1; });
-            var pendLeidos   = pendientes.filter(function(f){ return _vistas.indexOf(f.id) !== -1; });
+            // Leídos = pendientes marcados como vistos + todos los ya resueltos (autorizados/rechazados)
+            var pendLeidos   = pendientes.filter(function(f){ return _vistas.indexOf(f.id) !== -1; })
+                                         .concat(revisados.filter(function(f){
+                                           return !pendientes.some(function(p){ return p.id === f.id; });
+                                         }));
 
             var _filaPend = function(f, esHistorial) {
               var btnAcc = '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);font-size:0.75rem;" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\',\''+encodeURIComponent(f.ticket||'')+'\',\''+encodeURIComponent(f.folioOC||'')+'\')">Revisar</button>';
