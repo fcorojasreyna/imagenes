@@ -4126,6 +4126,8 @@
           window._dashGroupK(dAll,function(f){return f.tipo||'Sin tipo';}),function(i){return _DP[i%_DP.length];},false);
         window._dashBars('dBar_herrLugar','Por Ubicación',
           window._dashGroupK(dAll,function(f){return f.lugarActual||f.lugar||'Sin ubicación';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+        window._dashBars('dBar_herrMarca','Por Marca',
+          window._dashGroupK(dAll,function(f){return f.marca||'Sin marca';}),function(i){return _DP[i%_DP.length];},false);
       };
 
       // ---- CRONOGRAMA ----
