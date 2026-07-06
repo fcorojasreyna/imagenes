@@ -231,7 +231,7 @@ function registrarProveedor(d) {
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proveedores");
     const idGenerado = generarIdIncremental("Proveedores", "PROV");
-    hoja.appendRow([ idGenerado, d.proveedor, d.razonSocial, d.rfc, d.direccion, d.estado, d.contacto, d.numero, d.correo, d.segmentacion, d.diasCredito, d.totalCredito, d.servicio, d.razonesSociales, d.regimenFiscal || "", d.intercambio2 || "NO", d.quienRegistra || "" ]);
+    hoja.appendRow([ idGenerado, d.proveedor, d.razonSocial, d.rfc, d.estado, d.direccion, d.contacto, d.numero, d.correo, d.segmentacion, d.servicio, d.diasCredito, d.totalCredito, d.razonesSociales, d.regimenFiscal || "", d.intercambio2 || "NO", d.quienRegistra || "" ]);
     SpreadsheetApp.flush();
     return { msj: "Proveedor registrado con éxito." };
   } catch(e) { return { msj: "Error: " + e.message }; }
@@ -637,6 +637,14 @@ function registrarInventarioDesdeOC(folioOC) {
     if (!hojaOC || !hojaInv) return { exito: false, error: "Hoja no encontrada." };
     const dOC = hojaOC.getDataRange().getDisplayValues();
     const fReg = formatoDDMMYYYY(new Date());
+    // Construir mapa NUCO → línea desde hoja Vehiculos (col E=4 NUCO, col V=21 Línea)
+    const dVeh = ss.getSheetByName("Vehiculos").getDataRange().getDisplayValues();
+    const mapaLinea = {};
+    for (let v = 1; v < dVeh.length; v++) {
+      const n = dVeh[v][4].toString().trim();
+      const l = dVeh[v][21].toString().trim();
+      if (n && l) mapaLinea[n] = l;
+    }
     let registrados = 0;
     for (let i = 1; i < dOC.length; i++) {
       if (!dOC[i][2] || dOC[i][2].toString().trim() !== folioOC.toString().trim()) continue;
@@ -644,8 +652,9 @@ function registrarInventarioDesdeOC(folioOC) {
       const ticket = dOC[i][3], usuario = dOC[i][5], nuco = dOC[i][6];
       const producto = dOC[i][15], marca = dOC[i][16], um = dOC[i][20];
       const cantidad = dOC[i][19], total = dOC[i][27], pu = dOC[i][23];
+      const linea = mapaLinea[nuco.toString().trim()] || nuco; // línea si existe, si no el NUCO
       const idInv = generarIdIncremental("Inventario", "INV");
-      hojaInv.appendRow([idInv, ticket, "", "ALTA AUTOMÁTICA DESDE OC: " + folioOC, producto, marca, nuco, um, fReg, cantidad, total, pu, "DISPONIBLE", usuario]);
+      hojaInv.appendRow([idInv, ticket, "", "ALTA AUTOMÁTICA DESDE OC: " + folioOC, producto, marca, linea, um, fReg, cantidad, total, pu, "DISPONIBLE", usuario]);
       registrados++;
     }
     SpreadsheetApp.flush();
@@ -757,11 +766,24 @@ function obtenerDatosProveedores() {
     let f = [];
     for (let i = 1; i < d.length; i++) {
       if (d[i][1].toString().trim()) {
-        f.push({ id: d[i][0], proveedor: d[i][1], razonSocial: d[i][2], rfc: d[i][3], direccion: d[i][4], estado: d[i][5], contacto: d[i][6], telefono: d[i][7], correo: d[i][8], segmentacion: d[i][9], diasCredito: d[i][10], totalCredito: d[i][11], servicio: d[i][12], razonesSociales: d[i][13], regimenFiscal: d[i][14] || "", intercambio2: d[i][15] || "NO", quienRegistra: d[i][16] || "" });
+        f.push({ id: d[i][0], proveedor: d[i][1], razonSocial: d[i][2], rfc: d[i][3], estado: d[i][4], direccion: d[i][5], contacto: d[i][6], telefono: d[i][7], correo: d[i][8], segmentacion: d[i][9], servicio: d[i][10], diasCredito: d[i][11], totalCredito: d[i][12], razonesSociales: d[i][13], regimenFiscal: d[i][14] || "", intercambio2: d[i][15] || "NO", quienRegistra: d[i][16] || "" });
       }
     }
     return { exito: true, datos: f.reverse() };
   } catch(e) { return { exito: false, error: "Error al leer proveedores." }; }
+}
+
+function obtenerMapaVehiculos() {
+  try {
+    const d = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vehiculos").getDataRange().getDisplayValues();
+    const mapa = {};
+    for (let i = 1; i < d.length; i++) {
+      const nuco  = d[i][4].toString().trim();  // col E = NUCO
+      const linea = d[i][21].toString().trim(); // col V = Línea
+      if (nuco && linea) mapa[nuco] = linea;
+    }
+    return { exito: true, datos: mapa };
+  } catch(e) { return { exito: false, datos: {} }; }
 }
 
 function obtenerHistorialNuco(nucoBusqueda) {
@@ -1563,15 +1585,15 @@ function actualizarProveedorCompleto(d) {
         hoja.getRange(f,  2).setValue(d.proveedor);
         hoja.getRange(f,  3).setValue(d.razonSocial);
         hoja.getRange(f,  4).setValue(d.rfc);
-        hoja.getRange(f,  5).setValue(d.direccion);
-        hoja.getRange(f,  6).setValue(d.estado);
+        hoja.getRange(f,  5).setValue(d.estado);
+        hoja.getRange(f,  6).setValue(d.direccion);
         hoja.getRange(f,  7).setValue(d.contacto);
         hoja.getRange(f,  8).setValue(d.telefono);
         hoja.getRange(f,  9).setValue(d.correo);
         hoja.getRange(f, 10).setValue(d.segmentacion);
-        hoja.getRange(f, 11).setValue(d.diasCredito);
-        hoja.getRange(f, 12).setValue(d.totalCredito);
-        hoja.getRange(f, 13).setValue(d.servicio);
+        hoja.getRange(f, 11).setValue(d.servicio);
+        hoja.getRange(f, 12).setValue(d.diasCredito);
+        hoja.getRange(f, 13).setValue(d.totalCredito);
         hoja.getRange(f, 14).setValue(d.razonesSociales);
         hoja.getRange(f, 15).setValue(d.regimenFiscal || "");
         hoja.getRange(f, 16).setValue(d.intercambio2 || "NO");

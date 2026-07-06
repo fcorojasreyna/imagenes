@@ -595,17 +595,7 @@
         if (c) c.classList.remove('open');
       };
 
-      window.cargarModulo = function(n, el) {
-        window._cerrarNavMenu();
-        // Unsaved changes guard
-        var indicadores = ['ind_sin_guardar_vistaFormTaller','ind_sin_guardar_vistaFormInventario','ind_sin_guardar_vistaFormConsumos','ind_sin_guardar_vistaFormProv','_indicadorBorradorOC'];
-        for (var _i = 0; _i < indicadores.length; _i++) {
-          var _ind = document.getElementById(indicadores[_i]);
-          if (_ind && _ind.style && _ind.style.display !== 'none' && _ind.innerText && _ind.innerText.trim() !== '') {
-            if (!confirm('Tienes cambios sin guardar. ¿Seguro que deseas salir sin guardar?')) return;
-            break;
-          }
-        }
+      window._cargarModuloInterno = function(n, el) {
         if(el) { document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active')); el.classList.add('active'); }
         document.getElementById('contenedor').innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" style="color: var(--dorado) !important;"></div></div>';
         google.script.run.withSuccessHandler(function(h) {
@@ -623,6 +613,23 @@
           else window.detenerAutoRefreshNotif();
           if (n === 'Agenda')           window.iniciarAgenda();
         }).incluir(n);
+      };
+
+      window.cargarModulo = function(n, el) {
+        window._cerrarNavMenu();
+        var indicadores = ['ind_sin_guardar_vistaFormTaller','ind_sin_guardar_vistaFormInventario','ind_sin_guardar_vistaFormConsumos','ind_sin_guardar_vistaFormProv','_indicadorBorradorOC'];
+        var hayPendiente = false;
+        for (var _i = 0; _i < indicadores.length; _i++) {
+          var _ind = document.getElementById(indicadores[_i]);
+          if (_ind && _ind.style && _ind.style.display !== 'none' && _ind.innerText && _ind.innerText.trim() !== '') { hayPendiente = true; break; }
+        }
+        if (hayPendiente) {
+          window.mostrarConfirmacion('Tienes cambios sin guardar. ¿Seguro que deseas salir sin guardar?', function() {
+            window._cargarModuloInterno(n, el);
+          });
+          return;
+        }
+        window._cargarModuloInterno(n, el);
       };
 
       // ============================================================================
@@ -1365,6 +1372,18 @@
         new bootstrap.Modal(document.getElementById('modalEdicionDinamica')).show();
       };
 
+      // Helper reutilizable para dropdowns en modales de edición
+      window._ddCat = function(hid, lbl, catKey, val) {
+        return '<label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">'+lbl+'</label>'
+          +'<div class="dropdown">'
+          +'<button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_'+hid+'" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white;font-size:0.9rem;color:#6c757d;" onclick="window.abrirDropdownCat(\''+hid+'\',\''+catKey+'\')">'
+          +'<span id="lbl_'+hid+'" class="text-truncate">'+(val||'— Selecciona —')+'</span><span>▼</span></button>'
+          +'<ul class="dropdown-menu w-100" style="max-height:200px;overflow-y:auto;padding:6px;">'
+          +'<li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,\'lista_'+hid+'\')"></li>'
+          +'<div id="lista_'+hid+'"></div></ul></div>'
+          +'<input type="hidden" id="'+hid+'" value="'+(val||'').replace(/"/g,'&quot;')+'">';
+      };
+
       // MODAL PROVEEDORES
       window.abrirEdicionProveedorCompleta = function(idBuscado) {
         var prov = window.catalogoProveedoresCache.find(item => item.id === idBuscado);
@@ -1379,13 +1398,13 @@
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Contacto</label><input type="text" id="edProvCont" class="form-control" value="' + (prov.contacto || '') + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Teléfono / Móvil</label><input type="text" id="edProvTel" class="form-control" value="' + (prov.telefono || '') + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Correo Electrónico</label><input type="text" id="edProvCorr" class="form-control text-lowercase" value="' + (prov.correo || '') + '"></div>' +
-          '<div class="col-md-4 mb-3"><label class="small fw-bold">Estado</label><input type="text" id="edProvEst" class="form-control" value="' + (prov.estado || '') + '"></div>' +
+          '<div class="col-md-4 mb-3">' + window._ddCat('edProvEst','Estado','ESTADO_REP', prov.estado||'') + '</div>' +
           '<div class="col-md-8 mb-3"><label class="small fw-bold">Dirección Completa</label><input type="text" id="edProvDir" class="form-control" value="' + (prov.direccion || '') + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Segmentación</label><input type="text" id="edProvSeg" class="form-control" value="' + (prov.segmentacion || '') + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Días de Crédito</label><input type="number" id="edProvDias" class="form-control" value="' + (prov.diasCredito || 0) + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Límite de Crédito</label><div class="input-group"><span class="input-group-text">$</span><input type="text" id="edProvMontoCred" class="form-control" value="' + (prov.totalCredito || '') + '"></div></div>' +
-          '<div class="col-md-12 mb-2"><label class="small fw-bold">Especialidad / Servicio</label><input type="text" id="edProvServ" class="form-control" value="' + (prov.servicio || '') + '"></div>' +
-          '<div class="col-md-6 mb-3"><label class="small fw-bold">Régimen Fiscal (SAT)</label><input type="text" id="edProvRegFisc" class="form-control" value="' + (prov.regimenFiscal || '') + '"></div>' +
+          '<div class="col-md-12 mb-2">' + window._ddCat('edProvServ','Especialidad / Servicio','SERVICIO', prov.servicio||'') + '</div>' +
+          '<div class="col-md-6 mb-3">' + window._ddCat('edProvRegFisc','Régimen Fiscal (SAT)','REGIMEN_FISCAL', prov.regimenFiscal||'') + '</div>' +
           '<div class="col-md-6 mb-3"><label class="small fw-bold">¿Intercambio?</label><select id="edProvIntercambio" class="form-select"><option value="NO"' + (prov.intercambio2 !== 'SI' ? ' selected' : '') + '>NO</option><option value="SI"' + (prov.intercambio2 === 'SI' ? ' selected' : '') + '>S\xCD</option></select></div>' +
           '</div>';
         var edDin4 = document.getElementById("cuerpoEdicionDinamica"); if(!edDin4) return; edDin4.innerHTML = formEdicion;
@@ -1468,9 +1487,9 @@
           var datos = JSON.parse(raw);
           var tsDiff = Math.floor((Date.now() - (datos._ts || 0)) / 60000);
           var msg = '¿Deseas restaurar el borrador guardado hace ' + tsDiff + ' min?';
-          if (confirm(msg)) {
+          window.mostrarConfirmacion(msg, function() {
             window._restaurarBorradorOC(datos);
-          }
+          });
         } catch(e) {}
       };
 
@@ -2156,22 +2175,22 @@
       window.editarHerramientaModal = function(idOBJ) {
         var f = (typeof idOBJ === 'string') ? _herramientasDatos.find(function(x){ return x.id === idOBJ; }) : idOBJ;
         if (!f) { window.mostrarAlerta('No se encontró la herramienta.'); return; }
-        var html = '<div class="mb-3"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">ID</label><input type="text" class="form-control bg-light" readonly value="'+f.id+'"></div>' +
-          '<div class="row g-2">' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Tipo</label><input id="edHrTipo" class="form-control" value="'+(f.tipo||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Tipo Unidad</label><input id="edHrTipoUnidad" class="form-control" value="'+(f.tipoUnidad||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-12 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Nombre *</label><input id="edHrNombre" class="form-control" style="text-transform:uppercase;" value="'+(f.nombre||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Marca</label><input id="edHrMarca" class="form-control" style="text-transform:uppercase;" value="'+(f.marca||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Estado</label><input id="edHrEstado" class="form-control" style="text-transform:uppercase;" value="'+(f.estadoHerr||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Lugar / Ubicación</label><input id="edHrLugar" class="form-control" style="text-transform:uppercase;" value="'+(f.lugar||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-md-3 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Estatus</label><select id="edHrEstatus" class="form-select">' +
-            '<option value="DISPONIBLE"'+(f.estatus==='DISPONIBLE'?' selected':'')+'>DISPONIBLE</option>' +
-            '<option value="EN USO"'+(f.estatus==='EN USO'?' selected':'')+'>EN USO</option>' +
-            '<option value="BAJA"'+(f.estatus==='BAJA'?' selected':'')+'>BAJA</option>' +
-          '</select></div>' +
-          '<div class="col-md-3 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Existencia</label><input type="number" id="edHrExistencia" class="form-control" min="1" value="'+(f.existencia||1)+'"></div>' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Fecha</label><input type="date" id="edHrFecha" class="form-control" value="'+(f.fecha||'')+'"></div>' +
-          '</div>';
+        var _ddH = window._ddCat;
+        // Fecha DD/MM/YYYY → YYYY-MM-DD para input date
+        var fISO = '';
+        if (f.fecha) { var fp=f.fecha.split('/'); if(fp.length===3) fISO=fp[2]+'-'+fp[1]+'-'+fp[0]; }
+        var html = '<div class="mb-3"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">ID</label><input type="text" class="form-control bg-light" readonly value="'+f.id+'"></div>'
+          +'<div class="row g-2">'
+          +'<div class="col-md-6 mb-2">'+_ddH('edHrTipo','Tipo','TIPO_HERRAMIENTA',f.tipo||'')+'</div>'
+          +'<div class="col-md-6 mb-2">'+_ddH('edHrTipoUnidad','Tipo Unidad','UM',f.tipoUnidad||'')+'</div>'
+          +'<div class="col-12 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Nombre *</label><input id="edHrNombre" class="form-control" style="text-transform:uppercase;" value="'+(f.nombre||'').replace(/"/g,'&quot;')+'"></div>'
+          +'<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Marca</label><input id="edHrMarca" class="form-control" style="text-transform:uppercase;" value="'+(f.marca||'').replace(/"/g,'&quot;')+'"></div>'
+          +'<div class="col-md-6 mb-2">'+_ddH('edHrEstado','Estado','ESTADO_HERRAMIENTA',f.estadoHerr||'')+'</div>'
+          +'<div class="col-md-6 mb-2">'+_ddH('edHrLugar','Lugar / Ubicación','UBICACION_HERRAMIENTA',f.lugar||'')+'</div>'
+          +'<div class="col-md-3 mb-2">'+_ddH('edHrEstatus','Estatus','ESTATUS_HERRAMIENTA',f.estatus||'')+'</div>'
+          +'<div class="col-md-3 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Existencia</label><input type="number" id="edHrExistencia" class="form-control" min="1" value="'+(f.existencia||1)+'"></div>'
+          +'<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Fecha</label><input type="date" id="edHrFecha" class="form-control" value="'+fISO+'"></div>'
+          +'</div>';
 
         var body = document.getElementById('cuerpoEdicionDinamica');
         var titulo = document.getElementById('tituloEdicionDinamica');
@@ -3215,10 +3234,13 @@
           });
           return;
         }
-        // Todos los demás roles ven todo el nav
+        // Dashboard solo visible para roles autorizantes
+        var rolesDash = ['GERENTE','SUBDIRECTORA','DIRECTORA','ADMIN'];
         todosNav.forEach(function(id) {
           var el = document.getElementById(id);
-          if (el) el.style.display = '';
+          if (!el) return;
+          if (id === 'btnDash') el.style.display = rolesDash.includes(rol) ? '' : 'none';
+          else el.style.display = '';
         });
       };
 
@@ -3428,6 +3450,7 @@
       var _DP = ['#1E252B','#B4A169','#2d3a45','#c8ae7e','#3d5060','#8a7a4f','#6a8a7a','#c49a6a','#9a6a45','#4a6a5a'];
       var _DASH_TABS = ['taller','inventario','consumos','proveedores','oc','herramientas','cronograma','ejecutivos','mecanicos'];
       var _dashCronDatos = [];
+      var _mapaVehiculos = {}; // NUCO → línea
       window._dashCurrentTab = 'taller';
 
       // ---- Month filter helpers ----
@@ -3497,10 +3520,12 @@
       };
 
       // ---- Init ----
-      window.iniciarDashboard = function() {
+      window.iniciarDashboard = function(forzar) {
         window._dashInitYearSelect();
+        if (forzar) { _tallerDatos=[]; _inventarioDatos=[]; _consumosDatos=[]; _proveedoresDatos=[]; _ocDatosGlobal=[]; _herramientasDatos=[]; _dashCronDatos=[]; _mapaVehiculos={}; }
         var pending = 0;
-        function tryRender() { if (--pending <= 0) window._renderDashTaller(); }
+        function tryRender() { if (--pending <= 0) window._switchDashTab(window._dashCurrentTab); }
+        pending++; google.script.run.withSuccessHandler(function(r){ if(r.exito) _mapaVehiculos=r.datos||{}; tryRender(); }).withFailureHandler(function(){tryRender();}).obtenerMapaVehiculos();
         if (!_tallerDatos.length)      { pending++; google.script.run.withSuccessHandler(function(r){ if(r.exito) _tallerDatos=r.datos||[];      tryRender(); }).withFailureHandler(function(){tryRender();}).obtenerDatosTaller(); }
         else { pending++; tryRender(); }
         if (!_inventarioDatos.length)  { google.script.run.withSuccessHandler(function(r){ if(r.exito) _inventarioDatos=r.datos||[]; }).obtenerDatosInventario(); }
@@ -3509,6 +3534,13 @@
         if (!_ocDatosGlobal.length)    { google.script.run.withSuccessHandler(function(r){ if(r.exito) _ocDatosGlobal=r.datos||[]; }).obtenerHistorialGlobalOC(); }
         if (!_herramientasDatos.length){ google.script.run.withSuccessHandler(function(r){ if(r.exito) _herramientasDatos=r.datos||[]; }).obtenerDatosHerramientas(); }
         if (!_dashCronDatos.length)    { google.script.run.withSuccessHandler(function(r){ if(r.exito) _dashCronDatos=r.datos||[]; }).obtenerDatosCronograma(); }
+      };
+
+      window._dashRefresh = function() {
+        var btn = document.getElementById('dashRefreshBtn');
+        if (btn) { btn.disabled = true; btn.innerText = '⏳ Actualizando...'; }
+        window.iniciarDashboard(true);
+        setTimeout(function(){ if(btn){ btn.disabled=false; btn.innerText='🔄 Actualizar'; } }, 3000);
       };
 
       // ---- CSV Export ----
@@ -3530,7 +3562,11 @@
         if (!d.length) { window.mostrarAlerta('No hay datos en el período seleccionado.'); return; }
         var hdrs = cfg.fields;
         var rows = d.map(function(f){
-          return hdrs.map(function(h){ var v=(f[h]!=null?f[h]:'').toString().replace(/"/g,'""'); return '"'+v+'"'; }).join(',');
+          return hdrs.map(function(h){
+            var v = (f[h]!=null?f[h]:'').toString();
+            if (h==='vehiculo' && tab==='inventario') v = _mapaVehiculos[v.trim()] || v;
+            return '"'+v.replace(/"/g,'""')+'"';
+          }).join(',');
         });
         var csv = hdrs.join(',') + '\n' + rows.join('\n');
         var mes = document.getElementById('dashMesFiltro') ? document.getElementById('dashMesFiltro').options[document.getElementById('dashMesFiltro').selectedIndex].text : 'todos';
@@ -3580,7 +3616,7 @@
           ?'<text x="60" y="55" text-anchor="middle" font-size="15" font-weight="800" fill="'+((segs[0]&&segs[0].c)||'#333')+'">'+total+'</text><text x="60" y="70" text-anchor="middle" font-size="8" fill="#bbb">total</text>'
           :'<text x="60" y="65" text-anchor="middle" font-size="9" fill="#ccc">Sin datos</text>';
         el.innerHTML='<div class="dash-chart-title">'+title+'</div>'
-          +'<div style="display:flex;align-items:center;gap:.9rem;">'
+          +'<div style="display:flex;align-items:flex-start;gap:.9rem;">'
           +'<svg viewBox="0 0 120 120" width="105" height="105" style="flex-shrink:0;">'
           +'<circle cx="60" cy="60" r="45" fill="none" stroke="#f0ebe0" stroke-width="18"/>'
           +(total>0?paths:'')+cText+'</svg>'
@@ -3596,7 +3632,7 @@
           var disp=money?window._dM(x.v):window._dN(x.v);
           return '<div style="margin-bottom:6px;">'
             +'<div style="display:flex;justify-content:space-between;margin-bottom:2px;">'
-            +'<span style="font-size:0.72rem;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:58%;" title="'+x.l+'">'+x.l+'</span>'
+            +'<span style="font-size:0.72rem;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%;" title="'+x.l+'">'+x.l+'</span>'
             +'<span style="font-size:0.72rem;font-weight:700;color:var(--azul);white-space:nowrap;">'+disp+'</span></div>'
             +'<div style="background:#f0ebe0;border-radius:3px;height:8px;overflow:hidden;">'
             +'<div style="width:'+pct+'%;height:100%;background:'+c+';border-radius:3px;transition:width .5s;"></div>'
@@ -3649,8 +3685,8 @@
         window._dashBars('dBar_tallerProv','Top Proveedores por Costo',
           window._dashGroupK(d,function(f){return f.proveedor||'Sin proveedor';},function(f){return(parseFloat(f.servInterno)||0)+(parseFloat(f.servExterno)||0);}),
           function(i){return _DP[i%_DP.length];},true);
-        window._dashBars('dBar_tallerModelos','Top Modelos — Servicios',
-          window._dashGroupK(d,function(f){return f.modelo||'Sin modelo';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+        window._dashBars('dBar_tallerLineas','Top Líneas — Servicios',
+          window._dashGroupK(d,function(f){var n=(f.nuco||'').trim();return f.linea||_mapaVehiculos[n]||f.modelo||n||'Sin línea';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
         window._dashBars('dBar_tallerSedes','Servicios por Sede',
           window._dashGroupK(d,function(f){return f.sede||'Sin sede';}),function(i){return _DP[i%_DP.length];},false);
       };
@@ -3681,7 +3717,7 @@
           window._dashGroupK(d,function(f){return f.producto||'Sin producto';},function(f){return parseFloat(f.costoTotal)||0;}),
           function(i){return i%2===0?'var(--azul)':'var(--dorado)';},true);
         window._dashBars('dBar_invVehiculos','Top Vehículos por Refacciones (registros)',
-          window._dashGroupK(d,function(f){return f.vehiculo||'Sin vehículo';}),function(i){return _DP[i%_DP.length];},false);
+          window._dashGroupK(d,function(f){var v=(f.vehiculo||'').trim();return _mapaVehiculos[v]||v||'Sin vehículo';}),function(i){return _DP[i%_DP.length];},false);
       };
 
       // ---- CONSUMOS ----
@@ -3733,10 +3769,12 @@
           {l:'Con Intercambio',v:conInterc,c:'#6a8a7a'},
           {l:'Sin Intercambio',v:d.length-conInterc,c:'#9a6a45'}
         ]);
+        function _esEstadoValido(v){ if(!v) return false; var s=v.trim(); return s.length>0 && s.length<=30 && !/\d{2,}/.test(s) && !/[,#]/.test(s); }
+        function _esServicioValido(v){ if(!v) return false; var s=v.trim(); return s.length>0 && !/^\$/.test(s) && isNaN(parseFloat(s.replace(/[,$]/g,''))); }
         window._dashBars('dBar_provEstados','Proveedores por Estado',
-          window._dashGroupK(d,function(f){return f.estado||'Sin estado';}),function(i){return _DP[i%_DP.length];},false);
+          window._dashGroupK(d,function(f){var v=(f.estado||'').trim(); return _esEstadoValido(v)?v:'Sin clasificar';}),function(i){return _DP[i%_DP.length];},false);
         window._dashBars('dBar_provServicio','Proveedores por Tipo de Servicio',
-          window._dashGroupK(d,function(f){return f.servicio||'Sin servicio';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+          window._dashGroupK(d,function(f){var v=(f.servicio||'').trim(); return _esServicioValido(v)?v:'Sin clasificar';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
       };
 
       // ---- OC ----
@@ -3772,28 +3810,29 @@
           google.script.run.withSuccessHandler(function(r){if(r.exito){_herramientasDatos=r.datos||[];window._renderDashHerramientas();}}).obtenerDatosHerramientas();
           var kEl=document.getElementById('dKpi_herramientas'); if(kEl) kEl.innerHTML='<p style="color:#bbb;font-size:0.8rem;">Cargando...</p>'; return;
         }
-        var df=window._dashFilter(d,'fecha');
-        var activas=df.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('ACTIV')>-1;}).length;
-        var bajas=df.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('BAJA')>-1;}).length;
-        var existTotal=df.reduce(function(s,f){return s+(parseFloat(f.existencia)||0);},0);
+        var df=window._dashFilter(d,'fechaAdq');
+        var dAll=d; // total general sin filtro de período
+        var activas=dAll.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('ACTIV')>-1||(f.estatus||'').toUpperCase().indexOf('DISPONIBLE')>-1;}).length;
+        var prestadas=dAll.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('PREST')>-1;}).length;
+        var bajas=dAll.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('BAJA')>-1;}).length;
         var kpi=document.getElementById('dKpi_herramientas');
         if(kpi) kpi.innerHTML=window._dashKpiHtml([
-          {label:'Herramientas período', value:window._dN(df.length),    color:'var(--azul)'},
-          {label:'Activas',               value:window._dN(activas),     color:'#6a8a7a'},
-          {label:'Bajas',                 value:window._dN(bajas),       color:'#9a6a45'},
-          {label:'Existencia Total',      value:window._dN(existTotal),  color:'var(--dorado)'}
+          {label:'Total Herramientas',    value:window._dN(dAll.length),   color:'var(--azul)'},
+          {label:'Disponibles',           value:window._dN(activas),       color:'#6a8a7a'},
+          {label:'Prestadas',             value:window._dN(prestadas),     color:'#c8ae7e'},
+          {label:'Bajas',                 value:window._dN(bajas),         color:'#9a6a45'}
         ]);
         window._dashDonut('dDonut_herrEstatus','Por Estatus',
-          window._dashGroupK(df,function(f){return f.estatus||'Sin estatus';}).slice(0,6).map(function(x,i){return{l:x.l,v:x.v,c:_DP[i%_DP.length]};}));
+          window._dashGroupK(dAll,function(f){return f.estatus||'Sin estatus';}).slice(0,6).map(function(x,i){return{l:x.l,v:x.v,c:_DP[i%_DP.length]};}));
         window._dashDonut('dDonut_herrEstado','Estado Físico',
-          window._dashGroupK(df,function(f){var e=(f.estadoHerr||'').toUpperCase().trim(); return e||'Sin estado';}).map(function(x,i){
-            var c=x.l.includes('BUEN')?'#6a8a7a':x.l.includes('DA')?'#9a6a45':x.l.includes('INCOMPL')?'#c8ae7e':_DP[i%_DP.length];
+          window._dashGroupK(dAll,function(f){var e=(f.estadoHerr||f.estado||'').toUpperCase().trim(); return e||'Sin estado';}).map(function(x,i){
+            var c=x.l.includes('BUEN')?'#6a8a7a':x.l.includes('MAL')?'#9a6a45':x.l.includes('REG')?'#c8ae7e':_DP[i%_DP.length];
             return{l:x.l,v:x.v,c:c};
           }));
         window._dashBars('dBar_herrTipo','Por Tipo de Herramienta',
-          window._dashGroupK(df,function(f){return f.tipo||'Sin tipo';}),function(i){return _DP[i%_DP.length];},false);
+          window._dashGroupK(dAll,function(f){return f.tipo||'Sin tipo';}),function(i){return _DP[i%_DP.length];},false);
         window._dashBars('dBar_herrLugar','Por Ubicación',
-          window._dashGroupK(df,function(f){return f.lugar||'Sin ubicación';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+          window._dashGroupK(dAll,function(f){return f.lugarActual||f.lugar||'Sin ubicación';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
       };
 
       // ---- CRONOGRAMA ----
