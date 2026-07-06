@@ -2189,7 +2189,10 @@
           if (registrosHoy.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No hay actividades programadas para hoy.</td></tr>'; return;
           }
-          registrosHoy.sort(function(a,b){ return (a.horario||'').localeCompare(b.horario||''); });
+          registrosHoy.sort(function(a,b){
+            var toMin = function(h){ var p=(h||'').split(':'); return (parseInt(p[0])||0)*60+(parseInt(p[1])||0); };
+            return toMin(a.horario) - toMin(b.horario);
+          });
           registrosHoy.forEach(function(f) {
             var color = window._colorCronFila(f.estatusUnidad);
             var tr = document.createElement('tr');
