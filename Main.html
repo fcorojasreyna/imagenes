@@ -595,17 +595,7 @@
         if (c) c.classList.remove('open');
       };
 
-      window.cargarModulo = function(n, el) {
-        window._cerrarNavMenu();
-        // Unsaved changes guard
-        var indicadores = ['ind_sin_guardar_vistaFormTaller','ind_sin_guardar_vistaFormInventario','ind_sin_guardar_vistaFormConsumos','ind_sin_guardar_vistaFormProv','_indicadorBorradorOC'];
-        for (var _i = 0; _i < indicadores.length; _i++) {
-          var _ind = document.getElementById(indicadores[_i]);
-          if (_ind && _ind.style && _ind.style.display !== 'none' && _ind.innerText && _ind.innerText.trim() !== '') {
-            if (!confirm('Tienes cambios sin guardar. ¿Seguro que deseas salir sin guardar?')) return;
-            break;
-          }
-        }
+      window._cargarModuloInterno = function(n, el) {
         if(el) { document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active')); el.classList.add('active'); }
         document.getElementById('contenedor').innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" style="color: var(--dorado) !important;"></div></div>';
         google.script.run.withSuccessHandler(function(h) {
@@ -623,6 +613,23 @@
           else window.detenerAutoRefreshNotif();
           if (n === 'Agenda')           window.iniciarAgenda();
         }).incluir(n);
+      };
+
+      window.cargarModulo = function(n, el) {
+        window._cerrarNavMenu();
+        var indicadores = ['ind_sin_guardar_vistaFormTaller','ind_sin_guardar_vistaFormInventario','ind_sin_guardar_vistaFormConsumos','ind_sin_guardar_vistaFormProv','_indicadorBorradorOC'];
+        var hayPendiente = false;
+        for (var _i = 0; _i < indicadores.length; _i++) {
+          var _ind = document.getElementById(indicadores[_i]);
+          if (_ind && _ind.style && _ind.style.display !== 'none' && _ind.innerText && _ind.innerText.trim() !== '') { hayPendiente = true; break; }
+        }
+        if (hayPendiente) {
+          window.mostrarConfirmacion('Tienes cambios sin guardar. ¿Seguro que deseas salir sin guardar?', function() {
+            window._cargarModuloInterno(n, el);
+          });
+          return;
+        }
+        window._cargarModuloInterno(n, el);
       };
 
       // ============================================================================
@@ -1480,9 +1487,9 @@
           var datos = JSON.parse(raw);
           var tsDiff = Math.floor((Date.now() - (datos._ts || 0)) / 60000);
           var msg = '¿Deseas restaurar el borrador guardado hace ' + tsDiff + ' min?';
-          if (confirm(msg)) {
+          window.mostrarConfirmacion(msg, function() {
             window._restaurarBorradorOC(datos);
-          }
+          });
         } catch(e) {}
       };
 
