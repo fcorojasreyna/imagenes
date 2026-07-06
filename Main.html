@@ -1365,6 +1365,18 @@
         new bootstrap.Modal(document.getElementById('modalEdicionDinamica')).show();
       };
 
+      // Helper reutilizable para dropdowns en modales de edición
+      window._ddCat = function(hid, lbl, catKey, val) {
+        return '<label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">'+lbl+'</label>'
+          +'<div class="dropdown">'
+          +'<button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_'+hid+'" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white;font-size:0.9rem;color:#6c757d;" onclick="window.abrirDropdownCat(\''+hid+'\',\''+catKey+'\')">'
+          +'<span id="lbl_'+hid+'" class="text-truncate">'+(val||'— Selecciona —')+'</span><span>▼</span></button>'
+          +'<ul class="dropdown-menu w-100" style="max-height:200px;overflow-y:auto;padding:6px;">'
+          +'<li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,\'lista_'+hid+'\')"></li>'
+          +'<div id="lista_'+hid+'"></div></ul></div>'
+          +'<input type="hidden" id="'+hid+'" value="'+(val||'').replace(/"/g,'&quot;')+'">';
+      };
+
       // MODAL PROVEEDORES
       window.abrirEdicionProveedorCompleta = function(idBuscado) {
         var prov = window.catalogoProveedoresCache.find(item => item.id === idBuscado);
@@ -1379,13 +1391,13 @@
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Contacto</label><input type="text" id="edProvCont" class="form-control" value="' + (prov.contacto || '') + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Teléfono / Móvil</label><input type="text" id="edProvTel" class="form-control" value="' + (prov.telefono || '') + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Correo Electrónico</label><input type="text" id="edProvCorr" class="form-control text-lowercase" value="' + (prov.correo || '') + '"></div>' +
-          '<div class="col-md-4 mb-3"><label class="small fw-bold">Estado</label><input type="text" id="edProvEst" class="form-control" value="' + (prov.estado || '') + '"></div>' +
+          '<div class="col-md-4 mb-3">' + window._ddCat('edProvEst','Estado','ESTADO_REP', prov.estado||'') + '</div>' +
           '<div class="col-md-8 mb-3"><label class="small fw-bold">Dirección Completa</label><input type="text" id="edProvDir" class="form-control" value="' + (prov.direccion || '') + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Segmentación</label><input type="text" id="edProvSeg" class="form-control" value="' + (prov.segmentacion || '') + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Días de Crédito</label><input type="number" id="edProvDias" class="form-control" value="' + (prov.diasCredito || 0) + '"></div>' +
           '<div class="col-md-4 mb-3"><label class="small fw-bold">Límite de Crédito</label><div class="input-group"><span class="input-group-text">$</span><input type="text" id="edProvMontoCred" class="form-control" value="' + (prov.totalCredito || '') + '"></div></div>' +
-          '<div class="col-md-12 mb-2"><label class="small fw-bold">Especialidad / Servicio</label><input type="text" id="edProvServ" class="form-control" value="' + (prov.servicio || '') + '"></div>' +
-          '<div class="col-md-6 mb-3"><label class="small fw-bold">Régimen Fiscal (SAT)</label><input type="text" id="edProvRegFisc" class="form-control" value="' + (prov.regimenFiscal || '') + '"></div>' +
+          '<div class="col-md-12 mb-2">' + window._ddCat('edProvServ','Especialidad / Servicio','SERVICIO', prov.servicio||'') + '</div>' +
+          '<div class="col-md-6 mb-3">' + window._ddCat('edProvRegFisc','Régimen Fiscal (SAT)','REGIMEN_FISCAL', prov.regimenFiscal||'') + '</div>' +
           '<div class="col-md-6 mb-3"><label class="small fw-bold">¿Intercambio?</label><select id="edProvIntercambio" class="form-select"><option value="NO"' + (prov.intercambio2 !== 'SI' ? ' selected' : '') + '>NO</option><option value="SI"' + (prov.intercambio2 === 'SI' ? ' selected' : '') + '>S\xCD</option></select></div>' +
           '</div>';
         var edDin4 = document.getElementById("cuerpoEdicionDinamica"); if(!edDin4) return; edDin4.innerHTML = formEdicion;
@@ -2156,22 +2168,22 @@
       window.editarHerramientaModal = function(idOBJ) {
         var f = (typeof idOBJ === 'string') ? _herramientasDatos.find(function(x){ return x.id === idOBJ; }) : idOBJ;
         if (!f) { window.mostrarAlerta('No se encontró la herramienta.'); return; }
-        var html = '<div class="mb-3"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">ID</label><input type="text" class="form-control bg-light" readonly value="'+f.id+'"></div>' +
-          '<div class="row g-2">' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Tipo</label><input id="edHrTipo" class="form-control" value="'+(f.tipo||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Tipo Unidad</label><input id="edHrTipoUnidad" class="form-control" value="'+(f.tipoUnidad||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-12 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Nombre *</label><input id="edHrNombre" class="form-control" style="text-transform:uppercase;" value="'+(f.nombre||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Marca</label><input id="edHrMarca" class="form-control" style="text-transform:uppercase;" value="'+(f.marca||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Estado</label><input id="edHrEstado" class="form-control" style="text-transform:uppercase;" value="'+(f.estadoHerr||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Lugar / Ubicación</label><input id="edHrLugar" class="form-control" style="text-transform:uppercase;" value="'+(f.lugar||'').replace(/"/g,'&quot;')+'"></div>' +
-          '<div class="col-md-3 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Estatus</label><select id="edHrEstatus" class="form-select">' +
-            '<option value="DISPONIBLE"'+(f.estatus==='DISPONIBLE'?' selected':'')+'>DISPONIBLE</option>' +
-            '<option value="EN USO"'+(f.estatus==='EN USO'?' selected':'')+'>EN USO</option>' +
-            '<option value="BAJA"'+(f.estatus==='BAJA'?' selected':'')+'>BAJA</option>' +
-          '</select></div>' +
-          '<div class="col-md-3 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Existencia</label><input type="number" id="edHrExistencia" class="form-control" min="1" value="'+(f.existencia||1)+'"></div>' +
-          '<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Fecha</label><input type="date" id="edHrFecha" class="form-control" value="'+(f.fecha||'')+'"></div>' +
-          '</div>';
+        var _ddH = window._ddCat;
+        // Fecha DD/MM/YYYY → YYYY-MM-DD para input date
+        var fISO = '';
+        if (f.fecha) { var fp=f.fecha.split('/'); if(fp.length===3) fISO=fp[2]+'-'+fp[1]+'-'+fp[0]; }
+        var html = '<div class="mb-3"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">ID</label><input type="text" class="form-control bg-light" readonly value="'+f.id+'"></div>'
+          +'<div class="row g-2">'
+          +'<div class="col-md-6 mb-2">'+_ddH('edHrTipo','Tipo','TIPO_HERRAMIENTA',f.tipo||'')+'</div>'
+          +'<div class="col-md-6 mb-2">'+_ddH('edHrTipoUnidad','Tipo Unidad','UM',f.tipoUnidad||'')+'</div>'
+          +'<div class="col-12 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Nombre *</label><input id="edHrNombre" class="form-control" style="text-transform:uppercase;" value="'+(f.nombre||'').replace(/"/g,'&quot;')+'"></div>'
+          +'<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Marca</label><input id="edHrMarca" class="form-control" style="text-transform:uppercase;" value="'+(f.marca||'').replace(/"/g,'&quot;')+'"></div>'
+          +'<div class="col-md-6 mb-2">'+_ddH('edHrEstado','Estado','ESTADO_HERRAMIENTA',f.estadoHerr||'')+'</div>'
+          +'<div class="col-md-6 mb-2">'+_ddH('edHrLugar','Lugar / Ubicación','UBICACION_HERRAMIENTA',f.lugar||'')+'</div>'
+          +'<div class="col-md-3 mb-2">'+_ddH('edHrEstatus','Estatus','ESTATUS_HERRAMIENTA',f.estatus||'')+'</div>'
+          +'<div class="col-md-3 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Existencia</label><input type="number" id="edHrExistencia" class="form-control" min="1" value="'+(f.existencia||1)+'"></div>'
+          +'<div class="col-md-6 mb-2"><label class="fw-bold" style="color:var(--azul);font-size:0.85rem;">Fecha</label><input type="date" id="edHrFecha" class="form-control" value="'+fISO+'"></div>'
+          +'</div>';
 
         var body = document.getElementById('cuerpoEdicionDinamica');
         var titulo = document.getElementById('tituloEdicionDinamica');
