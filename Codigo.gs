@@ -637,6 +637,14 @@ function registrarInventarioDesdeOC(folioOC) {
     if (!hojaOC || !hojaInv) return { exito: false, error: "Hoja no encontrada." };
     const dOC = hojaOC.getDataRange().getDisplayValues();
     const fReg = formatoDDMMYYYY(new Date());
+    // Construir mapa NUCO → línea desde hoja Vehiculos (col E=4 NUCO, col V=21 Línea)
+    const dVeh = ss.getSheetByName("Vehiculos").getDataRange().getDisplayValues();
+    const mapaLinea = {};
+    for (let v = 1; v < dVeh.length; v++) {
+      const n = dVeh[v][4].toString().trim();
+      const l = dVeh[v][21].toString().trim();
+      if (n && l) mapaLinea[n] = l;
+    }
     let registrados = 0;
     for (let i = 1; i < dOC.length; i++) {
       if (!dOC[i][2] || dOC[i][2].toString().trim() !== folioOC.toString().trim()) continue;
@@ -644,8 +652,9 @@ function registrarInventarioDesdeOC(folioOC) {
       const ticket = dOC[i][3], usuario = dOC[i][5], nuco = dOC[i][6];
       const producto = dOC[i][15], marca = dOC[i][16], um = dOC[i][20];
       const cantidad = dOC[i][19], total = dOC[i][27], pu = dOC[i][23];
+      const linea = mapaLinea[nuco.toString().trim()] || nuco; // línea si existe, si no el NUCO
       const idInv = generarIdIncremental("Inventario", "INV");
-      hojaInv.appendRow([idInv, ticket, "", "ALTA AUTOMÁTICA DESDE OC: " + folioOC, producto, marca, nuco, um, fReg, cantidad, total, pu, "DISPONIBLE", usuario]);
+      hojaInv.appendRow([idInv, ticket, "", "ALTA AUTOMÁTICA DESDE OC: " + folioOC, producto, marca, linea, um, fReg, cantidad, total, pu, "DISPONIBLE", usuario]);
       registrados++;
     }
     SpreadsheetApp.flush();
