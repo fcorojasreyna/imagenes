@@ -3543,7 +3543,11 @@
         if (!d.length) { window.mostrarAlerta('No hay datos en el período seleccionado.'); return; }
         var hdrs = cfg.fields;
         var rows = d.map(function(f){
-          return hdrs.map(function(h){ var v=(f[h]!=null?f[h]:'').toString().replace(/"/g,'""'); return '"'+v+'"'; }).join(',');
+          return hdrs.map(function(h){
+            var v = (f[h]!=null?f[h]:'').toString();
+            if (h==='vehiculo' && tab==='inventario') v = _mapaVehiculos[v.trim()] || v;
+            return '"'+v.replace(/"/g,'""')+'"';
+          }).join(',');
         });
         var csv = hdrs.join(',') + '\n' + rows.join('\n');
         var mes = document.getElementById('dashMesFiltro') ? document.getElementById('dashMesFiltro').options[document.getElementById('dashMesFiltro').selectedIndex].text : 'todos';
