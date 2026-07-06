@@ -272,6 +272,21 @@
       </div>
     </div>
 
+    <div class="modal fade" id="modalDetalleResolucion" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-top: 5px solid var(--dorado);">
+          <div class="modal-header" style="background-color: var(--azul); color: white;">
+            <h5 class="modal-title fw-bold">Detalle de Resolución</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4" id="cuerpoModalDetalle"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn fw-bold text-white" style="background:var(--azul);" data-bs-dismiss="modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="modalHistoricoProducto" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content" style="border-top: 5px solid var(--dorado);">
@@ -2623,9 +2638,12 @@
                                          }));
 
             var _filaPend = function(f, esHistorial) {
-              var btnAcc = '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);font-size:0.75rem;" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\',\''+encodeURIComponent(f.ticket||'')+'\',\''+encodeURIComponent(f.folioOC||'')+'\')">Revisar</button>';
+              var yaResuelta = (f.nivel === 'AUTORIZADO' || f.nivel === 'RECHAZADO');
+              var btnAcc = yaResuelta
+                ? '<button class="btn btn-sm fw-bold text-white" style="background:#6c757d;font-size:0.75rem;" onclick="window.verDetalleResolucion(\''+f.id+'\',\''+encodeURIComponent(f.tipo||'')+'\',\''+encodeURIComponent(f.nivel||'')+'\',\''+encodeURIComponent(f.descripcion||'')+'\',\''+encodeURIComponent(f.ticket||'')+'\',\''+encodeURIComponent(f.solicitante||'')+'\',\''+encodeURIComponent(f.fecha||'')+'\',\''+encodeURIComponent(f.quienAutorizo||'')+'\',\''+encodeURIComponent(f.fechaDecision||'')+'\',\''+encodeURIComponent(f.decisionFinal||'')+'\',\''+encodeURIComponent(f.observaciones||'')+'\')">Ver detalle</button>'
+                : '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);font-size:0.75rem;" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\',\''+encodeURIComponent(f.ticket||'')+'\',\''+encodeURIComponent(f.folioOC||'')+'\')">Revisar</button>';
               var btnVisto = esHistorial
-                ? '' // autorizaciones revisadas: no se puede desmarcar
+                ? ''
                 : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" onclick="window.marcarVisto(\''+f.id+'\')">✓ Leído</button>';
               return '<tr>'
                 +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
@@ -2989,6 +3007,36 @@
           var el = document.getElementById(id);
           if (el) el.style.display = '';
         });
+      };
+
+      window.verDetalleResolucion = function(id, tipo, nivel, desc, ticket, solicitante, fechaSol, quienAutorizo, fechaDecision, decisionFinal, observaciones) {
+        tipo          = decodeURIComponent(tipo || '');
+        nivel         = decodeURIComponent(nivel || '');
+        desc          = decodeURIComponent(desc || '');
+        ticket        = decodeURIComponent(ticket || '');
+        solicitante   = decodeURIComponent(solicitante || '');
+        fechaSol      = decodeURIComponent(fechaSol || '');
+        quienAutorizo = decodeURIComponent(quienAutorizo || '');
+        fechaDecision = decodeURIComponent(fechaDecision || '');
+        decisionFinal = decodeURIComponent(decisionFinal || nivel);
+        observaciones = decodeURIComponent(observaciones || '');
+        var esAut = nivel === 'AUTORIZADO' || decisionFinal === 'AUTORIZADO';
+        var color = esAut ? '#198754' : '#dc3545';
+        var icono = esAut ? '✔ Autorizado' : '✖ Rechazado';
+        var html =
+          '<div class="mb-3 p-3 rounded text-center fw-bold" style="background:'+(esAut?'#d1e7dd':'#f8d7da')+';color:'+color+';font-size:1.1rem;">'+icono+'</div>'+
+          '<table class="table table-sm table-bordered mb-0">'+
+            '<tr><th class="text-muted" style="width:42%;">Tipo</th><td>'+tipo+'</td></tr>'+
+            '<tr><th class="text-muted">Ticket</th><td>'+ticket+'</td></tr>'+
+            '<tr><th class="text-muted">Concepto</th><td>'+desc+'</td></tr>'+
+            '<tr><th class="text-muted">Solicitante</th><td>'+solicitante+'</td></tr>'+
+            '<tr><th class="text-muted">Fecha de solicitud</th><td>'+fechaSol+'</td></tr>'+
+            '<tr><th class="text-muted">'+(esAut?'Autorizado por':'Rechazado por')+'</th><td class="fw-bold">'+quienAutorizo+'</td></tr>'+
+            '<tr><th class="text-muted">Fecha de resolución</th><td>'+fechaDecision+'</td></tr>'+
+            (observaciones ? '<tr><th class="text-muted">Observaciones</th><td class="fst-italic">'+observaciones+'</td></tr>' : '')+
+          '</table>';
+        document.getElementById('cuerpoModalDetalle').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('modalDetalleResolucion')).show();
       };
 
       window.abrirModalAuth = function(id, tipo, nivel, desc, ticket, folioOC) {

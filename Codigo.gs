@@ -1254,6 +1254,7 @@ function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien, cade
         hoja.getRange(f, 11).setValue(fechaHoy);
         hoja.getRange(f, 12).setValue(quien);
         hoja.getRange(f, 9).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
+        if (comentario) hoja.getRange(f, 20).setValue(comentario);
         const ticketRef = datos[i][2] ? datos[i][2].toString().trim() : '';
         if (ticketRef) {
           const hojaCron = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
@@ -1296,6 +1297,7 @@ function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien, cade
       }
 
       // Para OC: cadena define el flujo de escalamiento
+      if (comentario) hoja.getRange(f, 20).setValue(comentario);
       if (nivel === 'GERENTE') {
         hoja.getRange(f, 10).setValue(decision);
         hoja.getRange(f, 11).setValue(fechaHoy);
@@ -1497,7 +1499,10 @@ function obtenerDatosNotificaciones(quien, rol) {
       if (!d[i][0]) continue;
       const id     = d[i][0],  tipo  = d[i][1], ticket = d[i][2], nuco  = d[i][3],
             desc   = d[i][4],  sol   = d[i][6], fecha  = d[i][7], nivel = d[i][8],
-            decG   = d[i][9],  decS  = d[i][12], decD  = d[i][15];
+            decG   = d[i][9],  fechaG = d[i][10], quienG = d[i][11],
+            decS   = d[i][12], fechaS = d[i][13], quienS = d[i][14],
+            decD   = d[i][15], fechaD = d[i][16], quienD = d[i][17],
+            obs    = d[i][19] || '';
       const estaActivo = nivel !== 'AUTORIZADO' && nivel !== 'RECHAZADO';
       const datoExtra = d[i][18] ? d[i][18].toString() : '';
       const folioOC = tipo === 'OC' ? datoExtra.split('|')[0].trim() : '';
@@ -1512,11 +1517,15 @@ function obtenerDatosNotificaciones(quien, rol) {
             ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha, folioOC: folioOC });
         }
       } else {
-        // Ya resueltos: incluir para que el Gerente pueda verlos en su historial
         const rolAutorizo = rolUpper === 'ADMIN' || rolUpper === 'GERENTE' || rolUpper === 'SUBDIRECTORA' || rolUpper === 'DIRECTORA';
         if (rolAutorizo) {
+          // Determinar quién fue el último autorizador/rechazador
+          let quienFinal = quienG || '', fechaFinal = fechaG || '', decFinal = decG || '';
+          if (decS && decS !== 'PENDIENTE' && decS !== '') { quienFinal = quienS; fechaFinal = fechaS; decFinal = decS; }
+          if (decD && decD !== 'PENDIENTE' && decD !== '') { quienFinal = quienD; fechaFinal = fechaD; decFinal = decD; }
           revisados.push({ id: id, tipo: tipo, nivel: nivel, referencia: id,
-            ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha, folioOC: folioOC });
+            ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha, folioOC: folioOC,
+            quienAutorizo: quienFinal, fechaDecision: fechaFinal, decisionFinal: decFinal, observaciones: obs });
         }
       }
       if (sol === quien) {
