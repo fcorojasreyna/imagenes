@@ -1212,6 +1212,18 @@ function crearSolicitudAutorizacion(d) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let hoja = ss.getSheetByName("Autorizaciones");
     if (!hoja) hoja = ss.insertSheet("Autorizaciones");
+    // Feature 2 — Prevent duplicate DUPLA requests
+    if ((d.tipo || "DUPLA") === "DUPLA") {
+      const existingData = hoja.getDataRange().getValues();
+      for (let i = 1; i < existingData.length; i++) {
+        const row = existingData[i];
+        if (row[1] && row[1].toString().trim() === "DUPLA" &&
+            row[2] && row[2].toString().trim() === (d.ticket || "").toString().trim() &&
+            row[9] && row[9].toString().trim() === "PENDIENTE") {
+          return { exito: false, msj: "Ya existe una solicitud DUPLA pendiente para este ticket." };
+        }
+      }
+    }
     const idGen = generarIdIncremental("Autorizaciones", "AUTH");
     hoja.appendRow([
       idGen,

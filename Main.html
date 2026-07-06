@@ -203,6 +203,12 @@
           </a>
         </div>
 
+        <div class="nav-search-container" style="flex-shrink:0;">
+          <input type="text" id="inputBusquedaGlobal" class="form-control form-control-sm"
+            placeholder="🔍 Buscar en todo..." style="width:180px;border:2px solid var(--dorado);background:#2a3038;color:white;"
+            oninput="window._busquedaGlobal(this.value)" onkeydown="if(event.key==='Escape'){this.value='';window._cerrarBusqueda();}">
+        </div>
+
         <div class="logo-derecho" style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
           <div style="text-align: right; line-height: 1.3;">
             <div style="color: var(--dorado); font-weight: bold; font-size: 0.78rem; white-space: nowrap;" id="nombreUsuarioUI"></div>
@@ -542,6 +548,7 @@
               var btnEditar = "<button class='btn btn-sm btn-outline-primary me-1 border-0' onclick='event.stopPropagation(); window.editarTallerModal(\""+f.idTaller+"\",\""+f.ticket+"\",\""+f.nuco+"\",\""+f.folioCpp+"\",\""+f.alertaTicket+"\",\""+f.serie+"\",\""+f.odometro+"\",\""+f.fechaServicio+"\",\""+f.tipoServicio+"\",\""+f.familia+"\",\""+f.numeroPartes+"\",\""+f.proveedor+"\",\""+f.descripcion+"\",\""+f.servInterno+"\",\""+f.servExterno+"\",\""+f.costoTotal+"\",\""+f.estatus+"\",\""+(f.linea||'')+"\",\""+(f.modelo||'')+"\",\""+(f.sede||'')+"\",\""+(f.oficina||'')+"\",\""+(f.departamento||'')+"\",\""+(f.placas||'')+"\")'>✏️</button>";
               tbody.innerHTML += '<tr><td>'+f.ticket+'</td><td><b>'+f.nuco+'</b><br><button class="btn btn-sm btn-link p-0 text-decoration-none fw-bold" style="color:var(--dorado); font-size:0.75rem;" onclick="window.verHistorial(\''+f.nuco+'\')">⏳ Historial</button></td><td>'+f.tipoServicio+'</td><td>'+f.descripcion+'</td><td>'+f.proveedor+'</td><td class="fw-bold text-dark">$'+parseFloat(f.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+badge+'</td><td>'+f.quienRegistra+'</td><td>'+f.fecha+'</td><td class="text-center">'+btnEditar+btnEliminar+'</td></tr>';
             });
+            window._iniciarPaginacion('cuerpoTablaTaller');
           }
         }).obtenerDatosTaller();
       };
@@ -559,6 +566,7 @@
               var botones = esDeOC ? '<span class="badge bg-secondary me-2" style="font-size:0.65rem;">NO EDITABLE (CREADA POR OC)</span>' + btnEliminar : btnEditar + btnEliminar;
               tbody.innerHTML += '<tr><td><b>'+fila.ticket+'</b></td><td>'+fila.folioCpp+'</td><td><b>'+fila.producto+'</b><br><small>'+fila.marca+'</small></td><td>'+fila.vehiculo+'</td><td>'+fila.cantidad+'</td><td>$'+parseFloat(fila.costoUnitario||0).toLocaleString('es-MX')+'</td><td class="fw-bold">$'+parseFloat(fila.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+badge+'</td><td>'+fila.quienRegistra+'</td><td>'+fila.fecha+'</td><td class="text-center">'+botones+'</td></tr>';
             });
+            window._iniciarPaginacion('cuerpoTablaInv');
           }
         }).obtenerDatosInventario();
       };
@@ -662,6 +670,7 @@
               var btnEliminar = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'¿Eliminar salida?\', function(){ window.ejecutarEliminar(\'Consumos\', \''+fila.idConsumo+'\'); })">🗑️</button>';
               tbody.innerHTML += '<tr><td><b>'+fila.ticketNuevo+'</b></td><td>'+fila.producto+'</td><td>'+fila.vehiculo+'</td><td>'+fila.cantidad+'</td><td class="fw-bold text-danger">$'+parseFloat(fila.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+fila.quienRegistra+'</td><td>'+fila.fecha+'</td><td>'+(fila.folioCpp||'—')+'</td><td>'+(fila.importeDescuento ? '$'+parseFloat(fila.importeDescuento).toLocaleString('es-MX') : '—')+'</td><td class="text-center">'+btnEditar+btnEliminar+'</td></tr>';
             });
+            window._iniciarPaginacion('cuerpoTablaConsumos');
           }
         }).obtenerDatosConsumos();
       };
@@ -677,6 +686,7 @@
               var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.abrirEdicionProveedorCompleta(\''+f.id+'\')">✏️</button>';
               tbody.innerHTML += '<tr><td class="fw-bold text-muted">'+f.id+'</td><td>'+f.proveedor+'</td><td>'+f.razonSocial+'</td><td>'+f.rfc+'</td><td>'+f.contacto+'</td><td>'+f.telefono+'</td><td>'+(f.quienRegistra||'')+'</td><td class="text-center">' + btnEditar + btnEliminar + '</td></tr>';
             });
+            window._iniciarPaginacion('cuerpoTablaProv');
           }
         }).obtenerDatosProveedores();
       };
@@ -1508,6 +1518,27 @@
       // 13. MÓDULOS DE ALTA MANUAL (TALLER, INVENTARIO, CONSUMOS, PROVEEDORES)
       // ============================================================================
 
+      // Feature 4 — Unsaved changes indicator
+      window._marcarCambiosSinGuardar = function(formId) {
+        var span = document.getElementById('ind_sin_guardar_' + formId);
+        if (span) span.style.display = 'inline';
+      };
+      window._limpiarCambiosSinGuardar = function(formId) {
+        var span = document.getElementById('ind_sin_guardar_' + formId);
+        if (span) span.style.display = 'none';
+      };
+      window._adjuntarListenersCambios = function(formId) {
+        setTimeout(function() {
+          var form = document.getElementById(formId);
+          if (!form) return;
+          var inputs = form.querySelectorAll('input, select, textarea');
+          inputs.forEach(function(el) {
+            el.addEventListener('input', function() { window._marcarCambiosSinGuardar(formId); });
+            el.addEventListener('change', function() { window._marcarCambiosSinGuardar(formId); });
+          });
+        }, 300);
+      };
+
       window.toggleVistaTaller = function(v) {
         document.getElementById('vistaTablaTaller').style.display = v === 'form' ? 'none' : 'block';
         document.getElementById('vistaFormTaller').style.display = v === 'form' ? 'block' : 'none';
@@ -1521,6 +1552,8 @@
             var lblEst = document.getElementById('lbl_estatusUnidad');
             if (lblEst) { lblEst.textContent = '⏰ PROGRAMADA'; lblEst.style.color = '#1E252B'; }
           }
+          window._limpiarCambiosSinGuardar('vistaFormTaller');
+          window._adjuntarListenersCambios('vistaFormTaller');
         } else window.cargarDatosTaller();
       };
 
@@ -1568,7 +1601,7 @@
           costoTotal: window.sanitizarNumero(document.getElementById("costoTotalTaller").value), evidencia: document.getElementById("evidencia").value || "SIN EVIDENCIA",
           estatusUnidad: document.getElementById("estatusUnidad").value, quienRegistra: document.getElementById("quienRegistraGlobal").value
         };
-        google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r); setTimeout(function() { window.toggleVistaTaller('tabla'); btn.disabled = false; btn.innerText = "Guardar Registro Taller"; }, 2000); }).registrarTaller(window.formatearDatos(d));
+        google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r); window._limpiarCambiosSinGuardar('vistaFormTaller'); setTimeout(function() { window.toggleVistaTaller('tabla'); btn.disabled = false; btn.innerText = "Guardar Registro Taller"; }, 2000); }).registrarTaller(window.formatearDatos(d));
       };
 
       window.toggleVistaInv = function(v) {
@@ -1576,7 +1609,7 @@
         if(histEl) histEl.style.display = 'none';
         document.getElementById('vistaTablaInventario').style.display = v === 'form' ? 'none' : 'block';
         document.getElementById('vistaFormInventario').style.display = v === 'form' ? 'block' : 'none';
-        if(v === 'form') window.llenarSelectsModulo('Inventario');
+        if(v === 'form') { window.llenarSelectsModulo('Inventario'); window._limpiarCambiosSinGuardar('vistaFormInventario'); window._adjuntarListenersCambios('vistaFormInventario'); }
         else window.cargarDatosInventario();
       };
 
@@ -1606,13 +1639,14 @@
         if(items.length === 0) { window.mostrarAlerta("Añade al menos 1 artículo."); return; }
         if(!completados) { window.mostrarAlerta("Completa los campos obligatorios marcados con *."); return; }
         btn.disabled = true; btn.innerText = "Registrando en Almacén...";
-        google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r); setTimeout(function() { window.toggleVistaInv('tabla'); btn.disabled = false; btn.innerText = "Registrar Refacción en Almacén"; }, 2000); }).registrarInventario(window.formatearDatos(gen), window.formatearDatos(items));
+        google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r); window._limpiarCambiosSinGuardar('vistaFormInventario'); setTimeout(function() { window.toggleVistaInv('tabla'); btn.disabled = false; btn.innerText = "Registrar Refacción en Almacén"; }, 2000); }).registrarInventario(window.formatearDatos(gen), window.formatearDatos(items));
       };
 
       window.toggleVistaConsumos = function(v) {
         document.getElementById('vistaTablaConsumos').style.display = v === 'form' ? 'none' : 'block';
         document.getElementById('vistaFormConsumos').style.display = v === 'form' ? 'block' : 'none';
-        if(v !== 'form') window.cargarDatosConsumos();
+        if(v === 'form') { window._limpiarCambiosSinGuardar('vistaFormConsumos'); window._adjuntarListenersCambios('vistaFormConsumos'); }
+        else window.cargarDatosConsumos();
       };
 
       window.agregarArticuloConsumo = function() {
@@ -1652,13 +1686,13 @@
         if(cons.length === 0) { window.mostrarAlerta("Agrega al menos una refacción a descontar."); return; }
         if(errSel || errCant) { window.mostrarAlerta("Revisa las cantidades y asegúrate de haber seleccionado una refacción válida."); return; }
         btn.disabled = true; btn.innerText = "Procesando Descuento en Almacén...";
-        google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r); setTimeout(function() { window.toggleVistaConsumos('tabla'); btn.disabled = false; btn.innerText = "Registrar Consumo y Actualizar Inventario"; }, 2000); }).registrarConsumoMultiple(window.formatearDatos(gen), cons);
+        google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r); window._limpiarCambiosSinGuardar('vistaFormConsumos'); setTimeout(function() { window.toggleVistaConsumos('tabla'); btn.disabled = false; btn.innerText = "Registrar Consumo y Actualizar Inventario"; }, 2000); }).registrarConsumoMultiple(window.formatearDatos(gen), cons);
       };
 
       window.toggleVistaProv = function(v) {
         document.getElementById('vistaTablaProv').style.display = v === 'form' ? 'none' : 'block';
         document.getElementById('vistaFormProv').style.display = v === 'form' ? 'block' : 'none';
-        if(v === 'form') window.llenarSelectsModulo('Proveedores');
+        if(v === 'form') { window.llenarSelectsModulo('Proveedores'); window._limpiarCambiosSinGuardar('vistaFormProv'); window._adjuntarListenersCambios('vistaFormProv'); }
         else window.cargarDatosProv();
       };
 
@@ -1755,7 +1789,7 @@
           intercambio2: document.getElementById("p_intercambio2") ? document.getElementById("p_intercambio2").value : "NO",
           quienRegistra: document.getElementById("quienRegistraGlobal") ? document.getElementById("quienRegistraGlobal").value : ""
         };
-        google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r.msj || r); setTimeout(function() { window.toggleVistaProv('tabla'); btn.disabled = false; btn.innerText = "Guardar Proveedor"; }, 2000); }).registrarProveedor(window.formatearDatos(d));
+        google.script.run.withSuccessHandler(function(r) { window.mostrarAlerta(r.msj || r); window._limpiarCambiosSinGuardar('vistaFormProv'); setTimeout(function() { window.toggleVistaProv('tabla'); btn.disabled = false; btn.innerText = "Guardar Proveedor"; }, 2000); }).registrarProveedor(window.formatearDatos(d));
       };
 
       // ============================================================================
@@ -1817,9 +1851,11 @@
             var c1 = trs[j].cells[1].innerText.toUpperCase();
             var c7 = trs[j].cells[7].innerText.toUpperCase();
             var c8 = trs[j].cells[8].innerText;
-            trs[j].style.display = (!tk || c0.includes(tk)) && (!nc || c1.includes(nc)) && (!qr || c7.includes(qr)) && (!fBus || c8.includes(fBus)) ? "" : "none";
+            var ok = (!tk || c0.includes(tk)) && (!nc || c1.includes(nc)) && (!qr || c7.includes(qr)) && (!fBus || c8.includes(fBus));
+            if (ok) trs[j].removeAttribute('data-filter-hidden'); else trs[j].setAttribute('data-filter-hidden','1');
           }
         }
+        window._aplicarPaginacion('cuerpoTablaTaller');
       };
       window.filtrarTablaInv = function() {
         var tk = document.getElementById("filtroTicketInv") ? document.getElementById("filtroTicketInv").value.toUpperCase().trim() : "";
@@ -1836,13 +1872,12 @@
             var c8 = trs[j].cells[8].innerText.toUpperCase();
             var c9 = trs[j].cells[9].innerText;
             var vis = (!tk || c0.includes(tk)) && (!pr || c2.includes(pr)) && (!qr || c8.includes(qr)) && (!fBus || c9.includes(fBus));
-            trs[j].style.display = vis ? "" : "none";
-            if(vis && trs[j].cells[7].innerText.toUpperCase().includes("DISPONIBLE")) {
-              sum += parseFloat(trs[j].cells[6].innerText.replace(/[^0-9.-]+/g,"")) || 0;
-            }
+            if (vis) { trs[j].removeAttribute('data-filter-hidden'); if(trs[j].cells[7].innerText.toUpperCase().includes("DISPONIBLE")) sum += parseFloat(trs[j].cells[6].innerText.replace(/[^0-9.-]+/g,"")) || 0; }
+            else trs[j].setAttribute('data-filter-hidden','1');
           }
         }
         if(document.getElementById('totalInventarioValor')) document.getElementById('totalInventarioValor').innerText = "$" + sum.toLocaleString('es-MX', {minimumFractionDigits:2});
+        window._aplicarPaginacion('cuerpoTablaInv');
       };
       window.filtrarTablaConsumos = function() {
         var tk = document.getElementById("filtroTicketConsumos") ? document.getElementById("filtroTicketConsumos").value.toUpperCase().trim() : "";
@@ -1858,9 +1893,11 @@
             var c1 = trs[j].cells[1].innerText.toUpperCase();
             var c5 = trs[j].cells[5].innerText.toUpperCase();
             var c6 = trs[j].cells[6].innerText;
-            trs[j].style.display = (!tk || c0.includes(tk)) && (!pr || c1.includes(pr)) && (!qr || c5.includes(qr)) && (!fBus || c6.includes(fBus)) ? "" : "none";
+            var ok = (!tk || c0.includes(tk)) && (!pr || c1.includes(pr)) && (!qr || c5.includes(qr)) && (!fBus || c6.includes(fBus));
+            if (ok) trs[j].removeAttribute('data-filter-hidden'); else trs[j].setAttribute('data-filter-hidden','1');
           }
         }
+        window._aplicarPaginacion('cuerpoTablaConsumos');
       };
       window.filtrarTablaProv = function() {
         var nom = document.getElementById("filtroNombreProv")  ? document.getElementById("filtroNombreProv").value.toUpperCase().trim() : "";
@@ -1873,9 +1910,11 @@
           if(trs[i].cells.length > 1){
             var c1=trs[i].cells[1].innerText.toUpperCase(), c2=trs[i].cells[2].innerText.toUpperCase();
             var c4=trs[i].cells[4].innerText.toUpperCase(), c6=trs[i].cells[6].innerText.toUpperCase();
-            trs[i].style.display = (!nom||c1.includes(nom)) && (!rs||c2.includes(rs)) && (!con||c4.includes(con)) && (!qr||c6.includes(qr)) ? "" : "none";
+            var ok = (!nom||c1.includes(nom)) && (!rs||c2.includes(rs)) && (!con||c4.includes(con)) && (!qr||c6.includes(qr));
+            if (ok) trs[i].removeAttribute('data-filter-hidden'); else trs[i].setAttribute('data-filter-hidden','1');
           }
         }
+        window._aplicarPaginacion('cuerpoTablaProv');
       };
 
       window.ordenarTabla = function(tbodyId, colIdx) {
@@ -3280,6 +3319,68 @@
         if (fc) fc.value = '';
         window.filtrarMisSolicitudes();
       };
+
+      // ============================================================================
+      // Feature 5 — Global search bar
+      // ============================================================================
+      window._busquedaGlobal = function(q) {
+        var panel = document.getElementById('panelBusquedaGlobal');
+        if (!q || !q.trim()) { if (panel) panel.style.display = 'none'; return; }
+        var qLow = q.trim().toLowerCase();
+        var modulos = [
+          { nombre: 'Taller', datos: _tallerDatos, btnId: 'btnTal' },
+          { nombre: 'Inventario', datos: _inventarioDatos, btnId: 'btnInv' },
+          { nombre: 'Consumos', datos: _consumosDatos, btnId: 'btnCon' },
+          { nombre: 'Proveedores', datos: _proveedoresDatos, btnId: 'btnProv' }
+        ];
+        var html = '';
+        var totalResultados = 0;
+        modulos.forEach(function(mod) {
+          if (!mod.datos || !mod.datos.length) return;
+          var encontrados = mod.datos.filter(function(rec) {
+            return JSON.stringify(rec).toLowerCase().indexOf(qLow) !== -1;
+          });
+          if (!encontrados.length) return;
+          totalResultados += encontrados.length;
+          html += '<div style="margin-bottom:8px;">'
+            + '<div style="font-size:0.72rem;font-weight:bold;text-transform:uppercase;color:#888;padding:4px 0;border-bottom:1px solid #eee;margin-bottom:4px;">'
+            + mod.nombre + ' (' + encontrados.length + ')</div>';
+          encontrados.slice(0, 5).forEach(function(rec) {
+            var label = rec.ticket || rec.producto || rec.proveedor || rec.nuco || JSON.stringify(rec).slice(0, 60);
+            html += '<div onclick="window.cargarModulo(\'' + mod.nombre + '\', document.getElementById(\'' + mod.btnId + '\'))" '
+              + 'style="padding:5px 8px;border-radius:4px;cursor:pointer;font-size:0.8rem;color:#333;" '
+              + 'onmouseover="this.style.background=\'#f0f4ff\'" onmouseout="this.style.background=\'\'">'
+              + label + '</div>';
+          });
+          html += '</div>';
+        });
+        if (!html) html = '<div style="color:#999;font-size:0.82rem;padding:8px;">Sin resultados para "' + q + '"</div>';
+        if (!panel) {
+          panel = document.createElement('div');
+          panel.id = 'panelBusquedaGlobal';
+          panel.style.cssText = 'position:fixed;top:60px;right:10px;width:380px;max-height:500px;overflow-y:auto;z-index:9999;background:white;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);padding:12px;';
+          document.body.appendChild(panel);
+        }
+        panel.innerHTML = html;
+        panel.style.display = 'block';
+      };
+
+      window._cerrarBusqueda = function() {
+        var panel = document.getElementById('panelBusquedaGlobal');
+        if (panel) panel.style.display = 'none';
+        var inp = document.getElementById('inputBusquedaGlobal');
+        if (inp) inp.value = '';
+      };
+
+      document.addEventListener('click', function(e) {
+        var panel = document.getElementById('panelBusquedaGlobal');
+        var inp = document.getElementById('inputBusquedaGlobal');
+        if (panel && panel.style.display !== 'none') {
+          if (!panel.contains(e.target) && e.target !== inp) {
+            panel.style.display = 'none';
+          }
+        }
+      });
 
       // --- Auto-refresh de notificaciones cada 60 s cuando el panel está visible ---
       var _notifInterval = null;
