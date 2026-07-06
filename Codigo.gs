@@ -231,7 +231,7 @@ function registrarProveedor(d) {
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proveedores");
     const idGenerado = generarIdIncremental("Proveedores", "PROV");
-    hoja.appendRow([ idGenerado, d.proveedor, d.razonSocial, d.rfc, d.direccion, d.estado, d.contacto, d.numero, d.correo, d.segmentacion, d.diasCredito, d.totalCredito, d.servicio, d.razonesSociales, d.regimenFiscal || "", d.intercambio2 || "NO", d.quienRegistra || "" ]);
+    hoja.appendRow([ idGenerado, d.proveedor, d.razonSocial, d.rfc, d.estado, d.direccion, d.contacto, d.numero, d.correo, d.segmentacion, d.servicio, d.diasCredito, d.totalCredito, d.razonesSociales, d.regimenFiscal || "", d.intercambio2 || "NO", d.quienRegistra || "" ]);
     SpreadsheetApp.flush();
     return { msj: "Proveedor registrado con éxito." };
   } catch(e) { return { msj: "Error: " + e.message }; }
@@ -757,7 +757,7 @@ function obtenerDatosProveedores() {
     let f = [];
     for (let i = 1; i < d.length; i++) {
       if (d[i][1].toString().trim()) {
-        f.push({ id: d[i][0], proveedor: d[i][1], razonSocial: d[i][2], rfc: d[i][3], direccion: d[i][4], estado: d[i][5], contacto: d[i][6], telefono: d[i][7], correo: d[i][8], segmentacion: d[i][9], diasCredito: d[i][10], totalCredito: d[i][11], servicio: d[i][12], razonesSociales: d[i][13], regimenFiscal: d[i][14] || "", intercambio2: d[i][15] || "NO", quienRegistra: d[i][16] || "" });
+        f.push({ id: d[i][0], proveedor: d[i][1], razonSocial: d[i][2], rfc: d[i][3], estado: d[i][4], direccion: d[i][5], contacto: d[i][6], telefono: d[i][7], correo: d[i][8], segmentacion: d[i][9], servicio: d[i][10], diasCredito: d[i][11], totalCredito: d[i][12], razonesSociales: d[i][13], regimenFiscal: d[i][14] || "", intercambio2: d[i][15] || "NO", quienRegistra: d[i][16] || "" });
       }
     }
     return { exito: true, datos: f.reverse() };
@@ -1563,15 +1563,15 @@ function actualizarProveedorCompleto(d) {
         hoja.getRange(f,  2).setValue(d.proveedor);
         hoja.getRange(f,  3).setValue(d.razonSocial);
         hoja.getRange(f,  4).setValue(d.rfc);
-        hoja.getRange(f,  5).setValue(d.direccion);
-        hoja.getRange(f,  6).setValue(d.estado);
+        hoja.getRange(f,  5).setValue(d.estado);
+        hoja.getRange(f,  6).setValue(d.direccion);
         hoja.getRange(f,  7).setValue(d.contacto);
         hoja.getRange(f,  8).setValue(d.telefono);
         hoja.getRange(f,  9).setValue(d.correo);
         hoja.getRange(f, 10).setValue(d.segmentacion);
-        hoja.getRange(f, 11).setValue(d.diasCredito);
-        hoja.getRange(f, 12).setValue(d.totalCredito);
-        hoja.getRange(f, 13).setValue(d.servicio);
+        hoja.getRange(f, 11).setValue(d.servicio);
+        hoja.getRange(f, 12).setValue(d.diasCredito);
+        hoja.getRange(f, 13).setValue(d.totalCredito);
         hoja.getRange(f, 14).setValue(d.razonesSociales);
         hoja.getRange(f, 15).setValue(d.regimenFiscal || "");
         hoja.getRange(f, 16).setValue(d.intercambio2 || "NO");
