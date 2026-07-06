@@ -1072,6 +1072,7 @@
         var panelProd = document.getElementById('panel-productos');
         if (panelProv) panelProv.style.opacity = '0.5';
         if (panelProd) panelProd.style.display = 'block';
+        window._guardarBorradorOC();
         window.mostrarAlerta('✅ ' + proveedoresFijados.length + ' proveedor(es) confirmados. Agrega las partidas a cotizar.');
       };
 
@@ -1123,6 +1124,7 @@
         var panelProd = document.getElementById('panel-productos');
         if (panelProv) panelProv.style.opacity = '0.5';
         if (panelProd) panelProd.style.display = 'block';
+        window._guardarBorradorOC();
         window.mostrarAlerta('✅ Proveedor único: ' + nombre + '. Agrega las partidas a cotizar.');
       };
 
@@ -1328,8 +1330,95 @@
       window.toggleVistaOC = function(v) {
         document.getElementById('vistaTablaOC').style.display = v === 'form' ? 'none' : 'block';
         document.getElementById('vistaFormOC').style.display = v === 'form' ? 'block' : 'none';
-        if (v === 'form') window.llenarSelectsModulo('Cotizador');
-        else window.cargarDatosHistorialOC();
+        if (v === 'form') {
+          window.llenarSelectsModulo('Cotizador');
+          setTimeout(function() { window._adjuntarListenersBorradorOC(); window._verificarBorradorOC(); }, 400);
+        } else {
+          window.cargarDatosHistorialOC();
+        }
+      };
+
+      var _draftOCTimer = null;
+      window._draftOCKey = function() {
+        var q = document.getElementById('quienRegistraGlobal');
+        return 'cotizador_draft_' + (q ? q.value : 'anon');
+      };
+
+      window._guardarBorradorOC = function() {
+        try {
+          var campos = ['oc_ticket','oc_nuco','oc_placas','oc_linea','oc_modelo','oc_departamento',
+            'oc_sede','oc_oficina','oc_rz','oc_fp','oc_fp_comp','oc_motivo','oc_odoact','oc_odoult',
+            'oc_coment','oc_tpart','oc_tsol','oc_tser','oc_tvida','oc_intext','oc_mpago','oc_cfdi',
+            'oc_puntos','oc_foliocpp'];
+          var datos = {};
+          campos.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) datos[id] = el.value;
+          });
+          datos._proveedores = proveedoresFijados.slice();
+          datos._ts = Date.now();
+          localStorage.setItem(window._draftOCKey(), JSON.stringify(datos));
+          var ind = document.getElementById('_indicadorBorradorOC');
+          if (ind) { ind.textContent = '💾 Borrador guardado'; ind.style.opacity = '1'; setTimeout(function(){ ind.style.opacity = '0'; }, 2000); }
+        } catch(e) {}
+      };
+
+      window._programarGuardadoOC = function() {
+        clearTimeout(_draftOCTimer);
+        _draftOCTimer = setTimeout(window._guardarBorradorOC, 1500);
+      };
+
+      window._limpiarBorradorOC = function() {
+        try { localStorage.removeItem(window._draftOCKey()); } catch(e) {}
+      };
+
+      window._verificarBorradorOC = function() {
+        try {
+          var raw = localStorage.getItem(window._draftOCKey());
+          if (!raw) return;
+          var datos = JSON.parse(raw);
+          var tsDiff = Math.floor((Date.now() - (datos._ts || 0)) / 60000);
+          var msg = '¿Deseas restaurar el borrador guardado hace ' + tsDiff + ' min?';
+          if (confirm(msg)) {
+            window._restaurarBorradorOC(datos);
+          }
+        } catch(e) {}
+      };
+
+      window._restaurarBorradorOC = function(datos) {
+        var campos = ['oc_ticket','oc_nuco','oc_placas','oc_linea','oc_modelo','oc_departamento',
+          'oc_sede','oc_oficina','oc_rz','oc_fp','oc_fp_comp','oc_motivo','oc_odoact','oc_odoult',
+          'oc_coment','oc_tpart','oc_tsol','oc_tser','oc_tvida','oc_intext','oc_mpago','oc_cfdi',
+          'oc_puntos','oc_foliocpp'];
+        campos.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el && datos[id] !== undefined) el.value = datos[id];
+        });
+        if (datos._proveedores && datos._proveedores.length > 0) {
+          proveedoresFijados = datos._proveedores;
+          provsSeleccionadosPre = datos._proveedores.slice();
+          var panelProv = document.getElementById('panel-definicion-proveedores');
+          var panelProd = document.getElementById('panel-productos');
+          if (panelProv) panelProv.style.opacity = '0.5';
+          if (panelProd) panelProd.style.display = 'block';
+          window.mostrarAlerta('✅ Borrador restaurado con ' + proveedoresFijados.length + ' proveedor(es). Vuelve a agregar las partidas.');
+        }
+        window._adjuntarListenersBorradorOC();
+      };
+
+      window._adjuntarListenersBorradorOC = function() {
+        var campos = ['oc_ticket','oc_nuco','oc_placas','oc_linea','oc_modelo','oc_departamento',
+          'oc_sede','oc_oficina','oc_rz','oc_fp','oc_fp_comp','oc_motivo','oc_odoact','oc_odoult',
+          'oc_coment','oc_tpart','oc_tsol','oc_tser','oc_tvida','oc_intext','oc_mpago','oc_cfdi',
+          'oc_puntos','oc_foliocpp'];
+        campos.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el && !el._draftListener) {
+            el._draftListener = true;
+            el.addEventListener('input', window._programarGuardadoOC);
+            el.addEventListener('change', window._programarGuardadoOC);
+          }
+        });
       };
 
       window.agregarProductoMatrix = function() {
@@ -1427,7 +1516,7 @@
 
         google.script.run
           .withSuccessHandler(function(r) {
-            if(r.exito) { window.mostrarAlerta(r.msj || "OC registrada. Pendiente de autorización del Gerente."); window.cargarModulo('Cotizador', document.getElementById('btnCot')); }
+            if(r.exito) { window._limpiarBorradorOC(); window.mostrarAlerta(r.msj || "OC registrada. Pendiente de autorización del Gerente."); window.cargarModulo('Cotizador', document.getElementById('btnCot')); }
             else { window.mostrarAlerta("❌ " + r.error); btn.disabled = false; btn.innerText = "Registrar Cotización y Generar PDFs"; }
           })
           .withFailureHandler(function(err) { window.mostrarAlerta("Fallo servidor de PDFs: " + err.message); btn.disabled = false; btn.innerText = "Registrar Cotización"; })
