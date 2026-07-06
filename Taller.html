@@ -1,42 +1,46 @@
 <div id="vistaTablaTaller" class="container-fluid p-0">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h4 class="fw-bold m-0" style="color: var(--azul);">🔧 Bitácora de Taller</h4>
-    <button class="btn text-white fw-bold px-4 shadow-sm" style="background-color: var(--dorado);" onclick="window.toggleVistaTaller('form')">
-      + Ingresar Vehículo
-    </button>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm fw-bold text-white" style="background:var(--azul);" onclick="window.cargarDatosTaller()">↻ Actualizar</button>
+      <button class="btn btn-sm fw-bold" style="background-color:#1D6F42; color:white;" onclick="window.exportarExcelTaller()">📥 Descargar Excel</button>
+    </div>
   </div>
 
   <div class="card shadow-sm border-0">
-    <div class="card-body p-4">
-
-      <div class="row mb-4 align-items-center">
-        <div class="col-md-4">
-          <label class="small fw-bold text-muted mb-1">Filtrar por Fecha</label>
-          <input type="date" id="filtroFechaTaller" class="form-control bg-light border-0" onchange="window.filtrarTablaTaller()">
+    <div class="card-body p-3">
+      <div class="row g-2 mb-3 align-items-center">
+        <div class="col-md-2">
+          <input type="text" id="filtroTicketTaller" class="form-control" placeholder="🔍 Ticket..." onkeyup="window.filtrarTablaTaller()" style="border: 2px solid #B4A169;">
         </div>
-        <div class="col-md-8">
-          <label class="small fw-bold text-muted mb-1">Buscar por Ticket o Placa</label>
-          <div class="input-group">
-            <span class="input-group-text bg-light border-0">🔍</span>
-            <input type="text" id="buscadorTablaTaller" class="form-control bg-light border-0" placeholder="BUSCAR POR TICKET, NUCO, PROVEEDOR..." onkeyup="window.filtrarTablaTaller()">
-          </div>
+        <div class="col-md-3">
+          <input type="text" id="filtroNucoTaller" class="form-control" placeholder="🔍 NUCO..." onkeyup="window.filtrarTablaTaller()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="filtroQuienTaller" class="form-control" placeholder="🔍 Quien Registra..." onkeyup="window.filtrarTablaTaller()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-2">
+          <input type="date" id="filtroFechaTaller" class="form-control" onchange="window.filtrarTablaTaller()" style="border: 2px solid #B4A169;">
+        </div>
+        <div class="col-md-2">
+          <button class="btn w-100 fw-bold text-white" style="background-color: var(--dorado); color: var(--azul) !important;" onclick="window.toggleVistaTaller('form')">+ Ingresar Vehículo</button>
         </div>
       </div>
 
       <div class="table-responsive">
-        <table class="table table-hover table-borderless align-middle">
-          <thead class="table-dark" style="background-color: var(--azul);">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-dark">
             <tr>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 0)" style="cursor:pointer;">Ticket ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 1)" style="cursor:pointer;">NUCO / Unidad ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 2)" style="cursor:pointer;">Servicio ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 3)" style="cursor:pointer;">Descripción ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 4)" style="cursor:pointer;">Proveedor ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 5)" style="cursor:pointer;">Costo Total ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 6)" style="cursor:pointer;">Estatus Unidad ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 7)" style="cursor:pointer;">Quien Registra ↕</th>
-              <th onclick="window.ordenarTabla('cuerpoTablaTaller', 8)" style="cursor:pointer;">Fecha Ingreso ↕</th>
-              <th class="text-center">Acciones</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 0)">Ticket ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 1)">NUCO ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 2)">Servicio ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 3)">Descripción ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 4)">Proveedor ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 5)">Costo Total ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 6)">Estatus ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 7)">Quien Registra ↕</th>
+              <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaTaller', 8)">Fecha ↕</th>
+              <th class="text-center" style="white-space:nowrap;">Acciones</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaTaller">
@@ -49,8 +53,9 @@
 </div>
 
 <div id="vistaFormTaller" class="container-fluid p-0" style="display: none;">
-  <div class="mb-4">
-    <button class="btn btn-sm btn-outline-secondary fw-bold shadow-sm" onclick="window.toggleVistaTaller('tabla')">← Regresar a la bitácora</button>
+  <div class="mb-3">
+    <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="window.toggleVistaTaller('tabla')">← Regresar a la bitácora</button>
+    <span id="ind_sin_guardar_vistaFormTaller" style="color:#dc3545;font-weight:bold;font-size:0.82rem;display:none;">🔴 Cambios sin guardar</span>
   </div>
 
   <div class="card shadow-sm border-0 mb-4">
@@ -59,32 +64,29 @@
     </div>
     <div class="card-body p-4 bg-white">
 
-      <h6 class="fw-bold text-secondary mb-3 border-bottom pb-2">Información Vehicular y Folios</h6>
-      <div class="row mb-4">
+      <h6 class="fw-bold text-secondary mb-3 border-bottom pb-2">Información Vehicular</h6>
+      <div class="row mb-3">
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Ticket *</label>
           <input type="text" id="ticket" class="form-control border-dark" placeholder="Ej. 1234">
         </div>
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">NUCO *</label>
-          <input type="text" id="nuco" class="form-control border-primary" placeholder="Autocompleta..."
-                 onblur="window.autocompletarNuco(this.value, 'taller')">
+          <input type="text" id="nuco" class="form-control" placeholder="Autocompleta..."
+                 onblur="window.autocompletarNuco(this.value, 'taller', this)"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault(); window.autocompletarNuco(this.value, 'taller', this);}">
         </div>
-        <div class="col-md-3 mb-3">
+        <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Placas</label>
           <input type="text" id="placas" class="form-control bg-light" readonly>
         </div>
-        <div class="col-md-3 mb-3">
+        <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Serie</label>
           <input type="text" id="serie" class="form-control bg-light" readonly>
         </div>
-        <div class="col-md-2 mb-3">
-          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Folio CPP *</label>
-          <input type="text" id="folioCpp" class="form-control border-success" placeholder="Ej. CPP-26-01">
-        </div>
       </div>
 
-      <div class="row mb-4">
+      <div class="row mb-3">
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Línea</label>
           <input type="text" id="linea" class="form-control bg-light" readonly tabindex="-1">
@@ -93,18 +95,22 @@
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Modelo</label>
           <input type="text" id="modelo" class="form-control bg-light" readonly tabindex="-1">
         </div>
-        <div class="col-md-3 mb-3">
-          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Sede / Oficina</label>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Sede</label>
           <input type="text" id="sede" class="form-control bg-light" readonly tabindex="-1">
         </div>
-        <div class="col-md-3 mb-3">
-          <label class="fw-bold text-muted" style="font-size: 0.85rem;">Departamento</label>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Oficina</label>
+          <input type="text" id="oficina" class="form-control bg-light" readonly tabindex="-1">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Departamento</label>
           <input type="text" id="departamento" class="form-control bg-light" readonly tabindex="-1">
         </div>
       </div>
 
       <h6 class="fw-bold text-secondary mb-3 border-bottom pb-2 mt-2">Especificaciones del Servicio</h6>
-      <div class="row mb-4">
+      <div class="row mb-3">
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Odómetro Act.</label>
           <input type="text" id="odometro" class="form-control" placeholder="KM...">
@@ -115,100 +121,98 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Tipo de Servicio *</label>
-          <select id="tipoServicio" class="form-select border-dark">
-            <option value="MANTENIMIENTO">MANTENIMIENTO</option>
-            <option value="REPARACION">REPARACIÓN</option>
-            <option value="DIAGNOSTICO">DIAGNÓSTICO</option>
-            <option value="HOJALATERIA Y PINTURA">HOJALATERÍA Y PINTURA</option>
-            <option value="REVISION SV">REVISIÓN SV</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_tipoServicio" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d; border: var(--bs-border-width) solid #212529 !important;" onclick="window.abrirDropdownCat('tipoServicio','TIPO_SERVICIO')">
+              <span id="lbl_tipoServicio" class="text-truncate">— Tipo de Servicio —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="tipoServicio" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_tipoServicio')"></li>
+              <div id="lista_tipoServicio"></div>
+            </ul>
+          </div>
         </div>
         <div class="col-md-4 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Familia *</label>
-          <select id="familia" class="form-select border-dark">
-            <option value="AFINACION MAYOR">AFINACIÓN MAYOR</option>
-            <option value="AFINACION MENOR">AFINACIÓN MENOR</option>
-            <option value="SISTEMA DE FRENOS">SISTEMA DE FRENOS</option>
-            <option value="SISTEMA DE SUSPENSION">SISTEMA DE SUSPENSIÓN</option>
-            <option value="SISTEMA DE DIRECCION">SISTEMA DE DIRECCIÓN</option>
-            <option value="SISTEMA DE MOTOR">SISTEMA DE MOTOR</option>
-            <option value="SISTEMA DE ENFRIAMIENTO">SISTEMA DE ENFRIAMIENTO</option>
-            <option value="SISTEMA DE ILUMINACION">SISTEMA DE ILUMINACIÓN</option>
-            <option value="CLUTCH">CLUTCH</option>
-            <option value="BATERIA">BATERÍA</option>
-            <option value="LLANTAS">LLANTAS</option>
-            <option value="SISTEMA ELECTRICO">SISTEMA ELÉCTRICO</option>
-            <option value="HOJALATERIA Y PINTURA">HOJALATERÍA Y PINTURA</option>
-            <option value="REVISION SV">REVISIÓN SV</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_familia" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d; border: var(--bs-border-width) solid #212529 !important;" onclick="window.abrirDropdownCat('familia','FAMILIA')">
+              <span id="lbl_familia" class="text-truncate">— Familia —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="familia" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_familia')"></li>
+              <div id="lista_familia"></div>
+            </ul>
+          </div>
         </div>
       </div>
 
-      <h6 class="fw-bold text-secondary mb-3 border-bottom pb-2 mt-2">Detalles y Costos Operativos</h6>
-      <div class="row mb-4">
+      <h6 class="fw-bold text-secondary mb-3 border-bottom pb-2 mt-2">Detalles y Costos</h6>
+      <div class="row mb-3">
         <div class="col-md-3 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Realizado Por *</label>
-          <select id="proveedor" class="form-select border-primary" onchange="window.toggleCamposTaller()">
-            <option value="INTERNO">INTERNO</option>
-            <option value="EXTERNO">EXTERNO</option>
-            <option value="AMBOS">AMBOS</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_proveedor" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d; border-color: var(--bs-primary) !important;" onclick="window.abrirDropdownCat('proveedor','REALIZADO_POR')">
+              <span id="lbl_proveedor" class="text-truncate">— Realizado Por —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="proveedor" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_proveedor')"></li>
+              <div id="lista_proveedor"></div>
+            </ul>
+          </div>
         </div>
-
         <div class="col-md-2 mb-3" id="divInterno">
-          <label class="fw-bold" style="color: var(--dorado); font-size: 0.85rem;">M. de Obra Interna</label>
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">M. de Obra Interna</label>
           <div class="input-group">
             <span class="input-group-text bg-white">$</span>
-            <input type="text" id="servInterno" class="form-control border-warning" oninput="window.calcularTotalTaller()" placeholder="0.00">
+            <input type="text" id="servInterno" class="form-control border-dark" oninput="window.calcularTotalTaller()" placeholder="0.00">
           </div>
         </div>
         <div class="col-md-2 mb-3" id="divExterno" style="display:none;">
-          <label class="fw-bold text-success" style="font-size: 0.85rem;">M. de Obra Externa</label>
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">M. de Obra Externa</label>
           <div class="input-group">
             <span class="input-group-text bg-white">$</span>
             <input type="text" id="servExterno" class="form-control border-success" oninput="window.calcularTotalTaller()" placeholder="0.00">
           </div>
         </div>
-
         <div class="col-md-3 mb-3">
-          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Costo Total Refacciones + MO</label>
-          <div class="input-group input-group-lg">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Costo Total (MO + Refacciones)</label>
+          <div class="input-group">
             <span class="input-group-text" style="background-color: var(--azul); color: white;">$</span>
             <input type="text" id="costoTotalTaller" class="form-control bg-light fw-bold" readonly placeholder="0.00">
           </div>
         </div>
-
         <div class="col-md-2 mb-3">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Cant. Refacciones</label>
           <input type="number" id="numeroPartes" class="form-control text-center fw-bold" value="0" min="0">
         </div>
       </div>
 
-      <div class="row mb-4">
-        <div class="col-md-9 mb-3">
-          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Descripción Exacta de Actividades / Observaciones *</label>
+      <div class="row mb-3">
+        <div class="col-md-12 mb-3">
+          <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Descripción de Actividades / Observaciones *</label>
           <textarea id="descripcion" class="form-control" rows="2" placeholder="Describe los trabajos realizados..."></textarea>
         </div>
-        <div class="col-md-3 mb-3">
-          <label class="fw-bold text-danger" style="font-size: 0.85rem;">Alerta del Ticket</label>
-          <select id="alertaTicket" class="form-select border-danger">
-            <option value="SIN ALERTA">SIN ALERTA</option>
-            <option value="RETRABAJO">RETRABAJO</option>
-            <option value="GARANTIA">GARANTÍA</option>
-            <option value="NEGLIGENCIA">NEGLIGENCIA</option>
-          </select>
-        </div>
+        <input type="hidden" id="alertaTicket" value="TICKET NUEVO">
       </div>
 
-      <div class="row align-items-center mb-4">
-        <div class="col-md-4">
+      <div class="row align-items-center mb-3">
+        <div class="col-md-5">
           <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">Estatus de la Unidad *</label>
-          <select id="estatusUnidad" class="form-select border-primary shadow-sm fw-bold">
-            <option value="INGRESADO" selected>⏳ INGRESADO A TALLER (EN PROCESO)</option>
-            <option value="LIBERADO">✅ LIBERADO / TERMINADO</option>
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center" type="button" id="btn_estatusUnidad" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background:white; font-size:0.9rem; color:#6c757d; border-color: var(--bs-primary) !important;" onclick="window.abrirDropdownCat('estatusUnidad','ESTATUS_TALLER')">
+              <span id="lbl_estatusUnidad" class="text-truncate">— Estatus Unidad —</span><span>▼</span>
+            </button>
+            <input type="hidden" id="estatusUnidad" value="">
+            <ul class="dropdown-menu w-100 p-2 shadow" style="max-height:260px; overflow-y:auto;">
+              <li class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="🔍 Buscar..." onclick="event.stopPropagation()" oninput="window.filtrarDropdownCat(this,'lista_estatusUnidad')"></li>
+              <div id="lista_estatusUnidad"></div>
+            </ul>
+          </div>
         </div>
         <input type="hidden" id="evidencia" value="SIN EVIDENCIA">
+        <input type="hidden" id="folioCpp" value="">
       </div>
 
       <div class="mt-4 text-end border-top pt-4">
@@ -216,7 +220,6 @@
           Guardar Registro en Bitácora
         </button>
       </div>
-
     </div>
   </div>
 </div>

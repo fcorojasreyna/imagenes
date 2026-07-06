@@ -215,7 +215,7 @@ function registrarConsumoMultiple(g, arr) {
         if (cons > 0) {
           let nC = it.c - cons;
           it.c = nC;
-          hc.appendRow([ generarIdIncremental("Consumos", "CONS"), d.idPieza, it.p, g.quienRegistra, g.ticketInsumo, it.v, limpiarHoraLectura(g.fechaConsumo), cons, (cons * it.cu), d.evidencia ]);
+          hc.appendRow([ generarIdIncremental("Consumos", "CONS"), d.idPieza, it.p, g.quienRegistra, g.ticketInsumo, it.v, limpiarHoraLectura(g.fechaConsumo), cons, (cons * it.cu), d.evidencia, g.folioCpp || "", g.importeDescuento || "", nC ]);
           hi.getRange(it.fila, 10).setValue(nC);
           hi.getRange(it.fila, 11).setValue(nC * it.cu);
           if (nC <= 0) hi.getRange(it.fila, 13).setValue("CONSUMIDO");
@@ -231,7 +231,7 @@ function registrarProveedor(d) {
   try {
     const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proveedores");
     const idGenerado = generarIdIncremental("Proveedores", "PROV");
-    hoja.appendRow([ idGenerado, d.proveedor, d.razonSocial, d.rfc, d.direccion, d.estado, d.contacto, d.numero, d.correo, d.segmentacion, d.diasCredito, d.totalCredito, d.servicio, d.razonesSociales ]);
+    hoja.appendRow([ idGenerado, d.proveedor, d.razonSocial, d.rfc, d.direccion, d.estado, d.contacto, d.numero, d.correo, d.segmentacion, d.diasCredito, d.totalCredito, d.servicio, d.razonesSociales, d.regimenFiscal || "", d.intercambio2 || "NO", d.quienRegistra || "" ]);
     SpreadsheetApp.flush();
     return { msj: "Proveedor registrado con éxito." };
   } catch(e) { return { msj: "Error: " + e.message }; }
@@ -300,20 +300,30 @@ function registrarOC(datosGenerales, todasLasCotizaciones, configuracionCorreo, 
         idGenerado, "SV", folioGenerado, datosGenerales.ticket, fRegistro, datosGenerales.usuario,
         datosGenerales.nuco, datosGenerales.placas, datosGenerales.linea, datosGenerales.modelo,
         datosGenerales.departamento, datosGenerales.sede, datosGenerales.oficina, prod.nombreProveedor,
-        prod.rfc, prod.nombreProducto, prod.familia, prod.descripcion, prod.cantidad, prod.unidadMedida,
-        prod.tiempoEntrega, prod.precioUnitario, prod.subtotal, prod.intercambio, prod.costoIntercambio,
+        prod.rfc, prod.nombreProducto, prod.marca || '', prod.familia, prod.descripcion, prod.cantidad, prod.unidadMedida,
+        prod.tiempoEntrega, prod.comentario || "", prod.precioUnitario, prod.subtotal, prod.intercambio, prod.costoIntercambio,
         prod.total, datosGenerales.razonSocialCompra, datosGenerales.odometroActual,
-        datosGenerales.odometroUltimo, datosGenerales.formaPago, datosGenerales.comentarios,
-        datosGenerales.motivoCompra, datosGenerales.metodoPagoF, datosGenerales.usoCFDI,
+        datosGenerales.odometroUltimo, datosGenerales.formaPago, datosGenerales.formaPagoComp || "", datosGenerales.motivoCompra || "", datosGenerales.comentarios,
+        datosGenerales.metodoPagoF, datosGenerales.usoCFDI,
         datosGenerales.puntosConsiderar, datosGenerales.tipoServicioPartida, datosGenerales.tipoSolicitud,
         datosGenerales.tipoServicio, datosGenerales.tiempoVida, datosGenerales.servicioIntExt
       ]);
-      let idInv = generarIdIncremental("Inventario", "INV");
-      hojaInventario.appendRow([ idInv, datosGenerales.ticket, fCpp, "ALTA AUTOMÁTICA DESDE OC: " + folioGenerado, prod.nombreProducto, prod.marca, datosGenerales.nuco, prod.unidadMedida, fRegistro, prod.cantidad, prod.total, prod.precioUnitario, "DISPONIBLE", datosGenerales.usuario ]);
     }
     SpreadsheetApp.flush();
     let resultadoArchivos = ejecutarCompilacionFormatosPDF(datosGenerales.ticket, folioGenerado, todasLasCotizaciones, configuracionCorreo, datosGenerales, correoDestino);
-    return { exito: true, msj: "¡Éxito! Documentos PDF generados.", archivos: resultadoArchivos };
+    // Crear solicitud de autorización — el inventario se registrará solo al finalizar la cadena
+    let montoTotal = partidasGanadoras.reduce(function(s, p) { return s + (parseFloat(p.total) || 0); }, 0);
+    crearSolicitudAutorizacion({
+      tipo: 'OC',
+      ticket: datosGenerales.ticket,
+      nuco: datosGenerales.nuco,
+      descripcion: 'OC ' + folioGenerado + ' — ' + datosGenerales.ticket,
+      monto: montoTotal,
+      solicitante: datosGenerales.usuario,
+      nivel: 'GERENTE',
+      datoExtra: folioGenerado
+    });
+    return { exito: true, msj: "OC registrada. Pendiente de autorización del Gerente.", archivos: resultadoArchivos };
   } catch(e) { return { exito: false, error: "Error al procesar: " + e.message }; }
 }
 
@@ -331,6 +341,9 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   let filesToEmail   = [];
   let tsUnique       = new Date().getTime();
   const hojasBase    = ["Accesos","Vehiculos","Taller","Inventario","Consumos","Proveedores","OC","COMPARATIVA DOC","OC DOC","FORMATO ALTA VEHICULOS"];
+  // Guardar qué hojas estaban visibles antes de generar PDFs para restaurarlas al final
+  const estadoVisibilidad = {};
+  ss.getSheets().forEach(h => { estadoVisibilidad[h.getName()] = !h.isSheetHidden(); });
   let rzCompra       = datosGenerales.razonSocialCompra ? datosGenerales.razonSocialCompra.toUpperCase() : "";
   let textoHomoclave = datosGenerales.departamento.toUpperCase().includes("OOAM") ? "HOMOCLAVE OOAM DE CONFORMIDAD CON EL TÍTULO DE CONCESIÓN OTORGADO POR LAS AUTORIDADES CORRESPONDIENTES A: " + rzCompra : "";
   let partidasGanadoras = todasLasCotizaciones.filter(c => c.esGanador === true);
@@ -364,16 +377,15 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   hojaComp.createTextFinder("{{CHECK_INTERNO}}").replaceAllWith(marcaInterno);
   hojaComp.createTextFinder("{{CHECK_EXTERNO}}").replaceAllWith(marcaExterno);
   hojaComp.createTextFinder("{{COMENTARIOS}}").replaceAllWith(datosGenerales.comentarios);
-  hojaComp.createTextFinder("{{MOTIVO DE COMPRA}}").replaceAllWith(datosGenerales.motivoCompra);
   hojaComp.createTextFinder("{{TIPO SERVICIO PARTIDA}}").replaceAllWith(datosGenerales.tipoServicioPartida);
   hojaComp.createTextFinder("{{TIEMPO VIDA ESTIMADO}}").replaceAllWith(datosGenerales.tiempoVida);
   hojaComp.createTextFinder("{{TIPO SOLICITUD}}").replaceAllWith(datosGenerales.tipoSolicitud);
   hojaComp.createTextFinder("{{TIPO SERVICIO}}").replaceAllWith(datosGenerales.tipoServicio);
   hojaComp.createTextFinder("{{QUIEN REGISTRA}}").replaceAllWith(datosGenerales.usuario || "");
-  let compGranTotal = 0; let compAhorroIntercambio = 0; let totalProveedorContado = 0;
+  let compGranTotal = 0; let compAhorroIntercambio = 0; let totalProveedorContado = 0; let compIvaTotal = 0;
   partidasGanadoras.forEach(p => {
-    let sub = parseFloat(p.subtotal) || 0; let tot = parseFloat(p.total) || 0;
-    compGranTotal += tot;
+    let sub = parseFloat(p.subtotal) || 0;
+    compGranTotal += sub;  // subtotal ya incluye IVA
     if (p.intercambio === "SI") compAhorroIntercambio += (sub * 0.30);
     totalProveedorContado += sub;
   });
@@ -382,12 +394,34 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   let mensajeEconomia = difPorcentaje < 0 ? "MÁS ECONÓMICO A CRÉDITO" : (difPorcentaje <= 0.15 ? "SE ENCUENTRA DENTRO DEL 15% AUTORIZADO" : "SOBREPASA EL 15% AUTORIZADO");
   let colItem_C = [], colNombre_C = [], colFamilia_C = [], colCant_C = [], colUM_C = [];
   productosUnicos.forEach((u, i) => { colItem_C.push(i+1); colNombre_C.push(u.nombre); colFamilia_C.push(u.familia); colCant_C.push(u.cant); colUM_C.push(u.um); });
+  // Capturar fila de {{NOMBRE}} ANTES de reemplazar, para ajustar altura después
+  let nombreCeldaR = hojaComp.createTextFinder("{{NOMBRE}}").findNext();
+  let filaProductos = nombreCeldaR ? nombreCeldaR.getRow() : 0;
   hojaComp.createTextFinder("{{ITEM}}").replaceAllWith(colItem_C.join('\n'));
   hojaComp.createTextFinder("{{NOMBRE}}").replaceAllWith(colNombre_C.join('\n'));
   hojaComp.createTextFinder("{{FAMILIA}}").replaceAllWith(colFamilia_C.join('\n'));
   hojaComp.createTextFinder("{{CANTIDAD PRODUCTOS}}").replaceAllWith(colCant_C.join('\n'));
   hojaComp.createTextFinder("{{UNIDAD MEDIDA}}").replaceAllWith(colUM_C.join('\n'));
+  hojaComp.createTextFinder("{{MOTIVO DE COMPRA}}").replaceAllWith(datosGenerales.motivoCompra || "");
+  // Colorear forma de pago ANTES del loop (mientras {{FORMA DE PAGO_Pn}} siguen siendo placeholders)
+  // Usa iteración con normalización de acentos para tolerancia ante diferencias de encoding
+  if (datosGenerales.formaPagoComp) {
+    let _norm = function(s){ return s.toString().normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim(); };
+    let buscar = _norm(datosGenerales.formaPagoComp);
+    let datosHoja = hojaComp.getDataRange().getValues();
+    let fpFound = false;
+    for (let ri = 0; ri < datosHoja.length && !fpFound; ri++) {
+      for (let ci = 0; ci < datosHoja[ri].length && !fpFound; ci++) {
+        if (_norm(datosHoja[ri][ci]) === buscar) {
+          hojaComp.getRange(ri+1, ci+1).setFontColor('#1B7E34').setFontWeight('bold');
+          fpFound = true;
+        }
+      }
+    }
+  }
   let provKeys = [...new Set(todasLasCotizaciones.map(p => p.rfc))];
+  let numProds = productosUnicos.length;
+  let alturaFilaProds = Math.max(50, numProds * 24); // 24px por línea de producto
   for (let m = 0; m < 5; m++) {
     let pIdx = m + 1;
     if (m < provKeys.length) {
@@ -395,23 +429,54 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
       let nombreP   = todasLasCotizaciones.find(p => p.rfc === rfcActual).nombreProveedor.toUpperCase();
       let provData  = datosProv.find(d => d[3].toString().toUpperCase().trim() === rfcActual) || [];
       let rzP       = provData[2] ? provData[2].toString().toUpperCase() : "";
-      let colDesc_P = [], colSub_P = []; let tot_P = 0; let fp_P = datosGenerales.formaPago; let te_P = "";
+      let colDesc_P = [], colSub_P = [], colMarca_P = []; let tot_P = 0; let ivaP = 0; let fp_P = datosGenerales.formaPagoComp || datosGenerales.formaPago; let te_P = "";
+      let colComent_P = []; let ganadorFlags = [];
       productosUnicos.forEach(u => {
         let pItem = todasLasCotizaciones.find(p => p.rfc === rfcActual && p.nombreProducto === u.nombre);
-        if (pItem) { colDesc_P.push(pItem.descripcion); colSub_P.push("$" + parseFloat(pItem.subtotal).toLocaleString('es-MX',{minimumFractionDigits:2})); te_P = pItem.tiempoEntrega; tot_P += parseFloat(pItem.total); }
-        else { colDesc_P.push("-"); colSub_P.push("-"); }
+        if (pItem) {
+          colDesc_P.push(pItem.descripcion);
+          colSub_P.push("$" + parseFloat(pItem.subtotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
+          colMarca_P.push(pItem.marca || "");
+          ganadorFlags.push(!!pItem.esGanador);
+          te_P = pItem.tiempoEntrega;
+          ivaP += parseFloat(pItem.subtotal) || 0;  // TOTAL_IVA: suma todos los subtotales del proveedor
+          if (pItem.esGanador) { tot_P += parseFloat(pItem.subtotal); } // TOTAL: solo ganadores
+          if (pItem.comentario) colComent_P.push(u.nombre + ": " + pItem.comentario);
+        } else { colDesc_P.push("-"); colSub_P.push("-"); colMarca_P.push("-"); ganadorFlags.push(false); }
       });
       hojaComp.createTextFinder("{{PROVEEDOR_P"+pIdx+"}}").replaceAllWith(nombreP);
       hojaComp.createTextFinder("{{RAZON SOCIAL_P"+pIdx+"}}").replaceAllWith(rzP);
       hojaComp.createTextFinder("{{FORMA DE PAGO_P"+pIdx+"}}").replaceAllWith(fp_P);
       hojaComp.createTextFinder("{{TIEMPO ENTREGA_P"+pIdx+"}}").replaceAllWith(te_P);
       hojaComp.createTextFinder("{{DESCRIPCION_P"+pIdx+"}}").replaceAllWith(colDesc_P.join('\n'));
-      hojaComp.createTextFinder("{{SUBTOTAL_P"+pIdx+"}}").replaceAllWith(colSub_P.join('\n'));
+      hojaComp.createTextFinder("{{MARCA_P"+pIdx+"}}").replaceAllWith(colMarca_P.join('\n'));
+      hojaComp.createTextFinder("{{TOTAL_IVA_P"+pIdx+"}}").replaceAllWith("$" + ivaP.toLocaleString('es-MX',{minimumFractionDigits:2}));
       hojaComp.createTextFinder("{{TOTAL_P"+pIdx+"}}").replaceAllWith("$" + tot_P.toLocaleString('es-MX',{minimumFractionDigits:2}));
+      hojaComp.createTextFinder("{{COMENTARIOS_P"+pIdx+"}}").replaceAllWith(colComent_P.length > 0 ? colComent_P.join('\n') : "N/A");
+      // RichTextValue: precio ganador en verde, resto en negro
+      let subCeldaR = hojaComp.createTextFinder("{{SUBTOTAL_P"+pIdx+"}}").findNext();
+      if (subCeldaR) {
+        let textoSub = colSub_P.join('\n');
+        let rtBuilder = SpreadsheetApp.newRichTextValue().setText(textoSub);
+        let estiloNormal  = SpreadsheetApp.newTextStyle().setForegroundColor('#000000').setBold(false).build();
+        let estiloGanador = SpreadsheetApp.newTextStyle().setForegroundColor('#1B7E34').setBold(true).build();
+        let offset = 0;
+        colSub_P.forEach((txt, i) => {
+          rtBuilder.setTextStyle(offset, offset + txt.length, ganadorFlags[i] ? estiloGanador : estiloNormal);
+          offset += txt.length + 1; // +1 por el \n
+        });
+        subCeldaR.setValue(textoSub);
+        subCeldaR.setRichTextValue(rtBuilder.build());
+      }
     } else {
-      ["PROVEEDOR_P","RAZON SOCIAL_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","DESCRIPCION_P","SUBTOTAL_P","TOTAL_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
+      ["PROVEEDOR_P","RAZON SOCIAL_P","FORMA DE PAGO_P","TIEMPO ENTREGA_P","DESCRIPCION_P","SUBTOTAL_P","MARCA_P","TOTAL_IVA_P","TOTAL_P","COMENTARIOS_P"].forEach(k => hojaComp.createTextFinder("{{"+k+pIdx+"}}").replaceAllWith("-"));
     }
   }
+  SpreadsheetApp.flush();
+  // Ajustar altura de la fila de productos para mostrar todos los items
+  if (filaProductos > 0) hojaComp.setRowHeight(filaProductos, alturaFilaProds);
+  hojaComp.createTextFinder("{{TOTAL_SIN_IVA}}").replaceAllWith("$" + (compGranTotal - compIvaTotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
+  hojaComp.createTextFinder("{{IVA_TOTAL_COMP}}").replaceAllWith("$" + compIvaTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
   hojaComp.createTextFinder("{{GRAN_TOTAL_COMPRA}}").replaceAllWith("$" + compGranTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
   hojaComp.createTextFinder("{{AHORRO_INTERCAMBIO}}").replaceAllWith(compAhorroIntercambio > 0 ? "$" + compAhorroIntercambio.toLocaleString('es-MX',{minimumFractionDigits:2}) : "$0.00");
   hojaComp.createTextFinder("{{TOTAL_CON_DESCUENTO}}").replaceAllWith("$" + (compGranTotal - compAhorroIntercambio).toLocaleString('es-MX',{minimumFractionDigits:2}));
@@ -427,7 +492,7 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
   try { fileComp.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(e) {}
   resultadoLinks.comparativa = fileComp.getUrl();
   filesToEmail.push(fileComp);
-  ss.getSheets().forEach(h => { if (hojasBase.includes(h.getName())) h.showSheet(); });
+  ss.getSheets().forEach(h => { var n=h.getName(); if(estadoVisibilidad[n]) h.showSheet(); });
   ss.deleteSheet(hojaComp);
   const hojaOCOriginal   = ss.getSheetByName("OC DOC");
   let rfcUnicosGanadores = [...new Set(partidasGanadoras.map(p => p.rfc))];
@@ -441,20 +506,21 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     let pD      = datosProv.find(d => d[3].toString().toUpperCase().trim() === rfc) || [];
     let pRz     = pD[2]  ? pD[2].toString().toUpperCase()  : "";
     let pDir    = pD[4]  ? pD[4].toString().toUpperCase()  : "";
-    let pCont   = pD[6]  ? pD[6].toString().toUpperCase() + " / " + pD[9].toString().toLowerCase() : "";
-    let pCorreo = pD[9]  ? pD[9].toString().toLowerCase()  : "";
-    let pCred   = pD[10] ? pD[10].toString()               : "";
+    let pCont   = pD[7]  ? pD[7].toString() : "S/C";
+    let pCorreo = pD[8]  ? pD[8].toString().toLowerCase()  : "";
+    let pCred   = pD[11] ? pD[11].toString()               : "";
     let lLeg    = "Mediante la aceptación vía correo electrónico de la presente orden de compra, el proveedor " + nombreProv + " asume de manera exclusiva y total la responsabilidad sobre la calidad, el estado y la integridad del producto hasta el momento en que se efectúe la entrega física y se firme por escrito la misma y conforme en el lugar estipulado en este documento.\n\nEn el supuesto de que la Orden de Compra sea cancelada, el proveedor " + nombreProv + " será responsable de cubrir todos los costos y gastos que se deriven de dicha cancelación en un plazo máximo de 5 días hábiles.";
-    let pGTotal = 0; let pAhorro = 0;
-    let cItm=[],cNom=[],cFam=[],cCant=[],cUM=[],cDes=[],cPU=[],cInt=[],cSub=[],cCInt=[],cTot=[];
+    let pGTotal = 0; let pAhorro = 0; let pIvaTotal = 0;
+    let cItm=[],cNom=[],cMarca=[],cFam=[],cCant=[],cUM=[],cDes=[],cPU=[],cInt=[],cSub=[],cCInt=[],cIva=[],cTot=[];
     pGanadores.forEach((p, idx) => {
       let sub=parseFloat(p.subtotal)||0; let tot=parseFloat(p.total)||0; let ci=parseFloat(p.costoIntercambio)||0;
-      pGTotal+=tot; pAhorro+=ci;
-      cItm.push(idx+1); cNom.push(p.nombreProducto); cFam.push(p.familia);
+      let iva=parseFloat(p.iva)||0;
+      pGTotal+=tot; pAhorro+=ci; pIvaTotal+=iva;
+      cItm.push(idx+1); cNom.push(p.nombreProducto); cMarca.push(p.marca||''); cFam.push(p.familia);
       cCant.push(p.cantidad); cUM.push(p.unidadMedida); cDes.push(p.descripcion);
       cPU.push("$"+parseFloat(p.precioUnitario).toLocaleString('es-MX'));
       cInt.push(p.intercambio); cSub.push("$"+sub.toLocaleString('es-MX'));
-      cCInt.push("$"+ci.toLocaleString('es-MX')); cTot.push("$"+tot.toLocaleString('es-MX'));
+      cCInt.push("$"+ci.toLocaleString('es-MX')); cIva.push("$"+iva.toLocaleString('es-MX',{minimumFractionDigits:2})); cTot.push("$"+tot.toLocaleString('es-MX'));
     });
     tempOC.createTextFinder("{{FOLIO}}").replaceAllWith(folioOC);
     tempOC.createTextFinder("{{FECHA}}").replaceAllWith(formatoDDMMYYYY(new Date()));
@@ -481,6 +547,7 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     tempOC.createTextFinder("{{QUIEN REGISTRA}}").replaceAllWith(datosGenerales.usuario || "");
     tempOC.createTextFinder("{{ITEM}}").replaceAllWith(cItm.join('\n'));
     tempOC.createTextFinder("{{NOMBRE}}").replaceAllWith(cNom.join('\n'));
+    tempOC.createTextFinder("{{MARCA}}").replaceAllWith(cMarca.join('\n'));
     tempOC.createTextFinder("{{FAMILIA}}").replaceAllWith(cFam.join('\n'));
     tempOC.createTextFinder("{{CANTIDAD}}").replaceAllWith(cCant.join('\n'));
     tempOC.createTextFinder("{{UNIDAD MEDIDA}}").replaceAllWith(cUM.join('\n'));
@@ -488,8 +555,10 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     tempOC.createTextFinder("{{PRECIO UNITARIO}}").replaceAllWith(cPU.join('\n'));
     tempOC.createTextFinder("{{¿INTERCAMBIO?}}").replaceAllWith(cInt.join('\n'));
     tempOC.createTextFinder("{{SUBTOTAL}}").replaceAllWith(cSub.join('\n'));
-    tempOC.createTextFinder("{{SUBTOTAL_OC}}").replaceAllWith("$"+(pGTotal-pAhorro).toLocaleString('es-MX',{minimumFractionDigits:2}));
+    tempOC.createTextFinder("{{IVA_UNITARIO}}").replaceAllWith(cIva.join('\n'));
+    tempOC.createTextFinder("{{SUBTOTAL_OC}}").replaceAllWith("$"+(pGTotal-pAhorro-pIvaTotal).toLocaleString('es-MX',{minimumFractionDigits:2}));
     tempOC.createTextFinder("{{INTERCAMBIO_OC}}").replaceAllWith("$"+pAhorro.toLocaleString('es-MX',{minimumFractionDigits:2}));
+    tempOC.createTextFinder("{{IVA_TOTAL_OC}}").replaceAllWith("$"+pIvaTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
     tempOC.createTextFinder("{{TOTAL_OC}}").replaceAllWith("$"+pGTotal.toLocaleString('es-MX',{minimumFractionDigits:2}));
     tempOC.createTextFinder("{{PROVEEDOR_GANADOR}}").replaceAllWith(nombreProv);
     tempOC.createTextFinder("{{LEYENDA_LEGAL_OC}}").replaceAllWith(lLeg);
@@ -502,10 +571,10 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
     try { fileOC.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(e) {}
     resultadoLinks.ocs.push({ proveedor: nombreProv, url: fileOC.getUrl() });
     filesToEmail.push(fileOC);
-    ss.getSheets().forEach(h => { if (hojasBase.includes(h.getName())) h.showSheet(); });
+    ss.getSheets().forEach(h => { var n=h.getName(); if(estadoVisibilidad[n]) h.showSheet(); });
     ss.deleteSheet(tempOC);
   }
-  ss.getSheets().forEach(h => { if (hojasBase.includes(h.getName())) h.showSheet(); });
+  ss.getSheets().forEach(h => { var n=h.getName(); if(estadoVisibilidad[n]) h.showSheet(); });
   if (configCorreo !== "NINGUNO" && correoUsuarioDestino) {
     let adjuntos = configCorreo === "AMBOS" ? filesToEmail : filesToEmail.filter(f => f.getName().indexOf("OC_") > -1);
     MailApp.sendEmail({
@@ -521,18 +590,67 @@ function ejecutarCompilacionFormatosPDF(ticket, folioOC, todasLasCotizaciones, c
 
 function obtenerHistorialGlobalOC() {
   try {
-    const d = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("OC").getDataRange().getDisplayValues();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const d = ss.getSheetByName("OC").getDataRange().getDisplayValues();
+    // Leer autorizaciones para cruzar por folio (DATO_EXTRA contiene "folioOC|cadena")
+    const authSheet = ss.getSheetByName("Autorizaciones");
+    let authMap = {};
+    if (authSheet) {
+      const dA = authSheet.getDataRange().getDisplayValues();
+      for (let i = 1; i < dA.length; i++) {
+        if (!dA[i][0] || dA[i][1] !== 'OC') continue;
+        const datoExtra = dA[i][18] ? dA[i][18].toString() : '';
+        const folioAuth = datoExtra.split('|')[0].trim();
+        const cadena = datoExtra.split('|')[1] || '';
+        if (folioAuth) {
+          authMap[folioAuth] = {
+            nivelActual: dA[i][8] || 'GERENTE',
+            decGerente: dA[i][9] || 'PENDIENTE',
+            decSub: dA[i][12] || '',
+            decDir: dA[i][15] || '',
+            cadena: cadena,
+            authId: dA[i][0]
+          };
+        }
+      }
+    }
     let filas = []; let foliosSet = new Set();
     for (let i = d.length - 1; i >= 1; i--) {
       if (!d[i][2]) continue;
       let folio = d[i][2];
       if (!foliosSet.has(folio)) {
         foliosSet.add(folio);
-        filas.push({ folio: folio, ticket: d[i][3], fecha: limpiarHoraLectura(d[i][4]), nuco: d[i][6], razonSocial: d[i][25] });
+        const auth = authMap[folio] || { nivelActual: 'GERENTE', decGerente: 'PENDIENTE', decSub: '', decDir: '', cadena: '' };
+        filas.push({ folio: folio, ticket: d[i][3], fecha: limpiarHoraLectura(d[i][4]), nuco: d[i][6], razonSocial: d[i][28], quienRegistro: d[i][5],
+          nivelActual: auth.nivelActual, decGerente: auth.decGerente, decSub: auth.decSub, decDir: auth.decDir, cadena: auth.cadena, authId: auth.authId || '' });
       }
     }
     return { exito: true, datos: filas };
   } catch(e) { return { exito: false, error: "Fallo al leer la bitácora." }; }
+}
+
+function registrarInventarioDesdeOC(folioOC) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const hojaOC = ss.getSheetByName("OC");
+    const hojaInv = ss.getSheetByName("Inventario");
+    if (!hojaOC || !hojaInv) return { exito: false, error: "Hoja no encontrada." };
+    const dOC = hojaOC.getDataRange().getDisplayValues();
+    const fReg = formatoDDMMYYYY(new Date());
+    let registrados = 0;
+    for (let i = 1; i < dOC.length; i++) {
+      if (!dOC[i][2] || dOC[i][2].toString().trim() !== folioOC.toString().trim()) continue;
+      // col indices: ticket=3, fecha=4, usuario=5, nuco=6, producto=15, marca=16, um=20, cantidad=19, total=27, pu=23
+      const ticket = dOC[i][3], usuario = dOC[i][5], nuco = dOC[i][6];
+      const producto = dOC[i][15], marca = dOC[i][16], um = dOC[i][20];
+      const cantidad = dOC[i][19], total = dOC[i][27], pu = dOC[i][23];
+      const idInv = generarIdIncremental("Inventario", "INV");
+      hojaInv.appendRow([idInv, ticket, "", "ALTA AUTOMÁTICA DESDE OC: " + folioOC, producto, marca, nuco, um, fReg, cantidad, total, pu, "DISPONIBLE", usuario]);
+      registrados++;
+    }
+    SpreadsheetApp.flush();
+    return { exito: true, msj: "Inventario registrado. " + registrados + " partida(s)." };
+  } catch(e) { return { exito: false, error: e.message }; }
 }
 
 function buscarDocumentosGenerados(ticket, folio) {
@@ -565,22 +683,54 @@ function obtenerDatosInventario() {
   } catch(e) { return { exito: false, error: "Error de lectura de inventario." }; }
 }
 
+function obtenerHistoricoProductos() {
+  try {
+    const d = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventario").getDataRange().getDisplayValues();
+    let mapa = {};
+    for (let i = 1; i < d.length; i++) {
+      let prod = d[i][4] ? d[i][4].toString().trim() : '';
+      if (!prod) continue;
+      let qty = parseFloat(d[i][9]) || 0;
+      let cUnit = parseFloat((d[i][11]||'').toString().replace(/[^0-9.-]+/g,'')) || 0;
+      let cTot = parseFloat((d[i][10]||'').toString().replace(/[^0-9.-]+/g,'')) || (qty * cUnit);
+      if (!mapa[prod]) mapa[prod] = { producto: prod, totalQty: 0, totalGasto: 0, compras: 0, detalles: [] };
+      mapa[prod].totalQty += qty;
+      mapa[prod].totalGasto += cTot;
+      mapa[prod].compras++;
+      mapa[prod].detalles.push({ fecha: limpiarHoraLectura(d[i][8]), ticket: d[i][1], marca: d[i][5], vehiculo: d[i][6], cantidad: qty, costoUnitario: cUnit, costoTotal: cTot, quienRegistra: d[i][13] });
+    }
+    let lista = Object.values(mapa).sort(function(a, b) { return b.totalGasto - a.totalGasto; });
+    return { exito: true, datos: lista };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
 function obtenerDatosTaller() {
   try {
-    const d = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Taller").getDataRange().getDisplayValues();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // Construir mapa NUCO → info vehicular desde Vehiculos
+    const veh = ss.getSheetByName("Vehiculos").getDataRange().getDisplayValues();
+    let mapaVeh = {};
+    for (let v = 1; v < veh.length; v++) {
+      let n = veh[v][4] ? veh[v][4].toString().trim() : '';
+      if (n) mapaVeh[n] = { linea: veh[v][21]||'', modelo: veh[v][22]||'', placas: veh[v][24]||'', sede: veh[v][33]||'', oficina: veh[v][34]||'', departamento: veh[v][8]||'' };
+    }
+    const d = ss.getSheetByName("Taller").getDataRange().getDisplayValues();
     let tI = 0; let tE = 0; let filas = [];
     for (let i = 1; i < d.length; i++) {
       if (!d[i][1].toString().trim()) continue;
       let cInt = parseFloat(d[i][15].replace(/[^0-9.-]+/g,"")) || 0;
       let cExt = parseFloat(d[i][16].replace(/[^0-9.-]+/g,"")) || 0;
       tI += cInt; tE += cExt;
+      let nuco = d[i][1].toString().trim();
+      let vi = mapaVeh[nuco] || {};
       filas.push({
-        idTaller: d[i][0], nuco: d[i][1], ticket: d[i][2], folioCpp: d[i][3],
+        idTaller: d[i][0], nuco: nuco, ticket: d[i][2], folioCpp: d[i][3],
         alertaTicket: d[i][4], serie: d[i][5], odometro: d[i][6],
         fecha: limpiarHoraLectura(d[i][7]), fechaServicio: limpiarHoraLectura(d[i][8]),
         tipoServicio: d[i][9], familia: d[i][10], numeroPartes: d[i][11],
         proveedor: d[i][12], descripcion: d[i][13], quienRegistra: d[i][14],
-        costoTotal: d[i][17], estatus: d[i][18], servInterno: cInt, servExterno: cExt
+        costoTotal: d[i][17], estatus: d[i][18], servInterno: cInt, servExterno: cExt,
+        linea: vi.linea, modelo: vi.modelo, placas: vi.placas, sede: vi.sede, oficina: vi.oficina, departamento: vi.departamento
       });
     }
     return { exito: true, datos: filas.reverse(), totalInterno: tI, totalExterno: tE };
@@ -595,7 +745,7 @@ function obtenerDatosConsumos() {
       if (!d[i][1].toString().trim()) continue;
       let ct = parseFloat(d[i][8].replace(/[^0-9.-]+/g,"")) || 0;
       tot += ct;
-      filas.push({ idConsumo: d[i][0], producto: d[i][2], quienRegistra: d[i][3], ticketNuevo: d[i][4], vehiculo: d[i][5], fecha: limpiarHoraLectura(d[i][6]), cantidad: d[i][7], costoTotal: d[i][8] });
+      filas.push({ idConsumo: d[i][0], producto: d[i][2], quienRegistra: d[i][3], ticketNuevo: d[i][4], vehiculo: d[i][5], fecha: limpiarHoraLectura(d[i][6]), cantidad: d[i][7], costoTotal: d[i][8], evidencia: d[i][9] || "", folioCpp: d[i][10] || "", importeDescuento: d[i][11] || "", refaccionStock: d[i][12] || "" });
     }
     return { exito: true, datos: filas.reverse(), total: tot };
   } catch(e) { return { exito: false, error: "Error de lectura de consumos." }; }
@@ -607,7 +757,7 @@ function obtenerDatosProveedores() {
     let f = [];
     for (let i = 1; i < d.length; i++) {
       if (d[i][1].toString().trim()) {
-        f.push({ id: d[i][0], proveedor: d[i][1], razonSocial: d[i][2], rfc: d[i][3], direccion: d[i][4], estado: d[i][5], contacto: d[i][6], telefono: d[i][7], correo: d[i][8], segmentacion: d[i][9], diasCredito: d[i][10], totalCredito: d[i][11], servicio: d[i][12], razonesSociales: d[i][13] });
+        f.push({ id: d[i][0], proveedor: d[i][1], razonSocial: d[i][2], rfc: d[i][3], direccion: d[i][4], estado: d[i][5], contacto: d[i][6], telefono: d[i][7], correo: d[i][8], segmentacion: d[i][9], diasCredito: d[i][10], totalCredito: d[i][11], servicio: d[i][12], razonesSociales: d[i][13], regimenFiscal: d[i][14] || "", intercambio2: d[i][15] || "NO", quienRegistra: d[i][16] || "" });
       }
     }
     return { exito: true, datos: f.reverse() };
@@ -619,11 +769,22 @@ function obtenerHistorialNuco(nucoBusqueda) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const b  = nucoBusqueda.toString().toUpperCase().trim();
     let h = [];
+
+    // Buscar info del vehículo en hoja Vehiculos por NUCO (col E = índice 4)
+    let vehInfo = { serie: '', placas: '', linea: '', modelo: '', sede: '', oficina: '', departamento: '' };
+    const dV = ss.getSheetByName("Vehiculos").getDataRange().getDisplayValues();
+    for (let i = 1; i < dV.length; i++) {
+      if (dV[i][4] && dV[i][4].toString().toUpperCase().trim() === b) {
+        vehInfo = { serie: dV[i][2], placas: dV[i][24], linea: dV[i][21], modelo: dV[i][22], sede: dV[i][33], oficina: dV[i][34], departamento: dV[i][8] };
+        break;
+      }
+    }
+
     const dT = ss.getSheetByName("Taller").getDataRange().getDisplayValues();
     for (let i = 1; i < dT.length; i++) {
       if (dT[i][1] && dT[i][1].toString().toUpperCase().trim() === b) {
         let fS = limpiarHoraLectura(dT[i][8]);
-        h.push({ modulo: 'TALLER', timestamp: parseFechaToDate(fS).getTime(), fecha: fS, ticket: dT[i][2], odometro: dT[i][6], tipoServicio: dT[i][9], proveedor: dT[i][12], descripcion: dT[i][13], costoTotal: parseFloat(dT[i][17].replace(/[^0-9.-]+/g,"")) || 0, quienRegistra: dT[i][14] });
+        h.push({ modulo: 'TALLER', timestamp: parseFechaToDate(fS).getTime(), fecha: fS, nuco: dT[i][1], ticket: dT[i][2], serie: vehInfo.serie || dT[i][5], odometro: dT[i][6], tipoServicio: dT[i][9], familia: dT[i][10], numeroPartes: dT[i][11], proveedor: dT[i][12], descripcion: dT[i][13], quienRegistra: dT[i][14], servInterno: dT[i][15], servExterno: dT[i][16], costoTotal: parseFloat(dT[i][17].replace(/[^0-9.-]+/g,"")) || 0, estatusUnidad: dT[i][18], placas: vehInfo.placas, linea: vehInfo.linea, modelo: vehInfo.modelo, sede: vehInfo.sede, oficina: vehInfo.oficina, departamento: vehInfo.departamento });
       }
     }
     const dC = ss.getSheetByName("Consumos").getDataRange().getDisplayValues();
@@ -751,6 +912,647 @@ function actualizarFilaConsumoBackend(d) {
   } catch(e) { return { exito: false, error: "Fallo al actualizar registro." }; }
 }
 
+// ============================================================
+// CATÁLOGOS DINÁMICOS
+// ============================================================
+
+function obtenerCatalogos() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const hoja = ss.getSheetByName("Catálogos") || ss.getSheetByName("Catalogos");
+    if (!hoja) return { exito: false, error: "Hoja 'Catálogos' no encontrada." };
+    const datos = hoja.getDataRange().getDisplayValues();
+    if (datos.length < 2) return { exito: true, catalogos: {} };
+    const headers = datos[0];
+    let catalogos = {};
+    headers.forEach(function(h, colIdx) {
+      if (!h) return;
+      let key = h.toString().trim().toUpperCase();
+      catalogos[key] = [];
+      for (let r = 1; r < datos.length; r++) {
+        let val = datos[r][colIdx] ? datos[r][colIdx].toString().trim() : "";
+        if (val) catalogos[key].push(val);
+      }
+    });
+    return { exito: true, catalogos: catalogos };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+// ============================================================
+// CRONOGRAMA
+// ============================================================
+
+function obtenerMecanicos() {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Accesos");
+    const datos = hoja.getDataRange().getDisplayValues();
+    let mecanicos = [];
+    for (let i = 1; i < datos.length; i++) {
+      let rol = datos[i][4] ? datos[i][4].toString().trim().toUpperCase() : "";
+      let nombre = datos[i][0] ? datos[i][0].toString().trim() : "";
+      if (rol === "MECANICO" && nombre) mecanicos.push(nombre);
+    }
+    return { exito: true, mecanicos: mecanicos };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function obtenerDatosCronograma() {
+  // Columnas sheet: A=ID(0), B=TIPO TRABAJO(1), C=EJECUTIVO(2), D=SEDE(3),
+  //   E=HORARIO(4), F=FECHA(5), G=TICKET(6), H=NUCO(7), I=MARCA(8),
+  //   J=MODELO(9), K=PLACAS(10), L=MECANICO(11), M=MECANICO2(12),
+  //   N=INFO SERVICIO(13), O=ESTATUS UNIDAD(14), P=EVIDENCIA(15),
+  //   Q=FORMATO(16), R=QUIEN REGISTRA(17)
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+    if (!hoja) return { exito: false, error: "Hoja 'Cronograma' no encontrada." };
+    const d = hoja.getDataRange().getDisplayValues();
+    if (d.length < 2) return { exito: true, datos: [] };
+    let filas = [];
+    for (let i = 1; i < d.length; i++) {
+      if (!d[i][0]) continue;
+      filas.push({
+        id: d[i][0], tipoTrabajo: d[i][1], ejecutivo: d[i][2], sede: d[i][3],
+        horario: d[i][4], fecha: d[i][5], ticket: d[i][6], nuco: d[i][7],
+        marca: d[i][8], modelo: d[i][9], placas: d[i][10],
+        mecanico: d[i][11], mecanico2: d[i][12],
+        info: d[i][13], estatusUnidad: d[i][14],
+        evidencia: d[i][15], formato: d[i][16], quienRegistra: d[i][17],
+        mec2Estatus: d[i][18], mec2Fecha: d[i][19]
+      });
+    }
+    return { exito: true, datos: filas };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function guardarCronograma(d) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let hoja = ss.getSheetByName("Cronograma");
+    if (!hoja) hoja = ss.insertSheet("Cronograma");
+    const idGen = generarIdIncremental("Cronograma", "CRON");
+
+    // Validar: máximo 2 vehículos por horario en la misma fecha
+    const fechaNorm = limpiarHoraLectura(d.fecha);
+    const existentes = hoja.getDataRange().getDisplayValues();
+    let contHorario = 0;
+    for (let i = 1; i < existentes.length; i++) {
+      const fila = existentes[i];
+      const fHora  = (fila[4] || '').toString().trim();  // E: HORARIO
+      const fFecha = (fila[5] || '').toString().trim();  // F: FECHA
+      if (fHora === d.horario && fFecha === fechaNorm) contHorario++;
+    }
+    if (contHorario >= 2) {
+      return { exito: false, error: 'Ya hay 2 vehículos programados para las ' + d.horario + ' del ' + fechaNorm + '. Elige otro horario.' };
+    }
+
+    // Asignar mecánico principal con round-robin (reparto equitativo)
+    const mecResult = obtenerMecanicos();
+    const mecList = (mecResult.exito && mecResult.mecanicos.length > 0) ? mecResult.mecanicos : [];
+    let mecPrincipal = "SIN ASIGNAR";
+    if (d.mecanicoManual) {
+      mecPrincipal = d.mecanicoManual;
+    } else if (mecList.length > 0) {
+      // Contar asignaciones actuales en el Cronograma para round-robin
+      const hojaC = ss.getSheetByName("Cronograma");
+      const filasC = hojaC ? hojaC.getDataRange().getDisplayValues() : [];
+      let conteos = {};
+      mecList.forEach(function(m) { conteos[m] = 0; });
+      for (let i = 1; i < filasC.length; i++) {
+        let mAsig = (filasC[i][11] || '').toString().trim();
+        if (conteos.hasOwnProperty(mAsig)) conteos[mAsig]++;
+      }
+      // Elegir el mecánico con menos asignaciones (el que le toca)
+      mecPrincipal = mecList.reduce(function(min, m) { return conteos[m] < conteos[min] ? m : min; }, mecList[0]);
+    }
+    let mec2 = "";
+    if (d.mecanico2Solicitado && mecList.length > 1) {
+      let lista2 = mecList.filter(function(m){ return m !== mecPrincipal; });
+      // Round-robin para el segundo mecánico también
+      const hojaC = ss.getSheetByName("Cronograma");
+      const filasC = hojaC ? hojaC.getDataRange().getDisplayValues() : [];
+      let conteos2 = {};
+      lista2.forEach(function(m) { conteos2[m] = 0; });
+      for (let i = 1; i < filasC.length; i++) {
+        let m2Asig = (filasC[i][12] || '').toString().trim();
+        if (conteos2.hasOwnProperty(m2Asig)) conteos2[m2Asig]++;
+      }
+      mec2 = lista2.reduce(function(min, m) { return conteos2[m] < conteos2[min] ? m : min; }, lista2[0]);
+    }
+
+    hoja.appendRow([
+      idGen,               // A: ID
+      d.tipoTrabajo,       // B: TIPO DE TRABAJO
+      d.ejecutivo || d.quien, // C: EJECUTIVO
+      d.sede,              // D: SEDE
+      d.horario,           // E: HORARIO INGRESO
+      limpiarHoraLectura(d.fecha), // F: FECHA
+      d.ticket,            // G: TICKET
+      d.nuco,              // H: NUCO
+      d.marca,             // I: MARCA
+      d.modelo,            // J: MODELO
+      d.placas,            // K: PLACAS
+      mecPrincipal,        // L: MECANICO
+      mec2,                // M: MECANICO 2
+      d.info || "",        // N: INFO SERVICIO
+      "EN REPARACION",     // O: ESTATUS UNIDAD
+      "",                  // P: EVIDENCIA
+      "",                  // Q: FORMATO
+      d.quien,             // R: QUIEN REGISTRA
+      "",                  // S: MECANICO 2 ESTATUS
+      ""                   // T: MECANICO 2 FECHA APROBACION
+    ]);
+    SpreadsheetApp.flush();
+    return { exito: true, msj: "Entrada registrada: " + idGen, mecanico: mecPrincipal, mecanico2: mec2 };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function actualizarCronograma(d) {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() === d.id.toString().trim()) {
+        const f = i + 1;
+        hoja.getRange(f, 13).setValue(d.estatus);
+        if (d.evidencia) hoja.getRange(f, 16).setValue(d.evidencia);
+        if (d.formato) hoja.getRange(f, 17).setValue(d.formato);
+
+        // Si es pospuesto, mover al siguiente día hábil
+        if (d.estatus === "SERVICIO POSPUESTO POR SV") {
+          let fechaActual = parseFechaToDate(datos[i][7].toString());
+          fechaActual.setDate(fechaActual.getDate() + 1);
+          while (fechaActual.getDay() === 0 || fechaActual.getDay() === 6) {
+            fechaActual.setDate(fechaActual.getDate() + 1);
+          }
+          hoja.getRange(f, 8).setValue(formatoDDMMYYYY(fechaActual));
+        }
+        SpreadsheetApp.flush();
+        return { exito: true, msj: "Registro actualizado." };
+      }
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function _siguienteDiaHabil(fechaBase) {
+  // Recibe un objeto Date, devuelve el siguiente día L-V (no sábado ni domingo)
+  let d = new Date(fechaBase.getFullYear(), fechaBase.getMonth(), fechaBase.getDate());
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return d;
+}
+
+function _rawToDate(val) {
+  // getValues() puede devolver Date o string — los dos casos quedan cubiertos
+  if (val instanceof Date) return new Date(val.getFullYear(), val.getMonth(), val.getDate());
+  return parseFechaToDate(val.toString());
+}
+
+function actualizarEstatusCronogramaBackend(d) {
+  // Columnas (1-based): O=ESTATUS(15), P=EVIDENCIA(16), Q=FORMATO(17), F=FECHA(6)
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+    if (!hoja) return { exito: false, error: "Hoja 'Cronograma' no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() === d.id.toString().trim()) {
+        const f = i + 1;
+        if (d.estatus) hoja.getRange(f, 15).setValue(d.estatus);
+        if (d.urlEvidencia !== undefined && d.urlEvidencia !== null) hoja.getRange(f, 16).setValue(d.urlEvidencia);
+        if (d.urlFormato   !== undefined && d.urlFormato   !== null) hoja.getRange(f, 17).setValue(d.urlFormato);
+        let msjRetorno = "Registro actualizado.";
+        if (d.estatus === "SERVICIO POSPUESTO POR SV") {
+          // Mover al siguiente día hábil y resetear estatus a EN REPARACION para ese día
+          const fechaSiguiente = _siguienteDiaHabil(_rawToDate(datos[i][5]));
+          const fechaSigStr = formatoDDMMYYYY(fechaSiguiente);
+          hoja.getRange(f, 6).setValue(fechaSigStr);
+          hoja.getRange(f, 15).setValue("EN REPARACION");
+          msjRetorno = "Pospuesto al " + fechaSigStr + ". Aparecerá como EN REPARACIÓN ese día con los mismos mecánicos.";
+        }
+        SpreadsheetApp.flush();
+        return { exito: true, msj: msjRetorno };
+      }
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function actualizarCamposEjecutivoCronograma(d) {
+  // Columnas (1-based): B=TIPO TRABAJO(2), D=SEDE(4), E=HORARIO(5), F=FECHA(6), M=MECANICO2(13), N=INFO(14)
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const hoja = ss.getSheetByName("Cronograma");
+    if (!hoja) return { exito: false, error: "Hoja 'Cronograma' no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() === d.id.toString().trim()) {
+        const f = i + 1;
+        if (d.tipoTrabajo) hoja.getRange(f, 2).setValue(d.tipoTrabajo);
+        if (d.sede)        hoja.getRange(f, 4).setValue(d.sede);
+        if (d.horario)     hoja.getRange(f, 5).setValue(d.horario);
+        if (d.fecha) {
+          const p = d.fecha.split('-');
+          if (p.length === 3) hoja.getRange(f, 6).setValue(p[2]+'/'+p[1]+'/'+p[0]);
+        }
+        if (d.info !== undefined && d.info !== null) hoja.getRange(f, 14).setValue(d.info);
+        // Asignar mecánico 2 si se solicita dupla y aún no tiene
+        if (d.dupla === true) {
+          const mec1 = datos[i][11] ? datos[i][11].toString().trim() : '';
+          const mec2actual = datos[i][12] ? datos[i][12].toString().trim() : '';
+          if (!mec2actual) {
+            const mecResult = obtenerMecanicos();
+            const mecList = (mecResult.exito && mecResult.mecanicos.length > 0) ? mecResult.mecanicos : [];
+            if (mecList.length > 1) {
+              const lista2 = mecList.filter(function(m){ return m !== mec1; });
+              const filasC = hoja.getDataRange().getDisplayValues();
+              let conteos2 = {};
+              lista2.forEach(function(m){ conteos2[m] = 0; });
+              for (let j = 1; j < filasC.length; j++) {
+                let m2A = (filasC[j][12] || '').toString().trim();
+                if (conteos2.hasOwnProperty(m2A)) conteos2[m2A]++;
+              }
+              const mec2 = lista2.reduce(function(min, m){ return conteos2[m] < conteos2[min] ? m : min; }, lista2[0]);
+              hoja.getRange(f, 13).setValue(mec2);
+            }
+          }
+        }
+        SpreadsheetApp.flush();
+        return { exito: true, msj: "Campos actualizados correctamente." };
+      }
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function subirArchivoEvidenciaCronograma(ticket, nombre, tipo, base64) {
+  try {
+    // Carpeta raíz Evidencias_Cronograma
+    const raizIter = DriveApp.getFoldersByName("Evidencias_Cronograma");
+    const raiz = raizIter.hasNext() ? raizIter.next() : DriveApp.createFolder("Evidencias_Cronograma");
+    // Subcarpeta por número de ticket
+    const ticketNombre = "TK_" + ticket;
+    const subIter = raiz.getFoldersByName(ticketNombre);
+    const subFolder = subIter.hasNext() ? subIter.next() : raiz.createFolder(ticketNombre);
+    // Crear archivo
+    const blob = Utilities.newBlob(Utilities.base64Decode(base64), tipo, nombre);
+    const file = subFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return { exito: true, url: file.getUrl() };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function crearSolicitudAutorizacion(d) {
+  // Columnas sheet: A=ID, B=MODULO, C=TICKET, D=NUCO, E=CONCEPTO, F=MONTO,
+  //                 G=SOLICITANTE, H=FECHA, I=NIVEL_ACTUAL,
+  //                 J=DEC_GERENTE, K=FECHA_GER, L=QUIEN_GER,
+  //                 M=DEC_SUB, N=FECHA_SUB, O=QUIEN_SUB,
+  //                 P=DEC_DIR, Q=FECHA_DIR, R=QUIEN_DIR, S=DATO_EXTRA
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let hoja = ss.getSheetByName("Autorizaciones");
+    if (!hoja) hoja = ss.insertSheet("Autorizaciones");
+    // Feature 2 — Prevent duplicate DUPLA requests
+    if ((d.tipo || "DUPLA") === "DUPLA") {
+      const existingData = hoja.getDataRange().getValues();
+      for (let i = 1; i < existingData.length; i++) {
+        const row = existingData[i];
+        if (row[1] && row[1].toString().trim() === "DUPLA" &&
+            row[2] && row[2].toString().trim() === (d.ticket || "").toString().trim() &&
+            row[9] && row[9].toString().trim() === "PENDIENTE") {
+          return { exito: false, msj: "Ya existe una solicitud DUPLA pendiente para este ticket." };
+        }
+      }
+    }
+    const idGen = generarIdIncremental("Autorizaciones", "AUTH");
+    hoja.appendRow([
+      idGen,
+      d.tipo || "DUPLA",          // B: MODULO
+      d.ticket || "",             // C: TICKET
+      d.nuco   || "",             // D: NUCO
+      d.descripcion || d.desc || "",  // E: CONCEPTO
+      d.monto  || "",             // F: MONTO
+      d.solicitante || d.quien || "", // G: SOLICITANTE
+      formatoDDMMYYYY(new Date()), // H: FECHA
+      d.nivel  || "GERENTE",      // I: NIVEL_ACTUAL
+      "PENDIENTE",                // J: DEC_GERENTE (inicial)
+      "", "", "", "", "", "", "", "", // K-R vacíos
+      d.datoExtra || ""           // S: DATO_EXTRA
+    ]);
+    SpreadsheetApp.flush();
+    return { exito: true, msj: "Solicitud enviada.", id: idGen };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien, cadena) {
+  // Columnas: J=DEC_GERENTE(10), K=FECHA_GER(11), L=QUIEN_GER(12),
+  //           M=DEC_SUB(13), N=FECHA_SUB(14), O=QUIEN_SUB(15),
+  //           P=DEC_DIR(16), Q=FECHA_DIR(17), R=QUIEN_DIR(18), S=DATO_EXTRA(19)
+  //           I=NIVEL_ACTUAL(9)
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    const fechaHoy = formatoDDMMYYYY(new Date());
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() !== id.toString().trim()) continue;
+      const f = i + 1;
+      const tipoRow = datos[i][1] ? datos[i][1].toString().trim() : tipo;
+      // datoExtra col S (index 18) = folio OC (for OC type) or cadena guardada
+      const datoExtraActual = datos[i][18] ? datos[i][18].toString().trim() : '';
+
+      if (tipoRow === 'DUPLA') {
+        hoja.getRange(f, 10).setValue(decision);
+        hoja.getRange(f, 11).setValue(fechaHoy);
+        hoja.getRange(f, 12).setValue(quien);
+        hoja.getRange(f, 9).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
+        if (comentario) hoja.getRange(f, 20).setValue(comentario);
+        const ticketRef = datos[i][2] ? datos[i][2].toString().trim() : '';
+        if (ticketRef) {
+          const hojaCron = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+          if (hojaCron) {
+            const cronDatos = hojaCron.getDataRange().getValues();
+            for (let j = 1; j < cronDatos.length; j++) {
+              if (cronDatos[j][6] && cronDatos[j][6].toString().trim() === ticketRef) {
+                hojaCron.getRange(j + 1, 19).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
+                hojaCron.getRange(j + 1, 20).setValue(fechaHoy);
+                if (decision === 'RECHAZADO') {
+                  hojaCron.getRange(j + 1, 13).setValue('');
+                } else if (decision === 'AUTORIZADO') {
+                  // Asignar mecánico 2 automáticamente al autorizar
+                  const mec1 = cronDatos[j][11] ? cronDatos[j][11].toString().trim() : '';
+                  const mec2actual = cronDatos[j][12] ? cronDatos[j][12].toString().trim() : '';
+                  if (!mec2actual) {
+                    const mecResult = obtenerMecanicos();
+                    const mecList = (mecResult.exito && mecResult.mecanicos.length > 0) ? mecResult.mecanicos : [];
+                    if (mecList.length > 1) {
+                      const lista2 = mecList.filter(function(m){ return m !== mec1; });
+                      const filasC = hojaCron.getDataRange().getDisplayValues();
+                      let conteos2 = {};
+                      lista2.forEach(function(m){ conteos2[m] = 0; });
+                      for (let k = 1; k < filasC.length; k++) {
+                        let m2A = (filasC[k][12] || '').toString().trim();
+                        if (conteos2.hasOwnProperty(m2A)) conteos2[m2A]++;
+                      }
+                      const mec2 = lista2.reduce(function(min, m){ return conteos2[m] < conteos2[min] ? m : min; }, lista2[0]);
+                      hojaCron.getRange(j + 1, 13).setValue(mec2);
+                    }
+                  }
+                }
+                break;
+              }
+            }
+          }
+        }
+        SpreadsheetApp.flush();
+        return { exito: true, msj: decision === 'AUTORIZADO' ? 'Dupla autorizada.' : 'Dupla rechazada.', decision: decision };
+      }
+
+      // Para OC: cadena define el flujo de escalamiento
+      if (comentario) hoja.getRange(f, 20).setValue(comentario);
+      if (nivel === 'GERENTE') {
+        hoja.getRange(f, 10).setValue(decision);
+        hoja.getRange(f, 11).setValue(fechaHoy);
+        hoja.getRange(f, 12).setValue(quien);
+        if (decision === 'RECHAZADO') {
+          hoja.getRange(f, 9).setValue('RECHAZADO');
+        } else {
+          // Guardar cadena elegida en DATO_EXTRA solo la primera vez (campo tiene folio OC antes de cadena)
+          // Usamos una columna auxiliar — guardamos cadena como sufijo separado con |
+          const folioOC = datoExtraActual.split('|')[0];
+          const cadenaGuardar = cadena || 'SOLO_GERENTE';
+          hoja.getRange(f, 19).setValue(folioOC + '|' + cadenaGuardar);
+          if (cadenaGuardar === 'SOLO_GERENTE') {
+            hoja.getRange(f, 9).setValue('AUTORIZADO');
+            registrarInventarioDesdeOC(folioOC);
+          } else if (cadenaGuardar === 'SUB' || cadenaGuardar === 'SUB_DIR') {
+            hoja.getRange(f, 9).setValue('SUBDIRECTORA');
+          } else if (cadenaGuardar === 'DIR') {
+            hoja.getRange(f, 9).setValue('DIRECTORA');
+          }
+        }
+      } else if (nivel === 'SUBDIRECTORA') {
+        hoja.getRange(f, 13).setValue(decision);
+        hoja.getRange(f, 14).setValue(fechaHoy);
+        hoja.getRange(f, 15).setValue(quien);
+        if (decision === 'RECHAZADO') {
+          hoja.getRange(f, 9).setValue('RECHAZADO');
+        } else {
+          const partes = datoExtraActual.split('|');
+          const folioOC = partes[0];
+          const cadenaGuardada = partes[1] || 'SUB';
+          if (cadenaGuardada === 'SUB_DIR') {
+            hoja.getRange(f, 9).setValue('DIRECTORA');
+          } else {
+            hoja.getRange(f, 9).setValue('AUTORIZADO');
+            registrarInventarioDesdeOC(folioOC);
+          }
+        }
+      } else if (nivel === 'DIRECTORA') {
+        hoja.getRange(f, 16).setValue(decision);
+        hoja.getRange(f, 17).setValue(fechaHoy);
+        hoja.getRange(f, 18).setValue(quien);
+        const folioOC = datoExtraActual.split('|')[0];
+        if (decision === 'AUTORIZADO') {
+          hoja.getRange(f, 9).setValue('AUTORIZADO');
+          registrarInventarioDesdeOC(folioOC);
+        } else {
+          hoja.getRange(f, 9).setValue('RECHAZADO');
+        }
+      }
+
+      SpreadsheetApp.flush();
+      return { exito: true, msj: decision === 'AUTORIZADO' ? 'Autorizado correctamente.' : 'Solicitud rechazada.', decision: decision };
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function cerrarCadenaAutorizacion(id) {
+  // Marca NIVEL_ACTUAL = AUTORIZADO sin escalar más
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() !== id.toString().trim()) continue;
+      hoja.getRange(i + 1, 9).setValue('AUTORIZADO');
+      SpreadsheetApp.flush();
+      return { exito: true, msj: 'Autorización cerrada correctamente.' };
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function escalarAutorizacion(id, nivelActual, quien) {
+  // Avanza NIVEL_ACTUAL al siguiente nivel de aprobación
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    const mapaNext = { 'GERENTE': 'SUBDIRECTORA', 'SUBDIRECTORA': 'DIRECTORA', 'DIRECTORA': 'AUTORIZADO' };
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() !== id.toString().trim()) continue;
+      const siguiente = mapaNext[nivelActual] || nivelActual;
+      hoja.getRange(i + 1, 9).setValue(siguiente);
+      SpreadsheetApp.flush();
+      return { exito: true, msj: 'Solicitud escalada a ' + siguiente + '.' };
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function obtenerDatosAutorizaciones() {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: true, datos: [] };
+    const d = hoja.getDataRange().getDisplayValues();
+    if (d.length < 2) return { exito: true, datos: [] };
+    let filas = [];
+    for (let i = 1; i < d.length; i++) {
+      if (!d[i][0]) continue;
+      filas.push({ id: d[i][0], tipo: d[i][1], nivel: d[i][2], ticket: d[i][3], nuco: d[i][4], desc: d[i][5], quien: d[i][6], fecha: d[i][7], decision: d[i][8], comentario: d[i][9] });
+    }
+    return { exito: true, datos: filas };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function resolverAutorizacion(id, decision, comentario) {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString() === id.toString()) {
+        hoja.getRange(i + 1, 9).setValue(decision);
+        hoja.getRange(i + 1, 10).setValue(comentario || "");
+        SpreadsheetApp.flush();
+        return { exito: true, msj: "Decisión registrada." };
+      }
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function obtenerDatosHerramientas() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let hoja = ss.getSheetByName("Herramientas");
+    if (!hoja) return { exito: true, datos: [] };
+    const d = hoja.getDataRange().getDisplayValues();
+    if (d.length < 2) return { exito: true, datos: [] };
+    let filas = [];
+    for (let i = 1; i < d.length; i++) {
+      if (!d[i][0]) continue;
+      filas.push({ id: d[i][0], tipo: d[i][1], tipoUnidad: d[i][2], nombre: d[i][3], marca: d[i][4],
+        estadoHerr: d[i][5], lugar: d[i][6], estatus: d[i][7], fecha: limpiarHoraLectura(d[i][8]),
+        existencia: d[i][9], quienRegistra: d[i][10] });
+    }
+    return { exito: true, datos: filas };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function registrarHerramienta(d) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let hoja = ss.getSheetByName("Herramientas");
+    if (!hoja) hoja = ss.insertSheet("Herramientas");
+    const id = generarIdIncremental("Herramientas", "HRR");
+    hoja.appendRow([id, d.tipo, d.tipoUnidad, d.nombre, d.marca, d.estadoHerr,
+      d.lugar, d.estatus, d.fecha, d.existencia, d.quienRegistra]);
+    SpreadsheetApp.flush();
+    return { exito: true, msj: "Herramienta registrada correctamente." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function eliminarHerramienta(id) {
+  return _eliminarRegistro("Herramientas", id);
+}
+
+function actualizarHerramienta(d) {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Herramientas");
+    if (!hoja) return { exito: false, error: "Hoja no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() === d.id.toString().trim()) {
+        const f = i + 1;
+        hoja.getRange(f, 2).setValue(d.tipo);
+        hoja.getRange(f, 3).setValue(d.tipoUnidad);
+        hoja.getRange(f, 4).setValue(d.nombre);
+        hoja.getRange(f, 5).setValue(d.marca);
+        hoja.getRange(f, 6).setValue(d.estadoHerr);
+        hoja.getRange(f, 7).setValue(d.lugar);
+        hoja.getRange(f, 8).setValue(d.estatus);
+        hoja.getRange(f, 9).setValue(d.fecha);
+        hoja.getRange(f, 10).setValue(d.existencia);
+        SpreadsheetApp.flush();
+        return { exito: true, msj: "Herramienta actualizada correctamente." };
+      }
+    }
+    return { exito: false, error: "ID no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+function obtenerDatosNotificaciones(quien, rol) {
+  // Columnas: A=ID(0), B=MODULO(1), C=TICKET(2), D=NUCO(3), E=CONCEPTO(4),
+  //           F=MONTO(5), G=SOLICITANTE(6), H=FECHA(7), I=NIVEL_ACTUAL(8),
+  //           J=DEC_GERENTE(9), K=FECHA_GER(10), L=QUIEN_GER(11),
+  //           M=DEC_SUB(12), N=FECHA_SUB(13), O=QUIEN_SUB(14),
+  //           P=DEC_DIR(15), Q=FECHA_DIR(16), R=QUIEN_DIR(17), S=DATO_EXTRA(18)
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Autorizaciones");
+    if (!hoja) return { exito: true, pendientes: [], mias: [] };
+    const d = hoja.getDataRange().getDisplayValues();
+    if (d.length < 2) return { exito: true, pendientes: [], mias: [] };
+    let pendientes = [], revisados = [], mias = [];
+    const rolUpper = (rol || '').toString().toUpperCase().trim();
+    for (let i = 1; i < d.length; i++) {
+      if (!d[i][0]) continue;
+      const id     = d[i][0],  tipo  = d[i][1], ticket = d[i][2], nuco  = d[i][3],
+            desc   = d[i][4],  sol   = d[i][6], fecha  = d[i][7], nivel = d[i][8],
+            decG   = d[i][9],  fechaG = d[i][10], quienG = d[i][11],
+            decS   = d[i][12], fechaS = d[i][13], quienS = d[i][14],
+            decD   = d[i][15], fechaD = d[i][16], quienD = d[i][17],
+            obs    = d[i][19] || '';
+      const estaActivo = nivel !== 'AUTORIZADO' && nivel !== 'RECHAZADO';
+      const datoExtra = d[i][18] ? d[i][18].toString() : '';
+      const folioOC = tipo === 'OC' ? datoExtra.split('|')[0].trim() : '';
+      if (estaActivo) {
+        const nivelUpper = nivel.toString().toUpperCase().trim();
+        const rolPuede = rolUpper === 'ADMIN' ||
+          (rolUpper === 'GERENTE'      && nivelUpper === 'GERENTE') ||
+          (rolUpper === 'SUBDIRECTORA' && nivelUpper === 'SUBDIRECTORA') ||
+          (rolUpper === 'DIRECTORA'    && nivelUpper === 'DIRECTORA');
+        if (rolPuede) {
+          pendientes.push({ id: id, tipo: tipo, nivel: nivel, referencia: id,
+            ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha, folioOC: folioOC });
+        }
+      } else {
+        const rolAutorizo = rolUpper === 'ADMIN' || rolUpper === 'GERENTE' || rolUpper === 'SUBDIRECTORA' || rolUpper === 'DIRECTORA';
+        if (rolAutorizo) {
+          // Determinar quién fue el último autorizador/rechazador
+          let quienFinal = quienG || '', fechaFinal = fechaG || '', decFinal = decG || '';
+          if (decS && decS !== 'PENDIENTE' && decS !== '') { quienFinal = quienS; fechaFinal = fechaS; decFinal = decS; }
+          if (decD && decD !== 'PENDIENTE' && decD !== '') { quienFinal = quienD; fechaFinal = fechaD; decFinal = decD; }
+          revisados.push({ id: id, tipo: tipo, nivel: nivel, referencia: id,
+            ticket: ticket, nuco: nuco, descripcion: desc, solicitante: sol, fecha: fecha, folioOC: folioOC,
+            quienAutorizo: quienFinal, fechaDecision: fechaFinal, decisionFinal: decFinal, observaciones: obs });
+        }
+      }
+      if (sol === quien) {
+        const cadena = tipo === 'OC' ? (datoExtra.split('|')[1] || 'SOLO_GERENTE').trim() : '';
+        mias.push({ tipo: tipo, ticket: ticket, descripcion: desc, nivelActual: nivel,
+          decisionGerente: decG || '—', decisionSub: decS || '—', decisionDir: decD || '—',
+          fecha: fecha, estado: nivel, folioOC: folioOC, cadena: cadena });
+      }
+    }
+    return { exito: true, pendientes: pendientes, revisados: revisados, mias: mias };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
+
+// ============================================================
+
 function actualizarProveedorCompleto(d) {
   try {
     const hoja  = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proveedores");
@@ -771,6 +1573,8 @@ function actualizarProveedorCompleto(d) {
         hoja.getRange(f, 12).setValue(d.totalCredito);
         hoja.getRange(f, 13).setValue(d.servicio);
         hoja.getRange(f, 14).setValue(d.razonesSociales);
+        hoja.getRange(f, 15).setValue(d.regimenFiscal || "");
+        hoja.getRange(f, 16).setValue(d.intercambio2 || "NO");
         SpreadsheetApp.flush();
         return { exito: true, msj: "Proveedor actualizado con éxito." };
       }

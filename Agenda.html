@@ -1,0 +1,44 @@
+<div class="container-fluid p-0">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold m-0" style="color: var(--azul);">📅 Agenda de Servicios</h4>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm fw-bold text-white" style="background:var(--azul);" onclick="window.iniciarAgenda()">↻ Actualizar</button>
+      <button class="btn btn-sm fw-bold" style="background-color:#1D6F42; color:white;" onclick="window.exportarExcelAgenda()">📥 Descargar Excel</button>
+    </div>
+  </div>
+
+  <!-- Selector de rango de fechas -->
+  <div class="card shadow-sm border-0 mb-3">
+    <div class="card-body p-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="fw-bold mb-1" style="color: var(--azul); font-size: 0.85rem;">Fecha Desde</label>
+          <input type="date" id="agendaDesde" class="form-control" style="border: 2px solid var(--dorado);">
+        </div>
+        <div class="col-md-3">
+          <label class="fw-bold mb-1" style="color: var(--azul); font-size: 0.85rem;">Fecha Hasta</label>
+          <input type="date" id="agendaHasta" class="form-control" style="border: 2px solid var(--dorado);">
+        </div>
+        <div class="col-md-2">
+          <button class="btn w-100 fw-bold text-white" style="background-color: var(--azul);" onclick="window.filtrarAgenda()">🔍 Buscar</button>
+        </div>
+        <div class="col-md-2">
+          <button class="btn w-100 fw-bold" style="background-color: var(--dorado); color: var(--azul);" onclick="window.agendaHoy()">📌 Hoy</button>
+        </div>
+        <div class="col-md-2">
+          <button class="btn w-100 fw-bold btn-outline-secondary" onclick="window.agendaSemana()">📆 Esta semana</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen del rango -->
+  <div id="agendaResumen" class="mb-3" style="display:none;">
+    <div class="alert mb-0 py-2 px-3 fw-bold" style="background: #e8f0fe; border-left: 4px solid var(--azul); font-size: 0.88rem; color: var(--azul);" id="agendaResumenTxt"></div>
+  </div>
+
+  <!-- Vista previa agrupada por fecha -->
+  <div id="agendaContenido">
+    <div class="text-center text-muted py-5" style="font-size:0.95rem;">Selecciona un rango de fechas y presiona <b>Buscar</b></div>
+  </div>
+</div>
