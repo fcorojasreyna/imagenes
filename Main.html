@@ -566,25 +566,6 @@
       // ============================================================================
       // FILTRO GENÉRICO POR COLUMNA (fila de filtros en thead)
       // ============================================================================
-      window.filtrarCols = function(tbodyId, inputEl) {
-        var thead = inputEl.closest('thead');
-        var inputs = thead ? thead.querySelectorAll('tr:last-child input') : [];
-        var filters = Array.from(inputs).map(function(i){ return i.value.trim().toLowerCase(); });
-        var tbody = document.getElementById(tbodyId);
-        if(!tbody) return;
-        var rows = tbody.getElementsByTagName('tr');
-        for(var i=0; i<rows.length; i++){
-          var cells = rows[i].getElementsByTagName('td');
-          var show = true;
-          for(var j=0; j<filters.length; j++){
-            if(!filters[j]) continue;
-            if(!cells[j] || cells[j].textContent.toLowerCase().indexOf(filters[j]) === -1){
-              show = false; break;
-            }
-          }
-          rows[i].style.display = show ? '' : 'none';
-        }
-      };
 
       // ============================================================================
       // HISTÓRICO DE PRODUCTOS ADQUIRIDOS (Inventario)
@@ -2555,9 +2536,13 @@
           // Si se solicitó dupla, crear solicitud de autorización al Gerente antes de guardar
           if (solicitarDuplaFlag) {
             var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
+            if(duplaBtn) { duplaBtn.disabled = true; duplaBtn.innerHTML = '✅ Dupla Enviada'; duplaBtn.style.backgroundColor = '#6c757d'; }
             google.script.run
               .withSuccessHandler(function(r){ window.mostrarAlerta(r.msj || 'Solicitud de dupla enviada al Gerente.'); })
-              .withFailureHandler(function(e){ window.mostrarAlerta('Error al enviar dupla: ' + e.message); })
+              .withFailureHandler(function(e){
+                if(duplaBtn) { duplaBtn.disabled = false; duplaBtn.innerHTML = '👥 Solicitar Dupla'; duplaBtn.style.backgroundColor = 'var(--dorado)'; }
+                window.mostrarAlerta('Error al enviar dupla: ' + e.message);
+              })
               .crearSolicitudAutorizacion({ tipo: 'DUPLA', ticket: ticket, nuco: '', descripcion: 'Solicitud de segundo mecánico para ticket ' + ticket, solicitante: quien, datoExtra: '' });
           }
           google.script.run
