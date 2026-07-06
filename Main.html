@@ -272,6 +272,38 @@
       </div>
     </div>
 
+    <div class="modal fade" id="modalHistoricoProducto" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-top: 5px solid var(--dorado);">
+          <div class="modal-header" style="background-color: var(--azul); color: white;">
+            <h5 class="modal-title fw-bold m-0">Compras: <span id="modalHistProdTitulo" style="color: var(--dorado);"></span></h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-3">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-dark">
+                  <tr>
+                    <th style="white-space:nowrap;">Fecha</th>
+                    <th style="white-space:nowrap;">Ticket</th>
+                    <th style="white-space:nowrap;">Marca / Proveedor</th>
+                    <th style="white-space:nowrap;">Vehículo</th>
+                    <th class="text-center" style="white-space:nowrap;">Cant.</th>
+                    <th class="text-end" style="white-space:nowrap;">C. Unitario</th>
+                    <th class="text-end" style="white-space:nowrap;">C. Total</th>
+                    <th style="white-space:nowrap;">Quien Registra</th>
+                  </tr>
+                </thead>
+                <tbody id="cuerpoModalHistProd">
+                  <tr><td colspan="8" class="text-center py-3 text-muted">Sin datos.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="modalDescargasOC" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-top: 5px solid var(--dorado);">
@@ -511,6 +543,29 @@
       };
 
       // ============================================================================
+      // FILTRO GENÉRICO POR COLUMNA (fila de filtros en thead)
+      // ============================================================================
+      window.filtrarCols = function(tbodyId, inputEl) {
+        var thead = inputEl.closest('thead');
+        var inputs = thead ? thead.querySelectorAll('tr:last-child input') : [];
+        var filters = Array.from(inputs).map(function(i){ return i.value.trim().toLowerCase(); });
+        var tbody = document.getElementById(tbodyId);
+        if(!tbody) return;
+        var rows = tbody.getElementsByTagName('tr');
+        for(var i=0; i<rows.length; i++){
+          var cells = rows[i].getElementsByTagName('td');
+          var show = true;
+          for(var j=0; j<filters.length; j++){
+            if(!filters[j]) continue;
+            if(!cells[j] || cells[j].textContent.toLowerCase().indexOf(filters[j]) === -1){
+              show = false; break;
+            }
+          }
+          rows[i].style.display = show ? '' : 'none';
+        }
+      };
+
+      // ============================================================================
       // HISTÓRICO DE PRODUCTOS ADQUIRIDOS (Inventario)
       // ============================================================================
       window.mostrarHistoricoProductos = function() {
@@ -531,48 +586,67 @@
         window.cargarDatosInventario();
       };
 
+      window._historicoProductosData = [];
+
       window.cargarHistoricoProductos = function() {
         var tbody = document.getElementById('cuerpoHistoricoProductos');
-        var canvas = document.getElementById('chartHistorico');
-        if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">Cargando...</td></tr>';
+        if(tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">Cargando...</td></tr>';
         google.script.run.withSuccessHandler(function(res) {
-          if (!res || !res.exito) { if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error al cargar datos.</td></tr>'; return; }
-          var datos = res.datos || [];
-          var top10 = datos.slice(0, 10);
-          var resto = datos.slice(10);
-          // Draw bar chart
-          if(canvas && top10.length) {
-            var ctx = canvas.getContext('2d');
-            var W = canvas.offsetWidth || 600; canvas.width = W; canvas.height = Math.max(260, top10.length * 32 + 40);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            var maxVal = top10[0].totalGasto || 1;
-            var barH = 24; var gapY = 8; var leftPad = 180; var rightPad = 20; var topPad = 16;
-            var barW = canvas.width - leftPad - rightPad;
-            top10.forEach(function(item, idx) {
-              var y = topPad + idx * (barH + gapY);
-              var w = Math.max(4, Math.round((item.totalGasto / maxVal) * barW));
-              ctx.fillStyle = '#1E252B'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
-              var label = item.producto.length > 24 ? item.producto.slice(0,22)+'…' : item.producto;
-              ctx.fillText(label, leftPad - 6, y + barH/2 + 4);
-              var grad = ctx.createLinearGradient(leftPad, 0, leftPad + w, 0);
-              grad.addColorStop(0, '#1E252B'); grad.addColorStop(1, '#B4A169');
-              ctx.fillStyle = grad; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(leftPad, y, w, barH, 4) : ctx.rect(leftPad, y, w, barH); ctx.fill();
-              ctx.fillStyle = '#fff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'left';
-              ctx.fillText('$'+parseFloat(item.totalGasto).toLocaleString('es-MX'), leftPad + w + 4, y + barH/2 + 4);
-            });
-          }
-          // Render full list
-          if(tbody) {
-            tbody.innerHTML = '';
-            datos.forEach(function(item, idx) {
-              var avg = item.compras > 0 ? (item.totalGasto / item.compras) : 0;
-              var rowBg = idx < 10 ? 'style="background:#fff9e6;"' : '';
-              tbody.innerHTML += '<tr '+rowBg+'><td class="fw-bold">'+(idx<10?'<span class="badge me-1" style="background:var(--azul);color:white;">'+(idx+1)+'°</span>':'')+item.producto+'</td><td>'+item.totalQty+'</td><td class="fw-bold text-success">$'+parseFloat(item.totalGasto).toLocaleString('es-MX')+'</td><td>'+item.compras+'</td><td>$'+parseFloat(avg).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})+'</td></tr>';
-            });
-            if(!datos.length) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Sin registros.</td></tr>';
-          }
-        }).withFailureHandler(function(e){ if(tbody) tbody.innerHTML='<tr><td colspan="5" class="text-center text-danger">'+e.message+'</td></tr>'; })
+          if (!res || !res.exito) { if(tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error al cargar datos.</td></tr>'; return; }
+          window._historicoProductosData = res.datos || [];
+          window._renderListaHistorico(window._historicoProductosData);
+        }).withFailureHandler(function(e){ if(tbody) tbody.innerHTML='<tr><td colspan="6" class="text-center text-danger">'+e.message+'</td></tr>'; })
         .obtenerHistoricoProductos();
+      };
+
+      window._renderListaHistorico = function(datos) {
+        var tbody = document.getElementById('cuerpoHistoricoProductos');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        if(!datos.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Sin registros.</td></tr>'; return; }
+        datos.forEach(function(item, idx) {
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td class="text-muted" style="font-size:0.8rem;">'+(idx+1)+'</td>'
+            +'<td class="fw-bold">'+item.producto+'</td>'
+            +'<td>'+item.totalQty+'</td>'
+            +'<td class="fw-bold text-success">$'+parseFloat(item.totalGasto).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})+'</td>'
+            +'<td>'+item.compras+'</td>'
+            +'<td class="text-center"><button class="btn btn-sm fw-bold text-white" style="background:var(--azul);font-size:0.75rem;" onclick="window.verComprasProducto(\''+item.producto.replace(/'/g,"\\'")+'\')" >Ver compras</button></td>';
+          tbody.appendChild(tr);
+        });
+      };
+
+      window.filtrarListaHistorico = function() {
+        var q = (document.getElementById('filtroHistoricoProducto') || {}).value || '';
+        q = q.trim().toLowerCase();
+        if(!q) { window._renderListaHistorico(window._historicoProductosData); return; }
+        var filtrado = window._historicoProductosData.filter(function(i){ return i.producto.toLowerCase().indexOf(q) !== -1; });
+        window._renderListaHistorico(filtrado);
+      };
+
+      window.verComprasProducto = function(producto) {
+        var all = window._historicoProductosData;
+        var found = null;
+        for(var i=0; i<all.length; i++){ if(all[i].producto === producto){ found = all[i]; break; } }
+        if(!found) return;
+        document.getElementById('modalHistProdTitulo').textContent = producto;
+        var tbody = document.getElementById('cuerpoModalHistProd');
+        tbody.innerHTML = '';
+        var detalles = found.detalles || [];
+        if(!detalles.length){ tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Sin registros detallados.</td></tr>'; }
+        detalles.forEach(function(d){
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td style="white-space:nowrap;">'+d.fecha+'</td>'
+            +'<td>'+d.ticket+'</td>'
+            +'<td>'+d.marca+'</td>'
+            +'<td>'+d.vehiculo+'</td>'
+            +'<td class="text-center">'+d.cantidad+'</td>'
+            +'<td class="text-end">$'+parseFloat(d.costoUnitario||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})+'</td>'
+            +'<td class="text-end fw-bold text-success">$'+parseFloat(d.costoTotal||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})+'</td>'
+            +'<td style="white-space:nowrap;">'+d.quienRegistra+'</td>';
+          tbody.appendChild(tr);
+        });
+        new bootstrap.Modal(document.getElementById('modalHistoricoProducto')).show();
       };
 
       window.cargarDatosConsumos = function() {
@@ -2529,7 +2603,7 @@
             var _filaPend = function(f, esHistorial) {
               var btnAcc = '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);font-size:0.75rem;" onclick="window.abrirModalAuth(\''+f.id+'\',\''+f.tipo+'\',\''+f.nivel+'\',\''+encodeURIComponent(f.descripcion)+'\',\''+encodeURIComponent(f.ticket||'')+'\',\''+encodeURIComponent(f.folioOC||'')+'\')">Revisar</button>';
               var btnVisto = esHistorial
-                ? '<button class="btn btn-sm ms-1 fw-bold" style="background:#6c757d;color:white;font-size:0.75rem;" onclick="window.desmarcarVisto(\''+f.id+'\')">🔔 No leído</button>'
+                ? '' // autorizaciones revisadas: no se puede desmarcar
                 : '<button class="btn btn-sm ms-1 fw-bold" style="background:#198754;color:white;font-size:0.75rem;" onclick="window.marcarVisto(\''+f.id+'\')">✓ Leído</button>';
               return '<tr>'
                 +'<td><span class="badge" style="background:var(--dorado);color:#1E252B;">'+f.tipo+'</span></td>'
@@ -2581,7 +2655,7 @@
                 +'<td>'+f.ticket+'</td>'
                 +'<td class="small">'+f.descripcion+'</td>'
                 +'<td><span class="badge '+colorNivel+'">'+nivelFinal+'</span></td>'
-                +'<td>'+(esDupla ? NA : window._badgeEst(f.decisionGerente))+'</td>'
+                +'<td>'+window._badgeEst(f.decisionGerente)+'</td>'
                 +'<td>'+(aplicaSub ? window._badgeEst(f.decisionSub) : NA)+'</td>'
                 +'<td>'+(aplicaDir ? window._badgeEst(f.decisionDir) : NA)+'</td>'
                 +'<td>'+f.fecha+btnVistoMia+'</td>'
@@ -2622,12 +2696,16 @@
         return '<span class="badge bg-warning text-dark">⏳ Pendiente</span>';
       };
 
-      window.marcarVisto = function(id) {
+      window._marcarVistoSilente = function(id) {
         var _quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
         var _lsKey = 'notif_vistas_' + _quien;
         var _vistas = JSON.parse(localStorage.getItem(_lsKey) || '[]');
         if (_vistas.indexOf(id) === -1) _vistas.push(id);
         localStorage.setItem(_lsKey, JSON.stringify(_vistas));
+      };
+
+      window.marcarVisto = function(id) {
+        window._marcarVistoSilente(id);
         window.cargarDatosNotificaciones();
       };
 
@@ -2942,6 +3020,8 @@
           .withSuccessHandler(function(r) {
             if (!r.exito) { window.mostrarAlerta(r.msj || 'Error'); return; }
             bootstrap.Modal.getInstance(document.getElementById('modalAutorizacion')).hide();
+            // Auto-marcar como leído (pasa a historial, no se puede desmarcar)
+            window._marcarVistoSilente(_authActual.id);
             window.mostrarAlerta(r.msj);
             window.cargarDatosNotificaciones();
           })

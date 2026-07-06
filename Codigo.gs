@@ -693,10 +693,11 @@ function obtenerHistoricoProductos() {
       let qty = parseFloat(d[i][9]) || 0;
       let cUnit = parseFloat((d[i][11]||'').toString().replace(/[^0-9.-]+/g,'')) || 0;
       let cTot = parseFloat((d[i][10]||'').toString().replace(/[^0-9.-]+/g,'')) || (qty * cUnit);
-      if (!mapa[prod]) mapa[prod] = { producto: prod, totalQty: 0, totalGasto: 0, compras: 0 };
+      if (!mapa[prod]) mapa[prod] = { producto: prod, totalQty: 0, totalGasto: 0, compras: 0, detalles: [] };
       mapa[prod].totalQty += qty;
       mapa[prod].totalGasto += cTot;
       mapa[prod].compras++;
+      mapa[prod].detalles.push({ fecha: limpiarHoraLectura(d[i][8]), ticket: d[i][1], marca: d[i][5], vehiculo: d[i][6], cantidad: qty, costoUnitario: cUnit, costoTotal: cTot, quienRegistra: d[i][13] });
     }
     let lista = Object.values(mapa).sort(function(a, b) { return b.totalGasto - a.totalGasto; });
     return { exito: true, datos: lista };

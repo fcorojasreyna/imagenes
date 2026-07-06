@@ -1,7 +1,10 @@
 <div id="vistaTablaHerramientas" class="container-fluid p-0">
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h4 class="fw-bold m-0" style="color: var(--azul);">🔩 Herramientas y Artículos</h4>
-    <button class="btn btn-sm fw-bold" style="background-color:#1D6F42; color:white;" onclick="window.exportarExcelHerramientas()">📥 Descargar Excel</button>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm fw-bold text-white" style="background:var(--azul);" onclick="window.cargarDatosHerramientas()">↻ Actualizar</button>
+      <button class="btn btn-sm fw-bold" style="background-color:#1D6F42; color:white;" onclick="window.exportarExcelHerramientas()">📥 Descargar Excel</button>
+    </div>
   </div>
 
   <div class="card shadow-sm border-0">
@@ -40,6 +43,20 @@
               <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaHerramientas', 9)">Fecha ↕</th>
               <th style="cursor:pointer; white-space:nowrap;" onclick="window.ordenarTabla('cuerpoTablaHerramientas', 10)">Quien Registra ↕</th>
               <th class="text-center" style="white-space:nowrap;">Acciones</th>
+            </tr>
+            <tr style="background:#343a40;">
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th><input class="form-control form-control-sm p-0 px-1" style="font-size:0.7rem;" placeholder="🔍" onkeyup="window.filtrarCols('cuerpoTablaHerramientas',this)"></th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaHerramientas">
