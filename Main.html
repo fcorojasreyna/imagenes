@@ -3580,7 +3580,7 @@
           ?'<text x="60" y="55" text-anchor="middle" font-size="15" font-weight="800" fill="'+((segs[0]&&segs[0].c)||'#333')+'">'+total+'</text><text x="60" y="70" text-anchor="middle" font-size="8" fill="#bbb">total</text>'
           :'<text x="60" y="65" text-anchor="middle" font-size="9" fill="#ccc">Sin datos</text>';
         el.innerHTML='<div class="dash-chart-title">'+title+'</div>'
-          +'<div style="display:flex;align-items:center;gap:.9rem;">'
+          +'<div style="display:flex;align-items:flex-start;gap:.9rem;">'
           +'<svg viewBox="0 0 120 120" width="105" height="105" style="flex-shrink:0;">'
           +'<circle cx="60" cy="60" r="45" fill="none" stroke="#f0ebe0" stroke-width="18"/>'
           +(total>0?paths:'')+cText+'</svg>'
@@ -3680,8 +3680,10 @@
         window._dashBars('dBar_invProductos','Top 10 Productos por Costo',
           window._dashGroupK(d,function(f){return f.producto||'Sin producto';},function(f){return parseFloat(f.costoTotal)||0;}),
           function(i){return i%2===0?'var(--azul)':'var(--dorado)';},true);
+        var _nucoLinea={};
+        (_tallerDatos||[]).forEach(function(f){if(f.nuco&&f.linea)_nucoLinea[f.nuco.toString().trim()]=f.linea;});
         window._dashBars('dBar_invVehiculos','Top Vehículos por Refacciones (registros)',
-          window._dashGroupK(d,function(f){return f.vehiculo||'Sin vehículo';}),function(i){return _DP[i%_DP.length];},false);
+          window._dashGroupK(d,function(f){var v=(f.vehiculo||'').trim();return _nucoLinea[v]||v||'Sin vehículo';}),function(i){return _DP[i%_DP.length];},false);
       };
 
       // ---- CONSUMOS ----
@@ -3772,28 +3774,29 @@
           google.script.run.withSuccessHandler(function(r){if(r.exito){_herramientasDatos=r.datos||[];window._renderDashHerramientas();}}).obtenerDatosHerramientas();
           var kEl=document.getElementById('dKpi_herramientas'); if(kEl) kEl.innerHTML='<p style="color:#bbb;font-size:0.8rem;">Cargando...</p>'; return;
         }
-        var df=window._dashFilter(d,'fecha');
-        var activas=df.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('ACTIV')>-1;}).length;
-        var bajas=df.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('BAJA')>-1;}).length;
-        var existTotal=df.reduce(function(s,f){return s+(parseFloat(f.existencia)||0);},0);
+        var df=window._dashFilter(d,'fechaAdq');
+        var dAll=d; // total general sin filtro de período
+        var activas=dAll.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('ACTIV')>-1||(f.estatus||'').toUpperCase().indexOf('DISPONIBLE')>-1;}).length;
+        var prestadas=dAll.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('PREST')>-1;}).length;
+        var bajas=dAll.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('BAJA')>-1;}).length;
         var kpi=document.getElementById('dKpi_herramientas');
         if(kpi) kpi.innerHTML=window._dashKpiHtml([
-          {label:'Herramientas período', value:window._dN(df.length),    color:'var(--azul)'},
-          {label:'Activas',               value:window._dN(activas),     color:'#6a8a7a'},
-          {label:'Bajas',                 value:window._dN(bajas),       color:'#9a6a45'},
-          {label:'Existencia Total',      value:window._dN(existTotal),  color:'var(--dorado)'}
+          {label:'Total Herramientas',    value:window._dN(dAll.length),   color:'var(--azul)'},
+          {label:'Disponibles',           value:window._dN(activas),       color:'#6a8a7a'},
+          {label:'Prestadas',             value:window._dN(prestadas),     color:'#c8ae7e'},
+          {label:'Bajas',                 value:window._dN(bajas),         color:'#9a6a45'}
         ]);
         window._dashDonut('dDonut_herrEstatus','Por Estatus',
-          window._dashGroupK(df,function(f){return f.estatus||'Sin estatus';}).slice(0,6).map(function(x,i){return{l:x.l,v:x.v,c:_DP[i%_DP.length]};}));
+          window._dashGroupK(dAll,function(f){return f.estatus||'Sin estatus';}).slice(0,6).map(function(x,i){return{l:x.l,v:x.v,c:_DP[i%_DP.length]};}));
         window._dashDonut('dDonut_herrEstado','Estado Físico',
-          window._dashGroupK(df,function(f){var e=(f.estadoHerr||'').toUpperCase().trim(); return e||'Sin estado';}).map(function(x,i){
-            var c=x.l.includes('BUEN')?'#6a8a7a':x.l.includes('DA')?'#9a6a45':x.l.includes('INCOMPL')?'#c8ae7e':_DP[i%_DP.length];
+          window._dashGroupK(dAll,function(f){var e=(f.estadoHerr||f.estado||'').toUpperCase().trim(); return e||'Sin estado';}).map(function(x,i){
+            var c=x.l.includes('BUEN')?'#6a8a7a':x.l.includes('MAL')?'#9a6a45':x.l.includes('REG')?'#c8ae7e':_DP[i%_DP.length];
             return{l:x.l,v:x.v,c:c};
           }));
         window._dashBars('dBar_herrTipo','Por Tipo de Herramienta',
-          window._dashGroupK(df,function(f){return f.tipo||'Sin tipo';}),function(i){return _DP[i%_DP.length];},false);
+          window._dashGroupK(dAll,function(f){return f.tipo||'Sin tipo';}),function(i){return _DP[i%_DP.length];},false);
         window._dashBars('dBar_herrLugar','Por Ubicación',
-          window._dashGroupK(df,function(f){return f.lugar||'Sin ubicación';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+          window._dashGroupK(dAll,function(f){return f.lugarActual||f.lugar||'Sin ubicación';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
       };
 
       // ---- CRONOGRAMA ----
