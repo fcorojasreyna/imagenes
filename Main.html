@@ -3402,7 +3402,7 @@
         var labelBusqueda = qTicket ? ('Ticket: <strong>' + qTicket + '</strong>') : ('NUCO: <strong>' + qNuco + '</strong>');
         var html = '<div class="mb-3 small text-muted">Resultados para ' + labelBusqueda + '</div>';
 
-        var _match = function(val, q) { var v = (val||'').toUpperCase(); return v === q || v.startsWith(q); };
+        var _match = function(val, q) { return (val||'').toUpperCase() === q; };
         // --- TALLER ---
         var rTaller = _tallerDatos.filter(function(f){
           if (qTicket) return _match(f.ticket, qTicket);
