@@ -2597,8 +2597,7 @@
           { key: 'EN REPARACION',                  label: 'En Reparación',              color: '#fff9c4', border: '#f0c040' },
           { key: 'SERVICIO CONCLUIDO',              label: 'Servicio Concluido',         color: '#d4edda', border: '#6a8a7a' },
           { key: 'UNIDAD NO PRESENTADA A LA CITA', label: 'No Presentada',              color: '#f8d7da', border: '#9a6a45' },
-          { key: 'SERVICIO POSPUESTO POR SV',       label: 'Pospuesto',                  color: '#ffe0b2', border: '#c8ae7e' },
-          { key: '',                                label: 'Sin Estatus',                color: '#f0ebe0', border: '#ddd'    }
+          { key: 'SERVICIO POSPUESTO POR SV',       label: 'Pospuesto',                  color: '#ffe0b2', border: '#c8ae7e' }
         ];
 
         function _normKey(v) {
@@ -2614,7 +2613,7 @@
           columnas.forEach(function(c){
             if (c.key && _normKey(c.key) === k) { grupos[c.key].push(f); found = true; }
           });
-          if (!found) grupos[''].push(f);
+          if (!found) { var enRep = columnas.find(function(c){ return c.key === 'EN REPARACION'; }); if(enRep) grupos['EN REPARACION'].push(f); }
         });
 
         var puedeEditar = (_rolActual === 'GERENTE' || _rolActual === 'EJECUTIVO');
