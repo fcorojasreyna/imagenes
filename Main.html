@@ -3400,10 +3400,11 @@
         var labelBusqueda = qTicket ? ('Ticket: <strong>' + qTicket + '</strong>') : ('NUCO: <strong>' + qNuco + '</strong>');
         var html = '<div class="mb-3 small text-muted">Resultados para ' + labelBusqueda + '</div>';
 
+        var _match = function(val, q) { var v = (val||'').toUpperCase(); return v === q || v.startsWith(q); };
         // --- TALLER ---
         var rTaller = _tallerDatos.filter(function(f){
-          if (qTicket) return (f.ticket||'').toUpperCase() === qTicket || (f.ticket||'').toUpperCase().includes(qTicket);
-          return (f.nuco||'').toUpperCase() === qNuco || (f.nuco||'').toUpperCase().includes(qNuco);
+          if (qTicket) return _match(f.ticket, qTicket);
+          return _match(f.nuco, qNuco);
         });
         if (rTaller.length) {
           html += '<div class="card shadow-sm border-0 mb-3"><div class="card-header py-2" style="background:var(--azul);color:white;"><h6 class="m-0 fw-bold">🔧 Taller (' + rTaller.length + ' registro(s))</h6></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-dark"><tr><th>Ticket</th><th>NUCO</th><th>Tipo Servicio</th><th>Descripción</th><th>Proveedor</th><th>Costo</th><th>Estatus</th><th>Fecha</th></tr></thead><tbody>';
@@ -3416,8 +3417,8 @@
 
         // --- INVENTARIO ---
         var rInv = _inventarioDatos.filter(function(f){
-          if (qTicket) return (f.ticket||'').toUpperCase().includes(qTicket);
-          return (f.vehiculo||'').toUpperCase().includes(qNuco) || (f.ticket||'').toUpperCase().includes(qNuco);
+          if (qTicket) return _match(f.ticket, qTicket);
+          return _match(f.vehiculo, qNuco) || _match(f.ticket, qNuco);
         });
         if (rInv.length) {
           html += '<div class="card shadow-sm border-0 mb-3"><div class="card-header py-2" style="background:#1D6F42;color:white;"><h6 class="m-0 fw-bold">📦 Inventario (' + rInv.length + ' registro(s))</h6></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-dark"><tr><th>Ticket</th><th>Producto</th><th>Marca</th><th>Vehículo</th><th>Cant.</th><th>C. Unitario</th><th>C. Total</th><th>Estatus</th><th>Fecha</th></tr></thead><tbody>';
@@ -3430,8 +3431,8 @@
 
         // --- CONSUMOS ---
         var rCon = _consumosDatos.filter(function(f){
-          if (qTicket) return (f.ticketNuevo||'').toUpperCase().includes(qTicket);
-          return (f.vehiculo||'').toUpperCase().includes(qNuco) || (f.ticketNuevo||'').toUpperCase().includes(qNuco);
+          if (qTicket) return _match(f.ticketNuevo, qTicket);
+          return _match(f.vehiculo, qNuco) || _match(f.ticketNuevo, qNuco);
         });
         if (rCon.length) {
           html += '<div class="card shadow-sm border-0 mb-3"><div class="card-header py-2" style="background:#6f4e1d;color:white;"><h6 class="m-0 fw-bold">📤 Consumos / Salidas (' + rCon.length + ' registro(s))</h6></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-dark"><tr><th>Ticket</th><th>Producto</th><th>Vehículo</th><th>Cant.</th><th>Costo</th><th>Folio CPP</th><th>Quien Registra</th><th>Fecha</th></tr></thead><tbody>';
@@ -3443,8 +3444,8 @@
 
         // --- OC ---
         var rOC = _ocDatosGlobal.filter(function(f){
-          if (qTicket) return (f.ticket||'').toUpperCase().includes(qTicket);
-          return (f.nuco||'').toUpperCase().includes(qNuco) || (f.ticket||'').toUpperCase().includes(qNuco);
+          if (qTicket) return _match(f.ticket, qTicket);
+          return _match(f.nuco, qNuco) || _match(f.ticket, qNuco);
         });
         if (rOC.length) {
           html += '<div class="card shadow-sm border-0 mb-3"><div class="card-header py-2" style="background:var(--dorado);color:var(--azul);"><h6 class="m-0 fw-bold">🧾 Órdenes de Compra (' + rOC.length + ' registro(s))</h6></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-dark"><tr><th>Folio</th><th>Ticket</th><th>NUCO</th><th>Razón Social</th><th>Estatus</th><th>Fecha</th><th>Quien Registró</th></tr></thead><tbody>';
