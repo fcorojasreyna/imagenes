@@ -1710,13 +1710,20 @@
           }
           _herramientasDatos = res.datos || [];
           res.datos.forEach(function(f) {
-            var estadoColor = {NUEVO:'#0d6efd', BUENO:'#198754', DAÑADO:'#dc3545', REGULAR:'#ffc107'};
-            var estadoTextColor = {NUEVO:'white', BUENO:'white', DAÑADO:'white', REGULAR:'#1E252B'};
+            // Color Estado por palabra clave (robusto ante cambios de catálogo)
             var eUp = (f.estadoHerr||'').toUpperCase().trim();
-            var estadoBadge = '<span class="badge" style="background:' + (estadoColor[eUp]||'#6c757d') + ';color:' + (estadoTextColor[eUp]||'white') + ';">' + (f.estadoHerr||'—') + '</span>';
-            var badge = f.estatus === 'DISPONIBLE' ? '<span class="badge bg-success">DISPONIBLE</span>'
-              : f.estatus === 'EN USO' ? '<span class="badge bg-warning text-dark">EN USO</span>'
-              : '<span class="badge bg-danger">' + f.estatus + '</span>';
+            var estadoBg = eUp.includes('BUEN') ? '#198754'
+              : eUp.includes('DAÑ') ? '#dc3545'
+              : eUp.includes('INCOMPLETO') ? '#ffc107'
+              : '#6c757d';
+            var estadoTxt = eUp.includes('INCOMPLETO') ? '#1E252B' : 'white';
+            var estadoBadge = '<span class="badge" style="background:' + estadoBg + ';color:' + estadoTxt + ';">' + (f.estadoHerr||'—') + '</span>';
+            // Color Estatus por palabra clave
+            var sUp = (f.estatus||'').toUpperCase().trim();
+            var estatusBg = sUp.includes('ACTIVO') ? '#0d6efd'
+              : sUp.includes('BAJA') ? '#dc3545'
+              : '#6c757d';
+            var badge = '<span class="badge" style="background:' + estatusBg + ';color:white;">' + (f.estatus||'—') + '</span>';
             var btnEditar = '<button class="btn btn-sm btn-outline-primary me-1 border-0" onclick="event.stopPropagation(); window.editarHerramientaModal(\''+f.id+'\')">✏️</button>';
             var btnElim = '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); window.mostrarConfirmacion(\'Eliminar herramienta?\', function(){ window.ejecutarEliminarHerr(\'' + f.id + '\'); })">🗑️</button>';
             tbody.innerHTML += '<tr>' +
