@@ -3685,8 +3685,8 @@
         window._dashBars('dBar_tallerProv','Top Proveedores por Costo',
           window._dashGroupK(d,function(f){return f.proveedor||'Sin proveedor';},function(f){return(parseFloat(f.servInterno)||0)+(parseFloat(f.servExterno)||0);}),
           function(i){return _DP[i%_DP.length];},true);
-        window._dashBars('dBar_tallerModelos','Top Modelos — Servicios',
-          window._dashGroupK(d,function(f){return f.modelo||'Sin modelo';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+        window._dashBars('dBar_tallerLineas','Top Líneas — Servicios',
+          window._dashGroupK(d,function(f){var n=(f.nuco||'').trim();return f.linea||_mapaVehiculos[n]||f.modelo||n||'Sin línea';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
         window._dashBars('dBar_tallerSedes','Servicios por Sede',
           window._dashGroupK(d,function(f){return f.sede||'Sin sede';}),function(i){return _DP[i%_DP.length];},false);
       };
