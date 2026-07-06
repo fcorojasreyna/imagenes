@@ -1264,7 +1264,27 @@ function procesarAutorizacion(id, tipo, nivel, decision, comentario, quien, cade
                 hojaCron.getRange(j + 1, 19).setValue(decision === 'AUTORIZADO' ? 'AUTORIZADO' : 'RECHAZADO');
                 hojaCron.getRange(j + 1, 20).setValue(fechaHoy);
                 if (decision === 'RECHAZADO') {
-                  hojaCron.getRange(j + 1, 13).setValue(''); // Clear mecánico 2 (col M, index 12)
+                  hojaCron.getRange(j + 1, 13).setValue('');
+                } else if (decision === 'AUTORIZADO') {
+                  // Asignar mecánico 2 automáticamente al autorizar
+                  const mec1 = cronDatos[j][11] ? cronDatos[j][11].toString().trim() : '';
+                  const mec2actual = cronDatos[j][12] ? cronDatos[j][12].toString().trim() : '';
+                  if (!mec2actual) {
+                    const mecResult = obtenerMecanicos();
+                    const mecList = (mecResult.exito && mecResult.mecanicos.length > 0) ? mecResult.mecanicos : [];
+                    if (mecList.length > 1) {
+                      const lista2 = mecList.filter(function(m){ return m !== mec1; });
+                      const filasC = hojaCron.getDataRange().getDisplayValues();
+                      let conteos2 = {};
+                      lista2.forEach(function(m){ conteos2[m] = 0; });
+                      for (let k = 1; k < filasC.length; k++) {
+                        let m2A = (filasC[k][12] || '').toString().trim();
+                        if (conteos2.hasOwnProperty(m2A)) conteos2[m2A]++;
+                      }
+                      const mec2 = lista2.reduce(function(min, m){ return conteos2[m] < conteos2[min] ? m : min; }, lista2[0]);
+                      hojaCron.getRange(j + 1, 13).setValue(mec2);
+                    }
+                  }
                 }
                 break;
               }

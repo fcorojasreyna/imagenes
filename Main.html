@@ -2441,10 +2441,18 @@
           var hor   = document.getElementById('edCronHorario') ? document.getElementById('edCronHorario').value : '';
           var info  = document.getElementById('edCronInfo')    ? document.getElementById('edCronInfo').value    : '';
           var duplaBtn = document.getElementById('btnDuplaEdit');
-          var dupla = duplaBtn ? (duplaBtn.dataset.activo === 'si' && !duplaBtn.disabled) : false;
+          var solicitarDuplaFlag = duplaBtn ? (duplaBtn.dataset.activo === 'si' && !duplaBtn.disabled) : false;
+          // Si se solicitó dupla, crear solicitud de autorización al Gerente antes de guardar
+          if (solicitarDuplaFlag) {
+            var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
+            google.script.run
+              .withSuccessHandler(function(r){ window.mostrarAlerta(r.msj || 'Solicitud de dupla enviada al Gerente.'); })
+              .withFailureHandler(function(e){ window.mostrarAlerta('Error al enviar dupla: ' + e.message); })
+              .crearSolicitudAutorizacion({ tipo: 'DUPLA', ticket: ticket, nuco: '', descripcion: 'Solicitud de segundo mecánico para ticket ' + ticket, solicitante: quien, datoExtra: '' });
+          }
           google.script.run
             .withSuccessHandler(_done).withFailureHandler(_fail)
-            .actualizarCamposEjecutivoCronograma({ id: id, tipoTrabajo: tipo, sede: sede, fecha: fecha, horario: hor, info: info, dupla: dupla });
+            .actualizarCamposEjecutivoCronograma({ id: id, tipoTrabajo: tipo, sede: sede, fecha: fecha, horario: hor, info: info });
         } else if (esGer) {
           // Gerente: actualiza campos editables Y después estatus + archivos
           var tipo  = document.getElementById('edCronTipo')    ? document.getElementById('edCronTipo').value    : '';
