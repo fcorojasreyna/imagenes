@@ -1,57 +1,131 @@
 <style>
-  .dash-kpi { background:white; border-radius:12px; padding:1.2rem 1.4rem; box-shadow:0 2px 8px rgba(0,0,0,0.08); border-left:5px solid var(--dorado); }
-  .dash-kpi .kpi-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:.05em; color:#888; font-weight:600; margin-bottom:4px; }
-  .dash-kpi .kpi-value { font-size:1.6rem; font-weight:800; color:var(--azul); line-height:1; }
-  .dash-kpi .kpi-sub { font-size:0.72rem; color:#aaa; margin-top:4px; }
-  .dash-chart-card { background:white; border-radius:12px; padding:1.2rem; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
-  .dash-chart-title { font-size:0.82rem; font-weight:700; color:var(--azul); text-transform:uppercase; letter-spacing:.04em; margin-bottom:1rem; border-bottom:2px solid #f0e8d8; padding-bottom:.5rem; }
-  .dash-tab-btn { background:transparent; border:2px solid var(--azul); border-radius:25px; padding:6px 20px; font-size:0.82rem; font-weight:700; color:var(--azul); cursor:pointer; transition:.2s; }
+  .dash-kpi { background:white; border-radius:12px; padding:1.1rem 1.3rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); border-left:5px solid var(--dorado); }
+  .dash-kpi .kpi-label { font-size:0.70rem; text-transform:uppercase; letter-spacing:.05em; color:#999; font-weight:700; margin-bottom:3px; }
+  .dash-kpi .kpi-value { font-size:1.55rem; font-weight:800; color:var(--azul); line-height:1.1; }
+  .dash-kpi .kpi-sub { font-size:0.68rem; color:#bbb; margin-top:3px; }
+  .dash-chart-card { background:white; border-radius:12px; padding:1.1rem 1.2rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+  .dash-chart-title { font-size:0.78rem; font-weight:700; color:var(--azul); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:2px solid #f0ebe0; }
+  .dash-tab-scroll { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
+  .dash-tab-scroll::-webkit-scrollbar { height:3px; }
+  .dash-tab-scroll::-webkit-scrollbar-thumb { background:var(--dorado); border-radius:2px; }
+  .dash-tab-btn { flex-shrink:0; background:transparent; border:2px solid var(--azul); border-radius:20px; padding:5px 16px; font-size:0.78rem; font-weight:700; color:var(--azul); cursor:pointer; transition:.15s; white-space:nowrap; }
   .dash-tab-btn.active { background:var(--azul); color:white; }
-  .dash-tab-btn:hover:not(.active) { background:rgba(30,37,43,.07); }
-  .dash-bar-label { font-size:0.73rem; color:#444; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; }
-  .dash-bar-val { font-size:0.73rem; font-weight:700; color:var(--azul); white-space:nowrap; }
+  .dash-tab-btn:hover:not(.active) { background:rgba(30,37,43,.06); }
 </style>
 
-<div style="padding:1.2rem 1.5rem 2rem;">
+<div style="padding:1.1rem 1.4rem 2rem;">
 
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;margin-bottom:1.4rem;">
+  <!-- Header -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:.8rem;margin-bottom:1.1rem;">
     <div>
-      <h4 style="color:var(--azul);font-weight:800;margin:0;">Dashboard</h4>
-      <p style="color:#aaa;font-size:0.78rem;margin:2px 0 0;">Indicadores en tiempo real desde Google Sheets</p>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button id="dashTabTaller" class="dash-tab-btn active" onclick="window._switchDashTab('taller')">Taller</button>
-      <button id="dashTabInventario" class="dash-tab-btn" onclick="window._switchDashTab('inventario')">Inventario</button>
+      <h4 style="color:var(--azul);font-weight:800;margin:0 0 2px;">Dashboard</h4>
+      <p style="color:#bbb;font-size:0.74rem;margin:0;">Indicadores en tiempo real desde Google Sheets</p>
     </div>
   </div>
 
-  <!-- TALLER PANEL -->
-  <div id="dashPanelTaller">
-    <div id="dashKpiTaller" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:.9rem;margin-bottom:1.2rem;"></div>
+  <!-- Tabs -->
+  <div class="dash-tab-scroll" style="margin-bottom:1.3rem;">
+    <button id="dashTab_taller"       class="dash-tab-btn active" onclick="window._switchDashTab('taller')">Taller</button>
+    <button id="dashTab_inventario"   class="dash-tab-btn"        onclick="window._switchDashTab('inventario')">Inventario</button>
+    <button id="dashTab_consumos"     class="dash-tab-btn"        onclick="window._switchDashTab('consumos')">Consumos</button>
+    <button id="dashTab_proveedores"  class="dash-tab-btn"        onclick="window._switchDashTab('proveedores')">Proveedores</button>
+    <button id="dashTab_oc"           class="dash-tab-btn"        onclick="window._switchDashTab('oc')">Órdenes de Compra</button>
+    <button id="dashTab_herramientas" class="dash-tab-btn"        onclick="window._switchDashTab('herramientas')">Herramientas</button>
+    <button id="dashTab_cronograma"   class="dash-tab-btn"        onclick="window._switchDashTab('cronograma')">Cronograma</button>
+  </div>
+
+  <!-- ===== TALLER ===== -->
+  <div id="dashPanel_taller">
+    <div id="dKpi_taller"    style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-      <div id="dashDonutTipoServicio" class="dash-chart-card"></div>
-      <div id="dashDonutEstatusTaller" class="dash-chart-card"></div>
+      <div id="dDonut_tallerTipo"    class="dash-chart-card"></div>
+      <div id="dDonut_tallerEstatus" class="dash-chart-card"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-      <div id="dashBarFamilias" class="dash-chart-card"></div>
-      <div id="dashBarModelos" class="dash-chart-card"></div>
+      <div id="dBar_tallerFamilias"  class="dash-chart-card"></div>
+      <div id="dBar_tallerProv"      class="dash-chart-card"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-      <div id="dashBarProveedores" class="dash-chart-card"></div>
-      <div id="dashBarSedes" class="dash-chart-card"></div>
+      <div id="dBar_tallerModelos"   class="dash-chart-card"></div>
+      <div id="dBar_tallerSedes"     class="dash-chart-card"></div>
     </div>
   </div>
 
-  <!-- INVENTARIO PANEL -->
-  <div id="dashPanelInventario" style="display:none;">
-    <div id="dashKpiInventario" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:.9rem;margin-bottom:1.2rem;"></div>
+  <!-- ===== INVENTARIO ===== -->
+  <div id="dashPanel_inventario" style="display:none;">
+    <div id="dKpi_inventario"   style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-      <div id="dashDonutEstatusInv" class="dash-chart-card"></div>
-      <div id="dashBarMarcasInv" class="dash-chart-card"></div>
+      <div id="dDonut_invEstatus" class="dash-chart-card"></div>
+      <div id="dBar_invMarcas"    class="dash-chart-card"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-      <div id="dashBarProductosInv" class="dash-chart-card"></div>
-      <div id="dashBarVehiculosInv" class="dash-chart-card"></div>
+      <div id="dBar_invProductos"  class="dash-chart-card"></div>
+      <div id="dBar_invVehiculos"  class="dash-chart-card"></div>
+    </div>
+  </div>
+
+  <!-- ===== CONSUMOS ===== -->
+  <div id="dashPanel_consumos" style="display:none;">
+    <div id="dKpi_consumos"     style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div id="dBar_conProductos"  class="dash-chart-card"></div>
+      <div id="dBar_conVehiculos"  class="dash-chart-card"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div id="dBar_conUsuarios"   class="dash-chart-card"></div>
+      <div id="dBar_conTickets"    class="dash-chart-card"></div>
+    </div>
+  </div>
+
+  <!-- ===== PROVEEDORES ===== -->
+  <div id="dashPanel_proveedores" style="display:none;">
+    <div id="dKpi_proveedores"  style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div id="dDonut_provSeg"    class="dash-chart-card"></div>
+      <div id="dDonut_provInterc" class="dash-chart-card"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div id="dBar_provEstados"  class="dash-chart-card"></div>
+      <div id="dBar_provServicio" class="dash-chart-card"></div>
+    </div>
+  </div>
+
+  <!-- ===== OC ===== -->
+  <div id="dashPanel_oc" style="display:none;">
+    <div id="dKpi_oc"           style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div id="dDonut_ocNivel"     class="dash-chart-card"></div>
+      <div id="dDonut_ocGerente"   class="dash-chart-card"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div id="dBar_ocSolicitantes" class="dash-chart-card"></div>
+      <div id="dBar_ocProveedores"  class="dash-chart-card"></div>
+    </div>
+  </div>
+
+  <!-- ===== HERRAMIENTAS ===== -->
+  <div id="dashPanel_herramientas" style="display:none;">
+    <div id="dKpi_herramientas" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div id="dDonut_herrEstatus" class="dash-chart-card"></div>
+      <div id="dDonut_herrEstado"  class="dash-chart-card"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div id="dBar_herrTipo"    class="dash-chart-card"></div>
+      <div id="dBar_herrLugar"   class="dash-chart-card"></div>
+    </div>
+  </div>
+
+  <!-- ===== CRONOGRAMA ===== -->
+  <div id="dashPanel_cronograma" style="display:none;">
+    <div id="dKpi_cronograma"   style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div id="dDonut_cronTipo"    class="dash-chart-card"></div>
+      <div id="dDonut_cronEstatus" class="dash-chart-card"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div id="dBar_cronMecanico"  class="dash-chart-card"></div>
+      <div id="dBar_cronSede"      class="dash-chart-card"></div>
     </div>
   </div>
 

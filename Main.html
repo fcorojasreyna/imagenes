@@ -3421,49 +3421,57 @@
       };
 
       // ============================================================================
-      // Feature — Dashboard Taller / Inventario
+      // Feature — Dashboard Multi-módulo
       // ============================================================================
 
+      // Palette: derived from --azul (#1E252B) and --dorado (#B4A169)
+      var _DASH_P = ['#1E252B','#B4A169','#2d3a45','#c8ae7e','#3d5060','#8a7a4f','#6a8a7a','#c49a6a','#9a6a45','#4a6a5a'];
+
+      var _DASH_TABS = ['taller','inventario','consumos','proveedores','oc','herramientas','cronograma'];
+      var _dashCronDatos = [];
+
       window._switchDashTab = function(tab) {
-        document.getElementById('dashTabTaller').classList.toggle('active', tab === 'taller');
-        document.getElementById('dashTabInventario').classList.toggle('active', tab === 'inventario');
-        document.getElementById('dashPanelTaller').style.display    = tab === 'taller'    ? '' : 'none';
-        document.getElementById('dashPanelInventario').style.display = tab === 'inventario' ? '' : 'none';
-        if (tab === 'taller')     window._renderDashTaller();
-        else                      window._renderDashInventario();
+        _DASH_TABS.forEach(function(t) {
+          var btn = document.getElementById('dashTab_'+t);
+          var pan = document.getElementById('dashPanel_'+t);
+          if (btn) btn.classList.toggle('active', t === tab);
+          if (pan) pan.style.display = t === tab ? '' : 'none';
+        });
+        var fns = { taller: window._renderDashTaller, inventario: window._renderDashInventario,
+          consumos: window._renderDashConsumos, proveedores: window._renderDashProveedores,
+          oc: window._renderDashOC, herramientas: window._renderDashHerramientas, cronograma: window._renderDashCronograma };
+        if (fns[tab]) fns[tab]();
       };
 
       window.iniciarDashboard = function() {
-        // If data not yet loaded, load it first
         var pending = 0;
-        function tryRender() { if(--pending <= 0) { window._renderDashTaller(); } }
-        if (!_tallerDatos.length) {
-          pending++;
-          google.script.run.withSuccessHandler(function(r){ if(r.exito) _tallerDatos=r.datos||[]; tryRender(); }).withFailureHandler(function(){ tryRender(); }).obtenerDatosTaller();
-        }
-        if (!_inventarioDatos.length) {
-          pending++;
-          google.script.run.withSuccessHandler(function(r){ if(r.exito) _inventarioDatos=r.datos||[]; }).withFailureHandler(function(){}).obtenerDatosInventario();
-        }
-        if (pending === 0) window._renderDashTaller();
+        function tryRender() { if (--pending <= 0) window._renderDashTaller(); }
+        if (!_tallerDatos.length)      { pending++; google.script.run.withSuccessHandler(function(r){ if(r.exito) _tallerDatos=r.datos||[];      tryRender(); }).withFailureHandler(function(){ tryRender(); }).obtenerDatosTaller(); }      else { pending++; tryRender(); }
+        if (!_inventarioDatos.length)  { google.script.run.withSuccessHandler(function(r){ if(r.exito) _inventarioDatos=r.datos||[]; }).obtenerDatosInventario(); }
+        if (!_consumosDatos.length)    { google.script.run.withSuccessHandler(function(r){ if(r.exito) _consumosDatos=r.datos||[]; }).obtenerDatosConsumos(); }
+        if (!_proveedoresDatos.length) { google.script.run.withSuccessHandler(function(r){ if(r.exito) _proveedoresDatos=r.datos||[]; }).obtenerDatosProveedores(); }
+        if (!_ocDatosGlobal.length)    { google.script.run.withSuccessHandler(function(r){ if(r.exito) _ocDatosGlobal=r.datos||[]; }).obtenerHistorialGlobalOC(); }
+        if (!_herramientasDatos.length){ google.script.run.withSuccessHandler(function(r){ if(r.exito) _herramientasDatos=r.datos||[]; }).obtenerDatosHerramientas(); }
+        if (!_dashCronDatos.length)    { google.script.run.withSuccessHandler(function(r){ if(r.exito) _dashCronDatos=r.datos||[]; }).obtenerDatosCronograma(); }
       };
 
-      // ---- helpers ----
-      window._dashMoney = function(v) {
-        v = parseFloat(v) || 0;
+      // ---- Shared helpers ----
+      window._dM = function(v) { // format money
+        v = parseFloat((v||'').toString().replace(/[^0-9.-]+/g,'')) || 0;
         if (v >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M';
         if (v >= 1000)    return '$' + (v/1000).toFixed(0) + 'k';
-        return '$' + v.toLocaleString('es-MX', {minimumFractionDigits:0,maximumFractionDigits:0});
+        return '$' + v.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0});
       };
-      window._dashN = function(v) {
-        v = parseFloat(v) || 0;
-        return v.toLocaleString('es-MX', {minimumFractionDigits:0,maximumFractionDigits:0});
+      window._dN = function(v) { // format integer
+        return (parseFloat(v)||0).toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0});
+      };
+      window._dPM = function(v) { // parse money string to float
+        return parseFloat((v||'').toString().replace(/[^0-9.-]+/g,'')) || 0;
       };
 
       window._dashKpiHtml = function(cards) {
         return cards.map(function(c) {
-          var borderColor = c.color || 'var(--dorado)';
-          return '<div class="dash-kpi" style="border-left-color:'+borderColor+';">'
+          return '<div class="dash-kpi" style="border-left-color:'+(c.color||'var(--dorado)')+';">'
             +'<div class="kpi-label">'+c.label+'</div>'
             +'<div class="kpi-value">'+c.value+'</div>'
             +(c.sub ? '<div class="kpi-sub">'+c.sub+'</div>' : '')
@@ -3471,158 +3479,283 @@
         }).join('');
       };
 
-      window._dashDonut = function(containerId, title, segments) {
-        var el = document.getElementById(containerId);
-        if (!el) return;
-        var total = segments.reduce(function(s,x){return s+x.v;}, 0);
-        var C = 2 * Math.PI * 45; // circumference r=45
-        var svgPaths = '';
-        var offset = 0;
-        segments.forEach(function(seg) {
-          var dash = (seg.v / total) * C;
-          var rotateDeg = (offset / total) * 360 - 90;
-          svgPaths += '<circle cx="60" cy="60" r="45" fill="none" stroke="'+seg.c+'" stroke-width="18" '
-            +'stroke-dasharray="'+dash.toFixed(2)+' '+C.toFixed(2)+'" '
-            +'transform="rotate('+rotateDeg.toFixed(2)+', 60, 60)"/>';
-          offset += seg.v;
+      window._dashDonut = function(id, title, segs) {
+        var el = document.getElementById(id); if (!el) return;
+        var total = segs.reduce(function(s,x){return s+x.v;},0);
+        var C = 2*Math.PI*45;
+        var paths = ''; var offset = 0;
+        segs.forEach(function(s) {
+          var dash = (s.v/total)*C;
+          var rot  = (offset/total)*360 - 90;
+          paths += '<circle cx="60" cy="60" r="45" fill="none" stroke="'+s.c+'" stroke-width="18" '
+            +'stroke-dasharray="'+dash.toFixed(2)+' '+C.toFixed(2)+'" transform="rotate('+rot.toFixed(2)+',60,60)"/>';
+          offset += s.v;
         });
-        var legend = segments.map(function(s) {
-          var pct = total > 0 ? (s.v/total*100).toFixed(0) : 0;
-          return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
-            +'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+s.c+';flex-shrink:0;"></span>'
-            +'<span style="font-size:0.74rem;color:#444;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+s.l+'</span>'
-            +'<span style="font-size:0.74rem;font-weight:700;color:var(--azul);">'+s.v+' ('+pct+'%)</span>'
-            +'</div>';
+        var legend = segs.map(function(s) {
+          var pct = total>0?(s.v/total*100).toFixed(0):0;
+          return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">'
+            +'<span style="width:9px;height:9px;border-radius:50%;background:'+s.c+';flex-shrink:0;display:inline-block;"></span>'
+            +'<span style="font-size:0.72rem;color:#444;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+s.l+'">'+s.l+'</span>'
+            +'<span style="font-size:0.72rem;font-weight:700;color:var(--azul);white-space:nowrap;">'+s.v+' ('+pct+'%)</span></div>';
         }).join('');
-        var centerSvg = total > 0
-          ? '<text x="60" y="56" text-anchor="middle" font-size="16" font-weight="bold" fill="'+(segments[0]&&segments[0].c||'#333')+'">'+total+'</text>'
-            +'<text x="60" y="71" text-anchor="middle" font-size="8" fill="#aaa">total</text>'
-          : '<text x="60" y="65" text-anchor="middle" font-size="9" fill="#aaa">Sin datos</text>';
-        var svg = total > 0
-          ? '<svg viewBox="0 0 120 120" width="110" height="110" style="flex-shrink:0;">'
-            +'<circle cx="60" cy="60" r="45" fill="none" stroke="#eee" stroke-width="18"/>'
-            +svgPaths+centerSvg+'</svg>'
-          : '<svg viewBox="0 0 120 120" width="110" height="110" style="flex-shrink:0;">'
-            +'<circle cx="60" cy="60" r="45" fill="none" stroke="#eee" stroke-width="18"/>'+centerSvg+'</svg>';
+        var cText = total>0
+          ? '<text x="60" y="55" text-anchor="middle" font-size="15" font-weight="800" fill="'+((segs[0]&&segs[0].c)||'#333')+'">'+total+'</text><text x="60" y="70" text-anchor="middle" font-size="8" fill="#bbb">total</text>'
+          : '<text x="60" y="65" text-anchor="middle" font-size="9" fill="#ccc">Sin datos</text>';
+        var svg = '<svg viewBox="0 0 120 120" width="105" height="105" style="flex-shrink:0;">'
+          +'<circle cx="60" cy="60" r="45" fill="none" stroke="#f0ebe0" stroke-width="18"/>'
+          +(total>0?paths:'')
+          +cText+'</svg>';
         el.innerHTML = '<div class="dash-chart-title">'+title+'</div>'
-          +'<div style="display:flex;align-items:center;gap:1rem;">'
-          +svg
-          +'<div style="flex:1;overflow:hidden;">'+legend+'</div>'
-          +'</div>';
+          +'<div style="display:flex;align-items:center;gap:.9rem;">'
+          +svg+'<div style="flex:1;overflow:hidden;min-width:0;">'+legend+'</div></div>';
       };
 
-      window._dashBars = function(containerId, title, items, colorFn, moneyVal) {
-        var el = document.getElementById(containerId);
-        if (!el) return;
-        var max = items.reduce(function(m,x){return Math.max(m,x.v);}, 0);
+      window._dashBars = function(id, title, items, colorFn, money) {
+        var el = document.getElementById(id); if (!el) return;
+        var max = items.reduce(function(m,x){return Math.max(m,x.v);},0);
         var rows = items.slice(0,10).map(function(x,i) {
-          var pct = max > 0 ? (x.v/max*100).toFixed(1) : 0;
-          var color = colorFn ? colorFn(i) : 'var(--dorado)';
-          var display = moneyVal ? window._dashMoney(x.v) : window._dashN(x.v);
-          return '<div style="margin-bottom:7px;">'
+          var pct = max>0?(x.v/max*100).toFixed(1):0;
+          var c = colorFn?colorFn(i):'var(--dorado)';
+          var disp = money ? window._dM(x.v) : window._dN(x.v);
+          return '<div style="margin-bottom:6px;">'
             +'<div style="display:flex;justify-content:space-between;margin-bottom:2px;">'
-            +'<span class="dash-bar-label" title="'+x.l+'">'+x.l+'</span>'
-            +'<span class="dash-bar-val">'+display+'</span>'
-            +'</div>'
-            +'<div style="background:#f0f0f0;border-radius:4px;height:9px;overflow:hidden;">'
-            +'<div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:4px;transition:width .6s;"></div>'
+            +'<span style="font-size:0.72rem;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:58%;" title="'+x.l+'">'+x.l+'</span>'
+            +'<span style="font-size:0.72rem;font-weight:700;color:var(--azul);white-space:nowrap;">'+disp+'</span></div>'
+            +'<div style="background:#f0ebe0;border-radius:3px;height:8px;overflow:hidden;">'
+            +'<div style="width:'+pct+'%;height:100%;background:'+c+';border-radius:3px;transition:width .5s;"></div>'
             +'</div></div>';
         }).join('');
         el.innerHTML = '<div class="dash-chart-title">'+title+'</div>'
-          +(items.length ? rows : '<p style="color:#aaa;font-size:0.8rem;text-align:center;padding:1rem 0;">Sin datos</p>');
+          +(items.length?rows:'<p style="color:#ccc;font-size:0.78rem;text-align:center;padding:1rem 0;">Sin datos</p>');
       };
 
-      var _dashPalette = ['#1E252B','#B4A169','#2a6496','#5cb85c','#d9534f','#f0ad4e','#5bc0de','#9b59b6','#1abc9c','#e67e22'];
-
-      window._renderDashTaller = function() {
-        var data = _tallerDatos || [];
-        // KPIs
-        var totalServ = data.length;
-        var totalCosto = data.reduce(function(s,f){ return s + (parseFloat(f.costoTotal)||0); }, 0);
-        var totalInt   = data.reduce(function(s,f){ return s + (parseFloat(f.servInterno)||0); }, 0);
-        var totalExt   = data.reduce(function(s,f){ return s + (parseFloat(f.servExterno)||0); }, 0);
-        var liberados  = data.filter(function(f){ return (f.estatus||'').toUpperCase()==='LIBERADO'; }).length;
-        var kpiEl = document.getElementById('dashKpiTaller');
-        if (kpiEl) kpiEl.innerHTML = window._dashKpiHtml([
-          { label:'Total Servicios',    value: window._dashN(totalServ),    color:'var(--azul)' },
-          { label:'Costo Total',        value: window._dashMoney(totalCosto), color:'#B4A169',    sub:'Interno + Externo' },
-          { label:'Serv. Interno',      value: window._dashMoney(totalInt),  color:'#2a6496' },
-          { label:'Serv. Externo',      value: window._dashMoney(totalExt),  color:'#5cb85c' },
-          { label:'Unidades Liberadas', value: window._dashN(liberados),    color:'#5cb85c',    sub: 'de ' + totalServ + ' registros' }
-        ]);
-        // Donut — tipo de servicio
-        var tipoMap = {};
-        data.forEach(function(f){ var t=(f.tipoServicio||'Sin tipo').trim(); tipoMap[t]=(tipoMap[t]||0)+1; });
-        var tipoSegs = Object.keys(tipoMap).sort(function(a,b){return tipoMap[b]-tipoMap[a];}).slice(0,6).map(function(k,i){
-          return { l:k, v:tipoMap[k], c:_dashPalette[i%_dashPalette.length] };
+      window._dashGroup = function(data, key, valFn) { // group by key, sum valFn
+        var m={};
+        data.forEach(function(f){
+          var k = ((valFn?key:f[key])||'—').toString().trim() || '—';
+          if (!valFn) { m[k]=(m[k]||0)+1; }
+          else        { m[k]=(m[k]||0)+valFn(f); }
         });
-        window._dashDonut('dashDonutTipoServicio', 'Tipo de Servicio', tipoSegs);
-        // Donut — estatus
-        var estMap = {};
-        data.forEach(function(f){ var e=(f.estatus||'Sin estatus').toUpperCase().trim(); estMap[e]=(estMap[e]||0)+1; });
-        var estColors = { 'LIBERADO':'#5cb85c', 'INGRESADO':'#f0ad4e', 'PROGRAMADA':'#2a6496' };
-        var estSegs = Object.keys(estMap).map(function(k){ return {l:k,v:estMap[k],c:estColors[k]||'#aaa'}; });
-        window._dashDonut('dashDonutEstatusTaller', 'Estatus de Unidades', estSegs);
-        // Barras — top familias (por costo)
-        var famMap = {};
-        data.forEach(function(f){ var fam=(f.familia||'Sin familia').trim(); famMap[fam]=(famMap[fam]||0)+(parseFloat(f.costoTotal)||0); });
-        var famItems = Object.keys(famMap).sort(function(a,b){return famMap[b]-famMap[a];}).slice(0,10).map(function(k){ return {l:k,v:famMap[k]}; });
-        window._dashBars('dashBarFamilias','Top Familias por Costo',famItems,function(i){return _dashPalette[i%_dashPalette.length];},true);
-        // Barras — top modelos (count)
-        var modMap = {};
-        data.forEach(function(f){ var m=(f.modelo||'Sin modelo').trim(); modMap[m]=(modMap[m]||0)+1; });
-        var modItems = Object.keys(modMap).sort(function(a,b){return modMap[b]-modMap[a];}).slice(0,10).map(function(k){ return {l:k,v:modMap[k]}; });
-        window._dashBars('dashBarModelos','Top Modelos (Servicios)',modItems,function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
-        // Barras — top proveedores (costo)
-        var provMap = {};
-        data.forEach(function(f){ var p=(f.proveedor||'Sin proveedor').trim(); if(p) provMap[p]=(provMap[p]||0)+(parseFloat(f.costoTotal)||0); });
-        var provItems = Object.keys(provMap).sort(function(a,b){return provMap[b]-provMap[a];}).slice(0,10).map(function(k){ return {l:k,v:provMap[k]}; });
-        window._dashBars('dashBarProveedores','Top Proveedores por Costo',provItems,function(i){return _dashPalette[i%_dashPalette.length];},true);
-        // Barras — por sede (count)
-        var sedeMap = {};
-        data.forEach(function(f){ var s=(f.sede||'Sin sede').trim(); sedeMap[s]=(sedeMap[s]||0)+1; });
-        var sedeItems = Object.keys(sedeMap).sort(function(a,b){return sedeMap[b]-sedeMap[a];}).slice(0,10).map(function(k){ return {l:k,v:sedeMap[k]}; });
-        window._dashBars('dashBarSedes','Servicios por Sede',sedeItems,function(i){return i%2===0?'#2a6496':'#5bc0de';},false);
+        return Object.keys(m).sort(function(a,b){return m[b]-m[a];}).map(function(k){return{l:k,v:m[k]};});
+      };
+      window._dashGroupK = function(data, keyFn, valFn) { // group by keyFn(row)
+        var m={};
+        data.forEach(function(f){
+          var k=(keyFn(f)||'—').toString().trim()||'—';
+          m[k]=(m[k]||0)+(valFn?valFn(f):1);
+        });
+        return Object.keys(m).sort(function(a,b){return m[b]-m[a];}).map(function(k){return{l:k,v:m[k]};});
       };
 
-      window._renderDashInventario = function() {
-        var data = _inventarioDatos || [];
-        // KPIs
-        var totalReg  = data.length;
-        var disponibles = data.filter(function(f){ return (f.estatus||'').toUpperCase().indexOf('DISPONIBLE')>-1; }).length;
-        var consumidos  = data.filter(function(f){ return (f.estatus||'').toUpperCase().indexOf('CONSUMIDO')>-1; }).length;
-        var valorTotal  = data.reduce(function(s,f){ return s+(parseFloat(f.costoTotal)||0); }, 0);
-        var valorDisp   = data.filter(function(f){ return (f.estatus||'').toUpperCase().indexOf('DISPONIBLE')>-1; })
-                              .reduce(function(s,f){ return s+(parseFloat(f.costoTotal)||0); }, 0);
-        var kpiEl = document.getElementById('dashKpiInventario');
-        if (kpiEl) kpiEl.innerHTML = window._dashKpiHtml([
-          { label:'Total Registros',   value: window._dashN(totalReg),    color:'var(--azul)' },
-          { label:'Disponibles',       value: window._dashN(disponibles), color:'#5cb85c' },
-          { label:'Consumidos',        value: window._dashN(consumidos),  color:'#d9534f' },
-          { label:'Valor Total',       value: window._dashMoney(valorTotal), color:'#B4A169', sub:'Todos los registros' },
-          { label:'Valor Disponible',  value: window._dashMoney(valorDisp), color:'#5cb85c', sub:'Solo disponibles' }
+      // ---- TALLER ----
+      window._renderDashTaller = function() {
+        var d = _tallerDatos || [];
+        var totalInt = d.reduce(function(s,f){return s+(f.servInterno||0);},0);
+        var totalExt = d.reduce(function(s,f){return s+(f.servExterno||0);},0);
+        var totalCosto = totalInt + totalExt; // computed = guaranteed correct
+        var liberados = d.filter(function(f){return (f.estatus||'').toUpperCase()==='LIBERADO';}).length;
+        var kpi = document.getElementById('dKpi_taller');
+        if(kpi) kpi.innerHTML = window._dashKpiHtml([
+          {label:'Total Servicios',   value:window._dN(d.length),     color:'var(--azul)'},
+          {label:'Costo Servicio Int',value:window._dM(totalInt),     color:'#2d3a45'},
+          {label:'Costo Servicio Ext',value:window._dM(totalExt),     color:'#6a8a7a'},
+          {label:'Costo Total',       value:window._dM(totalCosto),   color:'var(--dorado)', sub:'Interno + Externo'},
+          {label:'Unidades Liberadas',value:window._dN(liberados),    color:'#6a8a7a', sub:'de '+d.length+' registros'}
         ]);
+        // Donut tipo servicio
+        var tipoGrp = window._dashGroupK(d,function(f){return (f.tipoServicio||'Sin tipo').trim();});
+        window._dashDonut('dDonut_tallerTipo','Tipo de Servicio',tipoGrp.slice(0,6).map(function(x,i){return{l:x.l,v:x.v,c:_DASH_P[i%_DASH_P.length]};}));
         // Donut estatus
-        var estMap = {};
-        data.forEach(function(f){ var e=(f.estatus||'Sin estatus').toUpperCase().trim(); estMap[e]=(estMap[e]||0)+1; });
-        var estColorsInv = { 'DISPONIBLE':'#5cb85c','CONSUMIDO':'#d9534f','PARCIALMENTE DISPONIBLE':'#f0ad4e' };
-        var estSegs = Object.keys(estMap).map(function(k){ return {l:k,v:estMap[k],c:estColorsInv[k]||'#aaa'}; });
-        window._dashDonut('dashDonutEstatusInv','Estatus de Refacciones',estSegs);
-        // Barras — top marcas (count)
-        var marcaMap = {};
-        data.forEach(function(f){ var m=(f.marca||'Sin marca').trim(); if(m) marcaMap[m]=(marcaMap[m]||0)+1; });
-        var marcaItems = Object.keys(marcaMap).sort(function(a,b){return marcaMap[b]-marcaMap[a];}).slice(0,10).map(function(k){return {l:k,v:marcaMap[k]};});
-        window._dashBars('dashBarMarcasInv','Top Marcas (Registros)',marcaItems,function(i){return _dashPalette[i%_dashPalette.length];},false);
-        // Barras — top productos por costo
-        var prodMap = {};
-        data.forEach(function(f){ var p=(f.producto||'Sin producto').trim(); if(p) prodMap[p]=(prodMap[p]||0)+(parseFloat(f.costoTotal)||0); });
-        var prodItems = Object.keys(prodMap).sort(function(a,b){return prodMap[b]-prodMap[a];}).slice(0,10).map(function(k){return {l:k,v:prodMap[k]};});
-        window._dashBars('dashBarProductosInv','Top 10 Productos por Costo',prodItems,function(i){return i%2===0?'var(--azul)':'var(--dorado)';},true);
-        // Barras — top vehículos (count)
-        var vehMap = {};
-        data.forEach(function(f){ var v=(f.vehiculo||'Sin vehículo').trim(); if(v) vehMap[v]=(vehMap[v]||0)+1; });
-        var vehItems = Object.keys(vehMap).sort(function(a,b){return vehMap[b]-vehMap[a];}).slice(0,10).map(function(k){return {l:k,v:vehMap[k]};});
-        window._dashBars('dashBarVehiculosInv','Top 10 Vehículos por Refacciones',vehItems,function(i){return _dashPalette[i%_dashPalette.length];},false);
+        var estColors = {'LIBERADO':'#6a8a7a','INGRESADO':'#c8ae7e','PROGRAMADA':'#2d3a45'};
+        var estGrp = window._dashGroupK(d,function(f){return (f.estatus||'Sin estatus').toUpperCase().trim();});
+        window._dashDonut('dDonut_tallerEstatus','Estatus de Unidades',estGrp.map(function(x){return{l:x.l,v:x.v,c:estColors[x.l]||'#9a9a9a'};}));
+        // Bars
+        window._dashBars('dBar_tallerFamilias','Top Familias por Costo',
+          window._dashGroupK(d,function(f){return f.familia||'Sin familia';},function(f){return(f.servInterno||0)+(f.servExterno||0);}),
+          function(i){return _DASH_P[i%_DASH_P.length];},true);
+        window._dashBars('dBar_tallerProv','Top Proveedores por Costo',
+          window._dashGroupK(d,function(f){return f.proveedor||'Sin proveedor';},function(f){return(f.servInterno||0)+(f.servExterno||0);}),
+          function(i){return _DASH_P[i%_DASH_P.length];},true);
+        window._dashBars('dBar_tallerModelos','Top Modelos (Servicios)',
+          window._dashGroupK(d,function(f){return f.modelo||'Sin modelo';}),
+          function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+        window._dashBars('dBar_tallerSedes','Servicios por Sede',
+          window._dashGroupK(d,function(f){return f.sede||'Sin sede';}),
+          function(i){return _DASH_P[i%_DASH_P.length];},false);
+      };
+
+      // ---- INVENTARIO ----
+      window._renderDashInventario = function() {
+        var d = _inventarioDatos || [];
+        var disp = d.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('DISPONIBLE')>-1;});
+        var cons = d.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('CONSUMIDO')>-1;});
+        var valorTotal = d.reduce(function(s,f){return s+(parseFloat(f.costoTotal)||0);},0);
+        var valorDisp  = disp.reduce(function(s,f){return s+(parseFloat(f.costoTotal)||0);},0);
+        var kpi = document.getElementById('dKpi_inventario');
+        if(kpi) kpi.innerHTML = window._dashKpiHtml([
+          {label:'Total Registros',  value:window._dN(d.length),    color:'var(--azul)'},
+          {label:'Disponibles',      value:window._dN(disp.length), color:'#6a8a7a'},
+          {label:'Consumidos',       value:window._dN(cons.length), color:'#9a6a45'},
+          {label:'Valor Total',      value:window._dM(valorTotal),  color:'var(--dorado)', sub:'Todos los registros'},
+          {label:'Valor Disponible', value:window._dM(valorDisp),   color:'#6a8a7a', sub:'Solo disponibles'}
+        ]);
+        var estColors = {'DISPONIBLE':'#6a8a7a','CONSUMIDO':'#9a6a45','PARCIALMENTE DISPONIBLE':'#c8ae7e'};
+        var estGrp = window._dashGroupK(d,function(f){return (f.estatus||'Sin estatus').toUpperCase().trim();});
+        window._dashDonut('dDonut_invEstatus','Estatus de Refacciones',estGrp.map(function(x){return{l:x.l,v:x.v,c:estColors[x.l]||'#9a9a9a'};}));
+        window._dashBars('dBar_invMarcas','Top Marcas (Registros)',
+          window._dashGroupK(d,function(f){return f.marca||'Sin marca';}),function(i){return _DASH_P[i%_DASH_P.length];},false);
+        window._dashBars('dBar_invProductos','Top 10 Productos por Costo',
+          window._dashGroupK(d,function(f){return f.producto||'Sin producto';},function(f){return parseFloat(f.costoTotal)||0;}),
+          function(i){return i%2===0?'var(--azul)':'var(--dorado)';},true);
+        window._dashBars('dBar_invVehiculos','Top 10 Vehículos por Refacciones',
+          window._dashGroupK(d,function(f){return f.vehiculo||'Sin vehículo';}),function(i){return _DASH_P[i%_DASH_P.length];},false);
+      };
+
+      // ---- CONSUMOS ----
+      window._renderDashConsumos = function() {
+        var d = _consumosDatos || [];
+        var cTotal = d.reduce(function(s,f){return s+window._dPM(f.costoTotal);},0);
+        var cDescuento = d.reduce(function(s,f){return s+window._dPM(f.importeDescuento);},0);
+        var prodUnicos = new Set(d.map(function(f){return (f.producto||'').trim();})).size;
+        var vehUnicos  = new Set(d.map(function(f){return (f.vehiculo||'').trim();})).size;
+        var kpi = document.getElementById('dKpi_consumos');
+        if(kpi) kpi.innerHTML = window._dashKpiHtml([
+          {label:'Total Consumos',   value:window._dN(d.length),    color:'var(--azul)'},
+          {label:'Costo Total',      value:window._dM(cTotal),      color:'var(--dorado)'},
+          {label:'Descuentos Total', value:window._dM(cDescuento),  color:'#6a8a7a', sub:'Importe aplicado'},
+          {label:'Productos Únicos', value:window._dN(prodUnicos),  color:'#2d3a45'},
+          {label:'Vehículos Únicos', value:window._dN(vehUnicos),   color:'#9a6a45'}
+        ]);
+        window._dashBars('dBar_conProductos','Top Productos Consumidos (Costo)',
+          window._dashGroupK(d,function(f){return f.producto||'Sin producto';},function(f){return window._dPM(f.costoTotal);}),
+          function(i){return _DASH_P[i%_DASH_P.length];},true);
+        window._dashBars('dBar_conVehiculos','Top Vehículos por Costo',
+          window._dashGroupK(d,function(f){return f.vehiculo||'Sin vehículo';},function(f){return window._dPM(f.costoTotal);}),
+          function(i){return i%2===0?'var(--azul)':'var(--dorado)';},true);
+        window._dashBars('dBar_conUsuarios','Consumos por Usuario',
+          window._dashGroupK(d,function(f){return f.quienRegistra||'Sin usuario';}),
+          function(i){return _DASH_P[i%_DASH_P.length];},false);
+        window._dashBars('dBar_conTickets','Top Tickets con más Consumos',
+          window._dashGroupK(d,function(f){return f.ticketNuevo||'Sin ticket';}),
+          function(i){return i%2===0?'#2d3a45':'#c8ae7e';},false);
+      };
+
+      // ---- PROVEEDORES ----
+      window._renderDashProveedores = function() {
+        var d = _proveedoresDatos || [];
+        var conInterc = d.filter(function(f){return (f.intercambio2||'').toUpperCase()==='SI';}).length;
+        var estados   = new Set(d.map(function(f){return (f.estado||'').trim();})).size;
+        var kpi = document.getElementById('dKpi_proveedores');
+        if(kpi) kpi.innerHTML = window._dashKpiHtml([
+          {label:'Total Proveedores', value:window._dN(d.length),    color:'var(--azul)'},
+          {label:'Estados Cubiertos', value:window._dN(estados),     color:'#2d3a45'},
+          {label:'Con Intercambio',   value:window._dN(conInterc),   color:'#6a8a7a', sub:'Aceptan intercambio'},
+          {label:'Sin Intercambio',   value:window._dN(d.length-conInterc), color:'#9a6a45'}
+        ]);
+        var segGrp = window._dashGroupK(d,function(f){return f.segmentacion||'Sin segmentación';});
+        window._dashDonut('dDonut_provSeg','Por Segmentación',segGrp.slice(0,6).map(function(x,i){return{l:x.l,v:x.v,c:_DASH_P[i%_DASH_P.length]};}));
+        var intercGrp = [
+          {l:'Con Intercambio',   v:conInterc,          c:'#6a8a7a'},
+          {l:'Sin Intercambio',   v:d.length-conInterc, c:'#9a6a45'}
+        ];
+        window._dashDonut('dDonut_provInterc','Intercambio de Documentos',intercGrp);
+        window._dashBars('dBar_provEstados','Proveedores por Estado',
+          window._dashGroupK(d,function(f){return f.estado||'Sin estado';}),function(i){return _DASH_P[i%_DASH_P.length];},false);
+        window._dashBars('dBar_provServicio','Proveedores por Tipo de Servicio',
+          window._dashGroupK(d,function(f){return f.servicio||'Sin servicio';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+      };
+
+      // ---- OC ----
+      window._renderDashOC = function() {
+        var d = _ocDatosGlobal || [];
+        var autorizadas = d.filter(function(f){return (f.nivelActual||'').toUpperCase()==='AUTORIZADO';}).length;
+        var rechazadas  = d.filter(function(f){return (f.nivelActual||'').toUpperCase()==='RECHAZADO';}).length;
+        var pendientes  = d.filter(function(f){var n=(f.nivelActual||'').toUpperCase(); return n!=='AUTORIZADO'&&n!=='RECHAZADO';}).length;
+        var kpi = document.getElementById('dKpi_oc');
+        if(kpi) kpi.innerHTML = window._dashKpiHtml([
+          {label:'Total OC',     value:window._dN(d.length),      color:'var(--azul)'},
+          {label:'Autorizadas',  value:window._dN(autorizadas),   color:'#6a8a7a'},
+          {label:'Pendientes',   value:window._dN(pendientes),    color:'#c8ae7e'},
+          {label:'Rechazadas',   value:window._dN(rechazadas),    color:'#9a6a45'}
+        ]);
+        var nivelColors = {'AUTORIZADO':'#6a8a7a','RECHAZADO':'#9a6a45','GERENTE':'#2d3a45','SUBDIRECTORA':'#B4A169','DIRECTORA':'#3d5060'};
+        var nivelGrp = window._dashGroupK(d,function(f){return f.nivelActual||'Pendiente';});
+        window._dashDonut('dDonut_ocNivel','Estado Actual de OC',nivelGrp.map(function(x){return{l:x.l,v:x.v,c:nivelColors[x.l.toUpperCase()]||'#9a9a9a'};}));
+        var gerColors = {'AUTORIZADO':'#6a8a7a','RECHAZADO':'#9a6a45','PENDIENTE':'#c8ae7e'};
+        var gerGrp = window._dashGroupK(d,function(f){return (f.decGerente||'Pendiente').toUpperCase();});
+        window._dashDonut('dDonut_ocGerente','Decisión del Gerente',gerGrp.map(function(x){return{l:x.l,v:x.v,c:gerColors[x.l]||'#9a9a9a'};}));
+        window._dashBars('dBar_ocSolicitantes','Top Solicitantes',
+          window._dashGroupK(d,function(f){return f.quienRegistro||'Sin usuario';}),function(i){return _DASH_P[i%_DASH_P.length];},false);
+        window._dashBars('dBar_ocProveedores','Top Razones Sociales (OC)',
+          window._dashGroupK(d,function(f){return f.razonSocial||'Sin proveedor';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+      };
+
+      // ---- HERRAMIENTAS ----
+      window._renderDashHerramientas = function() {
+        var d = _herramientasDatos || [];
+        if(!d.length) {
+          google.script.run.withSuccessHandler(function(r){
+            if(r.exito){ _herramientasDatos=r.datos||[]; window._renderDashHerramientas(); }
+          }).obtenerDatosHerramientas();
+          document.getElementById('dKpi_herramientas').innerHTML = '<p style="color:#bbb;font-size:0.8rem;">Cargando...</p>';
+          return;
+        }
+        var activas = d.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('ACTIV')>-1;}).length;
+        var bajas   = d.filter(function(f){return (f.estatus||'').toUpperCase().indexOf('BAJA')>-1;}).length;
+        var existTotal = d.reduce(function(s,f){return s+(parseFloat(f.existencia)||0);},0);
+        var kpi = document.getElementById('dKpi_herramientas');
+        if(kpi) kpi.innerHTML = window._dashKpiHtml([
+          {label:'Total Herramientas', value:window._dN(d.length),     color:'var(--azul)'},
+          {label:'Activas',            value:window._dN(activas),      color:'#6a8a7a'},
+          {label:'Bajas',              value:window._dN(bajas),        color:'#9a6a45'},
+          {label:'Existencia Total',   value:window._dN(existTotal),   color:'var(--dorado)'}
+        ]);
+        var estColors = {};
+        var estGrp = window._dashGroupK(d,function(f){return f.estatus||'Sin estatus';});
+        window._dashDonut('dDonut_herrEstatus','Por Estatus',estGrp.slice(0,6).map(function(x,i){return{l:x.l,v:x.v,c:_DASH_P[i%_DASH_P.length]};}));
+        var estadoGrp = window._dashGroupK(d,function(f){var e=(f.estadoHerr||'').toUpperCase().trim(); return e||'Sin estado';});
+        var estadoColors = {};
+        estadoGrp.forEach(function(x){
+          var e=x.l.toUpperCase();
+          estadoColors[x.l] = e.includes('BUEN')?'#6a8a7a':e.includes('DAÑ')?'#9a6a45':e.includes('INCOMPL')?'#c8ae7e':'#3d5060';
+        });
+        window._dashDonut('dDonut_herrEstado','Estado Físico',estadoGrp.map(function(x){return{l:x.l,v:x.v,c:estadoColors[x.l]||'#9a9a9a'};}));
+        window._dashBars('dBar_herrTipo','Por Tipo de Herramienta',
+          window._dashGroupK(d,function(f){return f.tipo||'Sin tipo';}),function(i){return _DASH_P[i%_DASH_P.length];},false);
+        window._dashBars('dBar_herrLugar','Por Ubicación',
+          window._dashGroupK(d,function(f){return f.lugar||'Sin ubicación';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+      };
+
+      // ---- CRONOGRAMA ----
+      window._renderDashCronograma = function() {
+        var d = _dashCronDatos || [];
+        if(!d.length) {
+          google.script.run.withSuccessHandler(function(r){
+            if(r.exito){ _dashCronDatos=r.datos||[]; window._renderDashCronograma(); }
+          }).obtenerDatosCronograma();
+          var kpiEl = document.getElementById('dKpi_cronograma');
+          if(kpiEl) kpiEl.innerHTML = '<p style="color:#bbb;font-size:0.8rem;">Cargando...</p>';
+          return;
+        }
+        var liberados   = d.filter(function(f){return (f.estatusUnidad||'').toUpperCase()==='LIBERADO';}).length;
+        var ingresados  = d.filter(function(f){return (f.estatusUnidad||'').toUpperCase()==='INGRESADO';}).length;
+        var mecSet = new Set(d.map(function(f){return (f.mecanico||'').trim();}).filter(Boolean));
+        var kpi = document.getElementById('dKpi_cronograma');
+        if(kpi) kpi.innerHTML = window._dashKpiHtml([
+          {label:'Total Programados', value:window._dN(d.length),       color:'var(--azul)'},
+          {label:'Liberados',         value:window._dN(liberados),      color:'#6a8a7a'},
+          {label:'Ingresados',        value:window._dN(ingresados),     color:'#c8ae7e'},
+          {label:'Mecánicos Activos', value:window._dN(mecSet.size),    color:'#2d3a45'}
+        ]);
+        var tipoGrp = window._dashGroupK(d,function(f){return f.tipoTrabajo||'Sin tipo';});
+        window._dashDonut('dDonut_cronTipo','Por Tipo de Trabajo',tipoGrp.slice(0,6).map(function(x,i){return{l:x.l,v:x.v,c:_DASH_P[i%_DASH_P.length]};}));
+        var estColors = {'LIBERADO':'#6a8a7a','INGRESADO':'#c8ae7e','PROGRAMADA':'#2d3a45'};
+        var estGrp = window._dashGroupK(d,function(f){return (f.estatusUnidad||'Sin estatus').toUpperCase();});
+        window._dashDonut('dDonut_cronEstatus','Estatus de Unidades',estGrp.map(function(x){return{l:x.l,v:x.v,c:estColors[x.l]||'#9a9a9a'};}));
+        window._dashBars('dBar_cronMecanico','Servicios por Mecánico',
+          window._dashGroupK(d,function(f){return f.mecanico||'Sin mecánico';}),function(i){return _DASH_P[i%_DASH_P.length];},false);
+        window._dashBars('dBar_cronSede','Servicios por Sede',
+          window._dashGroupK(d,function(f){return f.sede||'Sin sede';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
       };
 
       // ============================================================================
