@@ -502,36 +502,36 @@
       window.mostrarInicio = function(e) {
         document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active')); if(e) e.classList.add('active');
         document.getElementById('contenedor').innerHTML =
-          '<div style="background:linear-gradient(135deg,var(--azul) 0%,#2d3a45 100%);padding:2.5rem 1rem 3.5rem;margin:-1rem -1rem 0;text-align:center;">' +
-            '<p style="color:var(--dorado);font-size:0.78rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:0.4rem;">Bienvenido/a a</p>' +
-            '<h1 style="color:white;font-weight:900;font-size:2.8rem;letter-spacing:0.14em;margin-bottom:0.3rem;">SIVET</h1>' +
-            '<p style="color:rgba(255,255,255,0.55);font-size:0.78rem;font-weight:600;letter-spacing:0.1em;">SISTEMA DE INVENTARIO Y VEHÍCULOS EN TALLER</p>' +
+          '<div style="background:linear-gradient(135deg,var(--azul) 0%,#2d3a45 100%);padding:2.8rem 2rem 4rem;margin:-1rem -1rem 0;text-align:center;border-radius:0 0 20px 20px;">' +
+            '<p style="color:var(--dorado);font-size:0.78rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:0.5rem;">Bienvenido/a a</p>' +
+            '<h1 style="color:white;font-weight:900;font-size:3rem;letter-spacing:0.14em;margin-bottom:0.4rem;">SIVET</h1>' +
+            '<p style="color:rgba(255,255,255,0.5);font-size:0.78rem;font-weight:600;letter-spacing:0.1em;margin:0;">SISTEMA DE INVENTARIO Y VEH&Iacute;CULOS EN TALLER</p>' +
           '</div>' +
-          '<div style="margin:-2rem 0 0;padding:0 1.5rem 2rem;">' +
-            '<div class="card border-0" style="border-radius:14px;box-shadow:0 8px 32px rgba(30,37,43,0.18);overflow:hidden;">' +
+          '<div style="padding:0 1.5rem 2rem;">' +
+            '<div class="card border-0" style="margin-top:-2rem;border-radius:16px;box-shadow:0 8px 36px rgba(30,37,43,0.16);overflow:hidden;">' +
               '<div class="card-header border-0 py-3 px-4" style="background:white;border-bottom:3px solid var(--dorado);">' +
                 '<div class="d-flex align-items-center gap-2">' +
                   '<span style="font-size:1.2rem;">🔍</span>' +
-                  '<span class="fw-bold" style="color:var(--azul);font-size:1.05rem;letter-spacing:0.03em;">Consulta Rápida de Expediente</span>' +
+                  '<span class="fw-bold" style="color:var(--azul);font-size:1.05rem;letter-spacing:0.02em;">Consulta R&aacute;pida de Expediente</span>' +
                   '<span id="estadoConsultaInicio" class="ms-auto small text-muted"></span>' +
                 '</div>' +
               '</div>' +
               '<div class="card-body px-4 py-4" style="background:#fafafa;">' +
-                '<div class="row g-3 align-items-end">' +
-                  '<div class="col-md-5">' +
-                    '<label class="fw-bold small mb-1" style="color:var(--azul);letter-spacing:0.04em;">NÚMERO DE TICKET</label>' +
-                    '<input type="text" id="inputConsultaTicket" class="form-control fw-bold" placeholder="Ej. TK-001 o 78268" style="border:2px solid var(--dorado);border-radius:8px;font-size:1rem;height:46px;" onkeydown="if(event.key===\'Enter\') window._consultarInicio(\'ticket\')">' +
+                '<div style="display:flex;gap:20px;align-items:flex-end;">' +
+                  '<div style="flex:1;">' +
+                    '<label class="fw-bold small mb-1 d-block" style="color:var(--azul);letter-spacing:0.05em;font-size:0.75rem;">N&Uacute;MERO DE TICKET</label>' +
+                    '<input type="text" id="inputConsultaTicket" class="form-control fw-bold" placeholder="Ej. TK-001 &oacute; 78268" style="border:2px solid var(--dorado);border-radius:8px;font-size:1rem;height:48px;" onkeydown="if(event.key===\'Enter\') window._consultarInicio(\'ticket\')">' +
                   '</div>' +
-                  '<div class="col-md-1 text-center pb-1" style="color:#bbb;font-weight:700;font-size:0.9rem;">ó</div>' +
-                  '<div class="col-md-5">' +
-                    '<label class="fw-bold small mb-1" style="color:var(--azul);letter-spacing:0.04em;">NÚMERO NUCO</label>' +
-                    '<input type="text" id="inputConsultaNuco" class="form-control fw-bold" placeholder="Ej. 100 o CM-0452" style="border:2px solid #6c8ebf;border-radius:8px;font-size:1rem;height:46px;" onkeydown="if(event.key===\'Enter\') window._consultarInicio(\'nuco\')">' +
+                  '<div style="padding-bottom:10px;color:#ccc;font-weight:700;font-size:1rem;flex-shrink:0;">&#xF7;</div>' +
+                  '<div style="flex:1;">' +
+                    '<label class="fw-bold small mb-1 d-block" style="color:var(--azul);letter-spacing:0.05em;font-size:0.75rem;">N&Uacute;MERO NUCO</label>' +
+                    '<input type="text" id="inputConsultaNuco" class="form-control fw-bold" placeholder="Ej. 100 &oacute; CM-0452" style="border:2px solid #6c8ebf;border-radius:8px;font-size:1rem;height:48px;" onkeydown="if(event.key===\'Enter\') window._consultarInicio(\'nuco\')">' +
                   '</div>' +
-                  '<div class="col-md-1">' +
-                    '<button class="btn w-100 fw-bold text-white" style="background:var(--azul);border-radius:8px;height:46px;font-size:1.1rem;" onclick="window._consultarInicio(\'auto\')" title="Consultar">→</button>' +
+                  '<div style="flex-shrink:0;padding-bottom:0;">' +
+                    '<button class="btn fw-bold text-white px-4" style="background:var(--azul);border-radius:8px;height:48px;font-size:0.9rem;white-space:nowrap;" onclick="window._consultarInicio(\'auto\')">Consultar</button>' +
                   '</div>' +
                 '</div>' +
-                '<p class="mb-0 mt-3 small text-muted" style="font-size:0.76rem;">Ingresa solo el campo por el que deseas buscar. Los resultados se muestran de todos los módulos del sistema.</p>' +
+                '<p class="mb-0 mt-3" style="font-size:0.75rem;color:#aaa;">Ingresa solo el campo por el que deseas buscar. Los resultados incluyen todos los m&oacute;dulos del sistema.</p>' +
               '</div>' +
             '</div>' +
             '<div id="resultadosConsultaInicio" class="mt-4"></div>' +
