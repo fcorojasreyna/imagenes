@@ -3215,10 +3215,13 @@
           });
           return;
         }
-        // Todos los demás roles ven todo el nav
+        // Dashboard solo visible para roles autorizantes
+        var rolesDash = ['GERENTE','SUBDIRECTORA','DIRECTORA','ADMIN'];
         todosNav.forEach(function(id) {
           var el = document.getElementById(id);
-          if (el) el.style.display = '';
+          if (!el) return;
+          if (id === 'btnDash') el.style.display = rolesDash.includes(rol) ? '' : 'none';
+          else el.style.display = '';
         });
       };
 
@@ -3735,10 +3738,12 @@
           {l:'Con Intercambio',v:conInterc,c:'#6a8a7a'},
           {l:'Sin Intercambio',v:d.length-conInterc,c:'#9a6a45'}
         ]);
+        function _esEstadoValido(v){ if(!v) return false; var s=v.trim(); return s.length>0 && s.length<=30 && !/\d{2,}/.test(s) && !/[,#]/.test(s); }
+        function _esServicioValido(v){ if(!v) return false; var s=v.trim(); return s.length>0 && !/^\$/.test(s) && isNaN(parseFloat(s.replace(/[,$]/g,''))); }
         window._dashBars('dBar_provEstados','Proveedores por Estado',
-          window._dashGroupK(d,function(f){return f.estado||'Sin estado';}),function(i){return _DP[i%_DP.length];},false);
+          window._dashGroupK(d,function(f){var v=(f.estado||'').trim(); return _esEstadoValido(v)?v:'Sin clasificar';}),function(i){return _DP[i%_DP.length];},false);
         window._dashBars('dBar_provServicio','Proveedores por Tipo de Servicio',
-          window._dashGroupK(d,function(f){return f.servicio||'Sin servicio';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+          window._dashGroupK(d,function(f){var v=(f.servicio||'').trim(); return _esServicioValido(v)?v:'Sin clasificar';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
       };
 
       // ---- OC ----
