@@ -501,6 +501,17 @@
       // ============================================================================
       window.mostrarInicio = function(e) {
         document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active')); if(e) e.classList.add('active');
+        if (_rolActual === 'MECANICO') {
+          document.getElementById('contenedor').innerHTML =
+            '<div class="welcome-card text-center py-5">' +
+              '<p class="mb-1" style="color:var(--azul);font-size:1rem;font-weight:600;letter-spacing:0.05em;">Bienvenido/a a</p>' +
+              '<h1 style="color:var(--azul);font-weight:900;font-size:3rem;letter-spacing:0.12em;">SIVET</h1>' +
+              '<p class="mb-0" style="color:var(--dorado);font-size:0.85rem;font-weight:600;letter-spacing:0.08em;">SISTEMA DE INVENTARIO Y VEH&Iacute;CULOS EN TALLER</p>' +
+              '<hr style="border-color:var(--dorado);width:60%;margin:1.5rem auto;">' +
+              '<p class="mb-0 text-muted" style="font-size:0.95rem;">Seleccione algún módulo para comenzar.</p>' +
+            '</div>';
+          return;
+        }
         document.getElementById('contenedor').innerHTML =
           '<div style="background:linear-gradient(135deg,var(--azul) 0%,#2d3a45 100%);padding:2.8rem 2rem 4rem;margin:-1rem -1rem 0;text-align:center;border-radius:0 0 20px 20px;">' +
             '<p style="color:var(--dorado);font-size:0.78rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:0.5rem;">Bienvenido/a a</p>' +
