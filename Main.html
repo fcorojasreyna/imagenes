@@ -203,12 +203,6 @@
           </a>
         </div>
 
-        <div class="nav-search-container" style="flex-shrink:0;">
-          <input type="text" id="inputBusquedaGlobal" class="form-control form-control-sm"
-            placeholder="🔍 Buscar en todo..." style="width:180px;border:2px solid var(--dorado);background:#2a3038;color:white;"
-            oninput="window._busquedaGlobal(this.value)" onkeydown="if(event.key==='Escape'){this.value='';window._cerrarBusqueda();}">
-        </div>
-
         <div class="logo-derecho" style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
           <div style="text-align: right; line-height: 1.3;">
             <div style="color: var(--dorado); font-weight: bold; font-size: 0.78rem; white-space: nowrap;" id="nombreUsuarioUI"></div>
@@ -488,8 +482,8 @@
               window.mostrarInicio(document.getElementById('btnInicio'));
               // Cargar badge de notificaciones al iniciar sesión
               setTimeout(function() { window.cargarDatosNotificaciones(true, true); }, 1200);
-              // Precarga silenciosa de datos para búsqueda global
-              setTimeout(function() { window._precargarDatosGlobal(); }, 2000);
+              // Precarga de datos para consulta en inicio
+              setTimeout(function() { window._precargarDatosGlobal(); }, 1500);
             } else {
               msj.innerText = (res && res.error) ? res.error : 'Usuario o contraseña incorrectos.';
             }
@@ -507,7 +501,28 @@
       // ============================================================================
       window.mostrarInicio = function(e) {
         document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active')); if(e) e.classList.add('active');
-        document.getElementById('contenedor').innerHTML = '<div class="welcome-card text-center py-5"><p class="mb-1" style="color:var(--azul);font-size:1rem;font-weight:600;letter-spacing:0.05em;">Bienvenido/a a</p><h1 style="color:var(--azul);font-weight:900;font-size:3rem;letter-spacing:0.12em;">SIVET</h1><p class="mb-0" style="color:var(--dorado);font-size:0.85rem;font-weight:600;letter-spacing:0.08em;">SISTEMA DE INVENTARIO Y VEHÍCULOS EN TALLER</p><hr style="border-color:var(--dorado);width:60%;margin:1.5rem auto;"><p class="mb-0 text-muted" style="font-size:0.95rem;">Seleccione algún módulo para comenzar.</p></div>';
+        document.getElementById('contenedor').innerHTML =
+          '<div class="welcome-card text-center py-4">' +
+            '<p class="mb-1" style="color:var(--azul);font-size:1rem;font-weight:600;letter-spacing:0.05em;">Bienvenido/a a</p>' +
+            '<h1 style="color:var(--azul);font-weight:900;font-size:3rem;letter-spacing:0.12em;">SIVET</h1>' +
+            '<p class="mb-0" style="color:var(--dorado);font-size:0.85rem;font-weight:600;letter-spacing:0.08em;">SISTEMA DE INVENTARIO Y VEHÍCULOS EN TALLER</p>' +
+            '<hr style="border-color:var(--dorado);width:60%;margin:1.5rem auto;">' +
+          '</div>' +
+          '<div class="container-fluid" style="max-width:820px;margin:0 auto;">' +
+            '<div class="card shadow-sm border-0 mb-4">' +
+              '<div class="card-header py-3" style="background:var(--azul);color:white;">' +
+                '<h5 class="m-0 fw-bold">🔍 Consulta Rápida por Ticket o NUCO</h5>' +
+              '</div>' +
+              '<div class="card-body p-4">' +
+                '<div class="input-group">' +
+                  '<input type="text" id="inputConsultaInicio" class="form-control form-control-lg fw-bold" placeholder="Escribe un Ticket o NUCO y presiona Enter..." style="border:2px solid var(--dorado);" onkeydown="if(event.key===\'Enter\') window._consultarInicio(this.value)">' +
+                  '<button class="btn fw-bold text-white px-4" style="background:var(--dorado);color:var(--azul)!important;" onclick="window._consultarInicio(document.getElementById(\'inputConsultaInicio\').value)">Consultar</button>' +
+                '</div>' +
+                '<div id="estadoConsultaInicio" class="mt-2 text-muted small"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div id="resultadosConsultaInicio"></div>' +
+          '</div>';
       };
 
       window.cargarModulo = function(n, el) {
@@ -3325,11 +3340,81 @@
       // ============================================================================
       // Feature 5 — Global search bar
       // ============================================================================
+      var _ocDatosGlobal = [];
+
       window._precargarDatosGlobal = function() {
-        if (!_tallerDatos.length)      google.script.run.withSuccessHandler(function(r){ if(r.exito) _tallerDatos      = r.datos||[]; }).obtenerDatosTaller();
-        if (!_inventarioDatos.length)  google.script.run.withSuccessHandler(function(r){ if(r.exito) _inventarioDatos  = r.datos||[]; }).obtenerDatosInventario();
-        if (!_consumosDatos.length)    google.script.run.withSuccessHandler(function(r){ if(r.exito) _consumosDatos    = r.datos||[]; }).obtenerDatosConsumos();
-        if (!_proveedoresDatos.length) google.script.run.withSuccessHandler(function(r){ if(r.exito) _proveedoresDatos = r.datos||[]; }).obtenerDatosProveedores();
+        var est = document.getElementById('estadoConsultaInicio');
+        if (est) est.textContent = '⏳ Cargando datos en segundo plano...';
+        var _pendiente = [true, true, true, true, true];
+        function _chk(i) { _pendiente[i] = false; if(_pendiente.every(function(x){return !x;})) { if(est) est.textContent = '✅ Datos listos. Escribe un ticket o NUCO para consultar.'; } }
+        if (!_tallerDatos.length)      google.script.run.withSuccessHandler(function(r){ if(r.exito) _tallerDatos      = r.datos||[]; _chk(0); }).withFailureHandler(function(){_chk(0);}).obtenerDatosTaller();      else _chk(0);
+        if (!_inventarioDatos.length)  google.script.run.withSuccessHandler(function(r){ if(r.exito) _inventarioDatos  = r.datos||[]; _chk(1); }).withFailureHandler(function(){_chk(1);}).obtenerDatosInventario();  else _chk(1);
+        if (!_consumosDatos.length)    google.script.run.withSuccessHandler(function(r){ if(r.exito) _consumosDatos    = r.datos||[]; _chk(2); }).withFailureHandler(function(){_chk(2);}).obtenerDatosConsumos();    else _chk(2);
+        if (!_proveedoresDatos.length) google.script.run.withSuccessHandler(function(r){ if(r.exito) _proveedoresDatos = r.datos||[]; _chk(3); }).withFailureHandler(function(){_chk(3);}).obtenerDatosProveedores(); else _chk(3);
+        if (!_ocDatosGlobal.length)    google.script.run.withSuccessHandler(function(r){ if(r.exito) _ocDatosGlobal    = r.datos||[]; _chk(4); }).withFailureHandler(function(){_chk(4);}).obtenerHistorialGlobalOC(); else _chk(4);
+      };
+
+      window._consultarInicio = function(q) {
+        q = (q || '').trim().toUpperCase();
+        var cont = document.getElementById('resultadosConsultaInicio');
+        if (!cont) return;
+        if (!q) { cont.innerHTML = ''; return; }
+
+        var sinDatos = !_tallerDatos.length && !_inventarioDatos.length && !_consumosDatos.length && !_proveedoresDatos.length;
+        if (sinDatos) {
+          cont.innerHTML = '<div class="alert alert-info">⏳ Datos aún cargando, intenta en unos segundos...</div>';
+          window._precargarDatosGlobal();
+          return;
+        }
+
+        var html = '';
+
+        // --- TALLER ---
+        var rTaller = _tallerDatos.filter(function(f){ return (f.ticket||'').toUpperCase().includes(q) || (f.nuco||'').toUpperCase().includes(q); });
+        if (rTaller.length) {
+          html += '<div class="card shadow-sm border-0 mb-3"><div class="card-header py-2" style="background:var(--azul);color:white;"><h6 class="m-0 fw-bold">🔧 Taller (' + rTaller.length + ' registro(s))</h6></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-dark"><tr><th>Ticket</th><th>NUCO</th><th>Tipo Servicio</th><th>Descripción</th><th>Proveedor</th><th>Costo</th><th>Estatus</th><th>Fecha</th></tr></thead><tbody>';
+          rTaller.forEach(function(f){
+            var badge = f.estatus==='LIBERADO'?'<span class="badge bg-success">LIBERADO</span>':f.estatus==='PROGRAMADA'?'<span class="badge bg-primary">PROGRAMADA</span>':'<span class="badge bg-warning text-dark">INGRESADO</span>';
+            html += '<tr><td class="fw-bold">'+(f.ticket||'')+'</td><td>'+(f.nuco||'')+'</td><td>'+(f.tipoServicio||'')+'</td><td class="small">'+(f.descripcion||'')+'</td><td>'+(f.proveedor||'')+'</td><td class="fw-bold text-success">$'+parseFloat(f.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+badge+'</td><td>'+(f.fecha||'')+'</td></tr>';
+          });
+          html += '</tbody></table></div></div></div>';
+        }
+
+        // --- INVENTARIO ---
+        var rInv = _inventarioDatos.filter(function(f){ return (f.ticket||'').toUpperCase().includes(q) || (f.vehiculo||'').toUpperCase().includes(q); });
+        if (rInv.length) {
+          html += '<div class="card shadow-sm border-0 mb-3"><div class="card-header py-2" style="background:#1D6F42;color:white;"><h6 class="m-0 fw-bold">📦 Inventario (' + rInv.length + ' registro(s))</h6></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-dark"><tr><th>Ticket</th><th>Producto</th><th>Marca</th><th>Vehículo</th><th>Cant.</th><th>C. Unitario</th><th>C. Total</th><th>Estatus</th><th>Fecha</th></tr></thead><tbody>';
+          rInv.forEach(function(f){
+            var badge = f.estatus==='DISPONIBLE'?'<span class="badge bg-success">DISPONIBLE</span>':'<span class="badge bg-danger">CONSUMIDO</span>';
+            html += '<tr><td class="fw-bold">'+(f.ticket||'')+'</td><td>'+(f.producto||'')+'</td><td class="small">'+(f.marca||'')+'</td><td class="small">'+(f.vehiculo||'')+'</td><td>'+(f.cantidad||'')+'</td><td>$'+parseFloat(f.costoUnitario||0).toLocaleString('es-MX')+'</td><td class="fw-bold">$'+parseFloat(f.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+badge+'</td><td>'+(f.fecha||'')+'</td></tr>';
+          });
+          html += '</tbody></table></div></div></div>';
+        }
+
+        // --- CONSUMOS ---
+        var rCon = _consumosDatos.filter(function(f){ return (f.ticketNuevo||'').toUpperCase().includes(q) || (f.vehiculo||'').toUpperCase().includes(q); });
+        if (rCon.length) {
+          html += '<div class="card shadow-sm border-0 mb-3"><div class="card-header py-2" style="background:#6f4e1d;color:white;"><h6 class="m-0 fw-bold">📤 Consumos / Salidas (' + rCon.length + ' registro(s))</h6></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-dark"><tr><th>Ticket</th><th>Producto</th><th>Vehículo</th><th>Cant.</th><th>Costo</th><th>Folio CPP</th><th>Quien Registra</th><th>Fecha</th></tr></thead><tbody>';
+          rCon.forEach(function(f){
+            html += '<tr><td class="fw-bold">'+(f.ticketNuevo||'')+'</td><td>'+(f.producto||'')+'</td><td>'+(f.vehiculo||'')+'</td><td>'+(f.cantidad||'')+'</td><td class="fw-bold text-danger">$'+parseFloat(f.costoTotal||0).toLocaleString('es-MX')+'</td><td>'+(f.folioCpp||'—')+'</td><td class="small">'+(f.quienRegistra||'')+'</td><td>'+(f.fecha||'')+'</td></tr>';
+          });
+          html += '</tbody></table></div></div></div>';
+        }
+
+        // --- OC ---
+        var rOC = _ocDatosGlobal.filter(function(f){ return (f.ticket||'').toUpperCase().includes(q) || (f.nuco||'').toUpperCase().includes(q); });
+        if (rOC.length) {
+          html += '<div class="card shadow-sm border-0 mb-3"><div class="card-header py-2" style="background:var(--dorado);color:var(--azul);"><h6 class="m-0 fw-bold">🧾 Órdenes de Compra (' + rOC.length + ' registro(s))</h6></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-dark"><tr><th>Folio</th><th>Ticket</th><th>NUCO</th><th>Razón Social</th><th>Estatus</th><th>Fecha</th><th>Quien Registró</th></tr></thead><tbody>';
+          rOC.forEach(function(f){
+            var nivel = f.nivelActual||'';
+            var badge = nivel==='AUTORIZADO'?'<span class="badge bg-success">✔ Autorizado</span>':nivel==='RECHAZADO'?'<span class="badge bg-danger">✖ Rechazado</span>':'<span class="badge bg-warning text-dark">⏳ '+nivel+'</span>';
+            html += '<tr><td class="fw-bold" style="color:var(--dorado);">'+(f.folio||'')+'</td><td>'+(f.ticket||'')+'</td><td>'+(f.nuco||'')+'</td><td class="small">'+(f.razonSocial||'')+'</td><td>'+badge+'</td><td>'+(f.fecha||'')+'</td><td class="small">'+(f.quienRegistro||'')+'</td></tr>';
+          });
+          html += '</tbody></table></div></div></div>';
+        }
+
+        if (!html) html = '<div class="alert alert-secondary text-center">Sin resultados para <strong>"' + q + '"</strong> en ningún módulo.</div>';
+        cont.innerHTML = html;
       };
 
       window._busquedaGlobal = function(q) {
