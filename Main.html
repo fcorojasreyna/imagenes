@@ -2948,8 +2948,10 @@
           var hor = document.getElementById('edCronHorario');
           if (hor) {
             var horVal = (reg.horario || '').toString().trim();
-            // Normalizar HH:MM:SS → HH:MM por si Sheets agrega segundos
+            // HH:MM:SS → HH:MM
             if (/^\d{1,2}:\d{2}:\d{2}$/.test(horVal)) horVal = horVal.slice(0, 5);
+            // H:MM → 0H:MM para coincidir con opciones del select (09:00, 10:00…)
+            if (/^\d:\d{2}$/.test(horVal)) horVal = '0' + horVal;
             hor.value = horVal;
           }
           var infoEl = document.getElementById('edCronInfo');
