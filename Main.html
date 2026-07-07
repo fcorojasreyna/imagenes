@@ -2931,8 +2931,8 @@
         var btnElimModal = document.getElementById('btnEliminarEditCron');
         if (btnElimModal) btnElimModal.style.setProperty('display', (_rolActual === 'GERENTE' || _rolActual === 'ADMIN') ? 'inline-block' : 'none', 'important');
 
-        // Panel estatus+archivos: todos los roles ven el estatus
-        if (panelGer)  panelGer.style.display  = 'block';
+        // Panel estatus+archivos: MECÁNICO, GERENTE, ADMIN (no EJECUTIVO)
+        if (panelGer)  panelGer.style.display  = (_rolActual !== 'EJECUTIVO') ? 'block' : 'none';
         // Panel campos editables (fecha, tipo, sede, horario): EJECUTIVO y GERENTE
         if (panelEjec) panelEjec.style.display = puedeEditar ? 'block' : 'none';
 
@@ -3062,7 +3062,6 @@
           var fecha = document.getElementById('edCronFecha')   ? document.getElementById('edCronFecha').value   : '';
           var hor   = document.getElementById('edCronHorario') ? document.getElementById('edCronHorario').value : '';
           var info  = document.getElementById('edCronInfo')    ? document.getElementById('edCronInfo').value    : '';
-          var estatusEjec = document.getElementById('editCronEstatus') ? document.getElementById('editCronEstatus').value : '';
           var duplaBtn = document.getElementById('btnDuplaEdit');
           var solicitarDuplaFlag = duplaBtn ? (duplaBtn.dataset.activo === 'si' && !duplaBtn.disabled) : false;
           if (solicitarDuplaFlag) {
@@ -3076,15 +3075,8 @@
               })
               .crearSolicitudAutorizacion({ tipo: 'DUPLA', ticket: ticket, nuco: '', descripcion: 'Solicitud de segundo mecánico para ticket ' + ticket, solicitante: quien, datoExtra: '' });
           }
-          // Primero campos, luego estatus
           google.script.run
-            .withSuccessHandler(function(r2) {
-              if (!r2.exito) { _fail({ message: r2.error || 'Error al actualizar campos.' }); return; }
-              google.script.run
-                .withSuccessHandler(_done).withFailureHandler(_fail)
-                .actualizarEstatusCronogramaBackend({ id: id, estatus: estatusEjec, urlEvidencia: null, urlFormato: null });
-            })
-            .withFailureHandler(_fail)
+            .withSuccessHandler(_done).withFailureHandler(_fail)
             .actualizarCamposEjecutivoCronograma({ id: id, tipoTrabajo: tipo, sede: sede, fecha: fecha, horario: hor, info: info });
         } else if (esGer) {
           // Gerente: actualiza campos editables Y después estatus + archivos
