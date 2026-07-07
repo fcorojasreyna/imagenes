@@ -25,11 +25,11 @@ function FORZAR_PERMISOS_DRIVE() {
 }
 
 function _normHorario(v) {
-  // Maneja objeto Date de GAS (getValues) y string "9:00" / "09:00:00"
+  // Maneja objeto Date de GAS (getValues) y string "9:00" / "09:00:00" / "9:00:00 AM"
   if (v instanceof Date) {
     return v.getHours().toString().padStart(2,'0') + ':' + v.getMinutes().toString().padStart(2,'0');
   }
-  var s = (v || '').toString().trim();
+  var s = (v || '').toString().trim().replace(/\s*(AM|PM)$/i, '');
   var m = s.match(/^(\d{1,2}):(\d{2})/);
   if (!m) return s;
   return m[1].padStart(2,'0') + ':' + m[2];
@@ -964,7 +964,14 @@ function obtenerCatalogos() {
       catalogos[key] = [];
       for (let r = 1; r < datos.length; r++) {
         let val = datos[r][colIdx] ? datos[r][colIdx].toString().trim() : "";
-        if (val) catalogos[key].push(val);
+        if (!val) continue;
+        // Normalizar horarios con formato Hora de Sheets (HH:MM:SS o H:MM:SS AM/PM) → HH:MM
+        if (key === 'HORARIO') {
+          val = val.replace(/\s*(AM|PM)$/i, '');
+          var mH = val.match(/^(\d{1,2}):(\d{2})/);
+          if (mH) val = mH[1].padStart(2,'0') + ':' + mH[2];
+        }
+        catalogos[key].push(val);
       }
     });
     return { exito: true, catalogos: catalogos };
@@ -1094,6 +1101,8 @@ function guardarCronograma(d) {
       "",                  // S: MECANICO 2 ESTATUS
       ""                   // T: MECANICO 2 FECHA APROBACION
     ]);
+    // Forzar columna E (horario) como texto para que Sheets no lo interprete como tiempo
+    hoja.getRange(hoja.getLastRow(), 5).setNumberFormat('@').setValue(d.horario);
     SpreadsheetApp.flush();
     return { exito: true, msj: "Entrada registrada: " + idGen, mecanico: mecPrincipal, mecanico2: mec2 };
   } catch(e) { return { exito: false, error: e.message }; }
@@ -1228,6 +1237,7 @@ function actualizarEstatusCronogramaBackend(d) {
             "",               // S
             ""                // T
           ]);
+          hoja.getRange(hoja.getLastRow(), 5).setNumberFormat('@').setValue(horarioNorm);
           // Marcar original y registrar en Resumen
           hoja.getRange(f, 15).setValue("POSPUESTO REPROGRAMADO");
           _actualizarResumenNuco(SpreadsheetApp.getActiveSpreadsheet(), fila[7], fila[6], fila[8], fila[9], formatoDDMMYYYY(_rawToDate(fila[5])), horarioNorm, 'pospuesto');
@@ -1737,6 +1747,7 @@ function reprogramarNoPresentado(id, nuevaFechaStr) {
           "",                // S
           ""                 // T
         ]);
+        hoja.getRange(hoja.getLastRow(), 5).setNumberFormat('@').setValue(horarioNorm);
         // Marcar original como ya reprogramada
         hoja.getRange(i + 1, 15).setValue("NO PRESENTADA REPROGRAMADA");
         _actualizarResumenNuco(SpreadsheetApp.getActiveSpreadsheet(), fila[7], fila[6], fila[8], fila[9], formatoDDMMYYYY(_rawToDate(fila[5])), horarioNorm, 'nopresentado');

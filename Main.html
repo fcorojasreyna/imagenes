@@ -2948,11 +2948,14 @@
           var hor = document.getElementById('edCronHorario');
           if (hor) {
             var horVal = (reg.horario || '').toString().trim();
-            // HH:MM:SS → HH:MM
-            if (/^\d{1,2}:\d{2}:\d{2}$/.test(horVal)) horVal = horVal.slice(0, 5);
-            // H:MM → 0H:MM para coincidir con opciones del select (09:00, 10:00…)
-            if (/^\d:\d{2}$/.test(horVal)) horVal = '0' + horVal;
+            // Quitar AM/PM si viene en ese formato
+            horVal = horVal.replace(/\s*(AM|PM)$/i, '');
+            // Extraer HH:MM de cualquier formato (H:MM, HH:MM, H:MM:SS, HH:MM:SS)
+            var mHor = horVal.match(/^(\d{1,2}):(\d{2})/);
+            if (mHor) horVal = mHor[1].padStart(2,'0') + ':' + mHor[2];
             hor.value = horVal;
+            // Si el valor no existe en las opciones del catálogo, dejar vacío
+            if (hor.value !== horVal) hor.value = '';
           }
           var infoEl = document.getElementById('edCronInfo');
           if (infoEl) infoEl.value = reg.info || '';
