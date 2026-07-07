@@ -443,7 +443,8 @@
               }
             } else {
               el.style.border = '2px solid red';
-              el.addEventListener('input', function limpiar() { el.style.border = ''; el.removeEventListener('input', limpiar); }, { once: true });
+              var evLimpiar = (el.type === 'date') ? 'change' : 'input';
+              el.addEventListener(evLimpiar, function limpiar() { el.style.border = ''; el.removeEventListener(evLimpiar, limpiar); }, { once: true });
             }
             ok = false;
           }
@@ -960,6 +961,15 @@
           return [f.id,f.proveedor,f.razonSocial,f.rfc,f.direccion,f.estado,f.contacto,f.telefono,f.correo,f.segmentacion,f.diasCredito,f.totalCredito,f.servicio,f.razonesSociales,f.regimenFiscal,f.intercambio2];
         });
         _descargarCSV('Proveedores_' + new Date().toISOString().slice(0,10) + '.csv', h, filas);
+      };
+
+      window.exportarExcelOC = function() {
+        if (!_ocDatosGlobal || !_ocDatosGlobal.length) { window.mostrarAlerta('No hay datos cargados.'); return; }
+        var h = ['Folio','Ticket','NUCO','Razón Social','Quien Registró','Estatus','Dec. Gerente','Dec. Subdirectora','Dec. Directora','Fecha'];
+        var filas = _ocDatosGlobal.map(function(f) {
+          return [f.folio,f.ticket,f.nuco,f.razonSocial,f.quienRegistro,f.nivelActual,f.decGerente,f.decSub,f.decDir,f.fecha];
+        });
+        _descargarCSV('OC_' + new Date().toISOString().slice(0,10) + '.csv', h, filas);
       };
 
       window.exportarExcelHerramientas = function() {
@@ -2037,7 +2047,7 @@
       window.ordenarTabla = function(tbodyId, colIdx) {
         var tbody = document.getElementById(tbodyId);
         if (!tbody) return;
-        var rows = Array.from(tbody.querySelectorAll('tr'));
+        var rows = Array.from(tbody.querySelectorAll('tr:not([data-pag-ctrl])'));
         if (rows.length <= 1) return;
 
         var asc = (tbody._sortCol === colIdx) ? !tbody._sortAsc : true;
@@ -2054,6 +2064,85 @@
         });
 
         rows.forEach(function(r) { tbody.appendChild(r); });
+        // update header arrows
+        var table = tbody.closest('table');
+        if (table) {
+          table.querySelectorAll('th[data-sort-col]').forEach(function(th) {
+            var idx = parseInt(th.dataset.sortCol);
+            var arrow = th.querySelector('.sort-arrow');
+            if (arrow) arrow.textContent = idx === colIdx ? (asc ? ' ↑' : ' ↓') : ' ↕';
+          });
+        }
+        window._aplicarPaginacion(tbodyId);
+      };
+
+      // ============================================================================
+      // PAGINACION GENERICA (50 filas por página)
+      // ============================================================================
+      var _PAG_SIZE = 50;
+      var _pagState = {}; // { tbodyId: currentPage }
+
+      window._iniciarPaginacion = function(tbodyId) {
+        _pagState[tbodyId] = 1;
+        window._aplicarPaginacion(tbodyId);
+      };
+
+      window._aplicarPaginacion = function(tbodyId) {
+        var tbody = document.getElementById(tbodyId); if (!tbody) return;
+        var page = _pagState[tbodyId] || 1;
+        var rows = Array.from(tbody.querySelectorAll('tr:not([data-pag-ctrl])'));
+        var visible = rows.filter(function(r){ return !r.getAttribute('data-filter-hidden'); });
+        var total = visible.length;
+        var pages = Math.max(1, Math.ceil(total / _PAG_SIZE));
+        if (page > pages) { page = pages; _pagState[tbodyId] = page; }
+
+        var start = (page - 1) * _PAG_SIZE;
+        var end   = start + _PAG_SIZE;
+        visible.forEach(function(r, i) { r.style.display = (i >= start && i < end) ? '' : 'none'; });
+
+        // remove old control row
+        var old = tbody.querySelector('tr[data-pag-ctrl]');
+        if (old) old.remove();
+
+        if (pages <= 1) return;
+
+        var cols = (tbody.rows[0] && tbody.rows[0].cells.length) || 1;
+        var tr = document.createElement('tr');
+        tr.setAttribute('data-pag-ctrl', '1');
+        tr.style.cssText = 'background:#faf8f3;';
+        var td = document.createElement('td');
+        td.colSpan = cols;
+        td.style.cssText = 'padding:6px 10px;text-align:center;border-top:2px solid #f0ebe0;';
+
+        var btns = '';
+        btns += '<button onclick="window._pagGo(\''+tbodyId+'\',1)" style="'+window._pagBtnStyle(page===1)+'" '+(page===1?'disabled':'')+'>«</button>';
+        btns += '<button onclick="window._pagGo(\''+tbodyId+'\','+(page-1)+')" style="'+window._pagBtnStyle(page===1)+'" '+(page===1?'disabled':'')+'>‹</button>';
+
+        var lo = Math.max(1, page-2), hi = Math.min(pages, page+2);
+        for (var p = lo; p <= hi; p++) {
+          var active = p === page;
+          btns += '<button onclick="window._pagGo(\''+tbodyId+'\','+p+')" style="'+window._pagBtnStyle(false, active)+'">'+p+'</button>';
+        }
+
+        btns += '<button onclick="window._pagGo(\''+tbodyId+'\','+(page+1)+')" style="'+window._pagBtnStyle(page===pages)+'" '+(page===pages?'disabled':'')+'>›</button>';
+        btns += '<button onclick="window._pagGo(\''+tbodyId+'\','+pages+')" style="'+window._pagBtnStyle(page===pages)+'" '+(page===pages?'disabled':'')+'>»</button>';
+        btns += '<span style="font-size:0.72rem;color:#999;margin-left:10px;">'+((start+1)+'–'+Math.min(end,total)+' de '+total)+'</span>';
+
+        td.innerHTML = btns;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      };
+
+      window._pagBtnStyle = function(disabled, active) {
+        var base = 'border:1px solid #ddd;border-radius:6px;padding:2px 8px;font-size:0.75rem;cursor:pointer;margin:0 2px;';
+        if (active) return base + 'background:var(--azul);color:white;font-weight:700;border-color:var(--azul);';
+        if (disabled) return base + 'background:#f5f5f5;color:#ccc;cursor:default;';
+        return base + 'background:white;color:var(--azul);font-weight:600;';
+      };
+
+      window._pagGo = function(tbodyId, page) {
+        _pagState[tbodyId] = page;
+        window._aplicarPaginacion(tbodyId);
       };
 
       window.buscarTicketConsumo = function() {
@@ -2140,6 +2229,7 @@
               '<td>' + (f.quienRegistra||'—') + '</td>' +
               '<td class="text-center">' + btnEditar + btnElim + '</td></tr>';
           });
+          window._iniciarPaginacion('cuerpoTablaHerramientas');
         }).withFailureHandler(function(e) {
           var tbody = document.getElementById('cuerpoTablaHerramientas');
           if(tbody) tbody.innerHTML = '<tr><td colspan="12" class="text-danger text-center">' + e.message + '</td></tr>';
@@ -2241,12 +2331,14 @@
         var tbody = document.getElementById('cuerpoTablaHerramientas'); if(!tbody) return;
         var trs = tbody.getElementsByTagName('tr');
         for(var i=0; i<trs.length; i++) {
-          if(trs[i].cells.length > 1) {
+          if(trs[i].cells.length > 1 && !trs[i].getAttribute('data-pag-ctrl')) {
             var c1=trs[i].cells[1].innerText.toUpperCase(), c3=trs[i].cells[3].innerText.toUpperCase();
             var c6=trs[i].cells[6].innerText.toUpperCase(), c7=trs[i].cells[7].innerText.toUpperCase();
-            trs[i].style.display = (!tip||c1.includes(tip)) && (!nom||c3.includes(nom)) && (!lug||c6.includes(lug)) && (!est||c7.includes(est)) ? '' : 'none';
+            var ok = (!tip||c1.includes(tip)) && (!nom||c3.includes(nom)) && (!lug||c6.includes(lug)) && (!est||c7.includes(est));
+            if (ok) trs[i].removeAttribute('data-filter-hidden'); else trs[i].setAttribute('data-filter-hidden','1');
           }
         }
+        window._aplicarPaginacion('cuerpoTablaHerramientas');
       };
 
       // ============================================================
@@ -2432,15 +2524,53 @@
           if(!res || !res.exito || !res.datos || res.datos.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">Sin actividades programadas para hoy.</td></tr>'; return;
           }
+          var _normK = function(v){ return (v||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim(); };
           var registrosHoy = res.datos.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; });
+          // Historial completo para panel y kanban
+          window._cronPospReprog  = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'POSPUESTO REPROGRAMADO'; });
+          window._cronNoPReprog   = res.datos.filter(function(f){
+            var k = _normK(f.estatusUnidad);
+            return k === 'NO PRESENTADA REPROGRAMADA' || k === 'UNIDAD NO PRESENTADA A LA CITA';
+          });
+          window._cronRegConcluidos = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO CONCLUIDO'; });
+          // Badge = solo los de HOY
+          var totalPosp = window._cronPospReprog.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; }).length;
+          var totalNoP  = window._cronNoPReprog.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; }).length;
+          // Active = solo EN REPARACION para la tabla
+          var registrosActivos = registrosHoy.filter(function(f){
+            var k = _normK(f.estatusUnidad);
+            return k !== 'SERVICIO CONCLUIDO'
+                && k !== 'SERVICIO POSPUESTO POR SV'
+                && k !== 'UNIDAD NO PRESENTADA A LA CITA'
+                && k.indexOf('POSPUESTO') === -1
+                && k.indexOf('NO PRESENTADA') === -1;
+          });
+          // Update badges
+          var _setBadge = function(elId, count, label, tipo) {
+            var el = document.getElementById(elId);
+            if (!el) return;
+            if (count > 0) {
+              el.style.display = '';
+              el.innerHTML = label + ': <b>' + count + '</b>';
+              el.onclick = function(){ window._abrirPanelHistorialCron(tipo); };
+              el.style.cursor = 'pointer';
+              el.title = 'Clic para ver detalle';
+            } else { el.style.display = 'none'; }
+          };
+          _setBadge('badgePospuestosTabla', totalPosp,                         '📌 Pospuestos',     'pospuesto');
+          _setBadge('badgeConcluidos',       window._cronRegConcluidos.length,  '✅ Concluidos hoy', 'concluido');
+          _setBadge('badgeNoPresentados',    totalNoP,                          '🚫 No Presentados', 'nopresentado');
           if (registrosHoy.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No hay actividades programadas para hoy.</td></tr>'; return;
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No hay actividades programadas para hoy.</td></tr>'; window._renderKanbanCronograma([], totalPosp); return;
           }
-          registrosHoy.sort(function(a,b){
+          registrosActivos.sort(function(a,b){
             var toMin = function(h){ var p=(h||'').split(':'); return (parseInt(p[0])||0)*60+(parseInt(p[1])||0); };
             return toMin(a.horario) - toMin(b.horario);
           });
-          registrosHoy.forEach(function(f) {
+          if (registrosActivos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">Todas las unidades de hoy tienen estatus final.</td></tr>';
+          }
+          registrosActivos.forEach(function(f) {
             var color = window._colorCronFila(f.estatusUnidad);
             var tr = document.createElement('tr');
             tr.dataset.id = f.id;
@@ -2482,10 +2612,239 @@
             }
             tbody.appendChild(tr);
           });
+          window._iniciarPaginacion('cuerpoTablaCronograma');
+          window._renderKanbanCronograma(registrosHoy, totalPosp);
         }).withFailureHandler(function(e) {
           var tbody = document.getElementById('cuerpoTablaCronograma');
           if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">'+e.message+'</td></tr>';
         }).obtenerDatosCronograma();
+      };
+
+      // ---- KANBAN CRONOGRAMA ----
+      window._cronVistaActual = 'tabla'; // 'tabla' | 'kanban'
+
+      window._switchCronVistaKanban = function(vista) {
+        window._cronVistaActual = vista;
+        var tbl = document.getElementById('vistaTablaCron');
+        var kan = document.getElementById('vistaKanbanCron');
+        var btnT = document.getElementById('btnCronVistTabla');
+        var btnK = document.getElementById('btnCronVistKanban');
+        if (tbl) tbl.style.display = vista === 'tabla' ? '' : 'none';
+        if (kan) kan.style.display = vista === 'kanban' ? '' : 'none';
+        if (btnT) { btnT.style.background = vista==='tabla'?'var(--azul)':'white'; btnT.style.color = vista==='tabla'?'white':'var(--azul)'; }
+        if (btnK) { btnK.style.background = vista==='kanban'?'var(--azul)':'white'; btnK.style.color = vista==='kanban'?'white':'var(--azul)'; }
+      };
+
+      window._renderKanbanCronograma = function(registros, totalPospuestos) {
+        var kan = document.getElementById('kanbanCronContent'); if (!kan) return;
+        var columnas = [
+          { key: 'EN REPARACION',                  label: 'En Reparación',              color: '#fff9c4', border: '#f0c040' },
+          { key: 'SERVICIO CONCLUIDO',              label: 'Servicio Concluido',         color: '#d4edda', border: '#6a8a7a' },
+          { key: 'UNIDAD NO PRESENTADA A LA CITA', label: 'No Presentada',              color: '#f8d7da', border: '#9a6a45' },
+          { key: 'SERVICIO POSPUESTO POR SV',       label: 'Pospuesto',                  color: '#ffe0b2', border: '#c8ae7e' }
+        ];
+
+        function _normKey(v) {
+          return (v||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+        }
+
+        var grupos = {};
+        columnas.forEach(function(c){ grupos[c.key] = []; });
+
+        registros.forEach(function(f) {
+          var k = _normKey(f.estatusUnidad);
+          var found = false;
+          columnas.forEach(function(c){
+            if (c.key && _normKey(c.key) === k) { grupos[c.key].push(f); found = true; }
+          });
+          if (!found) {
+            if (k.indexOf('POSPUESTO') !== -1) { grupos['SERVICIO POSPUESTO POR SV'].push(f); }
+            else if (k.indexOf('NO PRESENTADA') !== -1) { grupos['UNIDAD NO PRESENTADA A LA CITA'].push(f); }
+            else { grupos['EN REPARACION'].push(f); }
+          }
+        });
+
+        var puedeEditar = (_rolActual === 'GERENTE' || _rolActual === 'EJECUTIVO');
+
+        var html = '<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;align-items:flex-start;">';
+        columnas.forEach(function(col) {
+          var items = grupos[col.key] || [];
+          html += '<div style="min-width:220px;flex:1;background:'+col.color+';border-radius:10px;border:2px solid '+col.border+';padding:10px;max-width:260px;">';
+          var badgeCount = items.length;
+          var extraBadge = '';
+          if (col.key === 'SERVICIO POSPUESTO POR SV' && (totalPospuestos||0) > items.length) {
+            extraBadge = ' <span title="Total histórico pospuestos" style="background:#c8ae7e;color:var(--azul);border-radius:20px;padding:1px 7px;font-size:0.68rem;font-weight:700;">📌'+totalPospuestos+'</span>';
+          }
+          html += '<div style="font-weight:800;font-size:0.78rem;color:var(--azul);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">';
+          html += '<span>'+col.label+extraBadge+'</span><span style="background:var(--azul);color:white;border-radius:20px;padding:1px 9px;font-size:0.72rem;">'+badgeCount+'</span></div>';
+          items.forEach(function(f) {
+            html += '<div style="background:white;border-radius:8px;padding:8px 10px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:pointer;" onclick="window.abrirEditCronograma('+JSON.stringify(f).replace(/"/g,'&quot;')+')" title="Ver detalle">';
+            html += '<div style="font-weight:700;font-size:0.8rem;color:var(--azul);">🎫 '+(f.ticket||'—')+'</div>';
+            html += '<div style="font-size:0.75rem;color:#555;margin-top:3px;">🚗 '+(f.nuco||'')+'</div>';
+            html += '<div style="font-size:0.75rem;color:#555;">'+(f.marca||'')+' '+(f.modelo||'')+'</div>';
+            html += '<div style="font-size:0.74rem;color:#888;margin-top:4px;">🔧 '+(f.tipoTrabajo||'—')+'</div>';
+            html += '<div style="font-size:0.73rem;color:#aaa;margin-top:2px;">👷 '+(f.mecanico||'—')+(f.mecanico2?' + '+f.mecanico2:'')+'</div>';
+            if(f.horario) html += '<div style="font-size:0.72rem;color:var(--dorado);font-weight:700;margin-top:4px;">🕐 '+f.horario+'</div>';
+            html += '</div>';
+          });
+          if (!items.length) html += '<div style="text-align:center;color:#ccc;font-size:0.75rem;padding:12px 0;">Sin unidades</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+        kan.innerHTML = html;
+      };
+
+      window._abrirPanelHistorialCron = function(tipo) {
+        var todos = tipo === 'pospuesto'    ? (window._cronPospReprog||[])
+                  : tipo === 'concluido'    ? (window._cronRegConcluidos||[])
+                  : (window._cronNoPReprog||[]);
+        var titulo = tipo === 'pospuesto'   ? '📌 Unidades Pospuestas'
+                   : tipo === 'concluido'   ? '✅ Unidades Concluidas Hoy'
+                   : '🚫 Unidades No Presentadas';
+        var colores = { pospuesto: '#ffe0b2', concluido: '#d4edda', nopresentado: '#f8d7da' };
+        var color = colores[tipo] || '#f0f0f0';
+        var modalEl = document.getElementById('modalHistorialCronograma');
+        if (!modalEl) {
+          var div = document.createElement('div');
+          div.innerHTML = '<div class="modal fade" id="modalHistorialCronograma" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header py-2" style="background:var(--azul);"><h5 class="modal-title text-white fw-bold" id="modalHistCronTitulo"></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-3" id="modalHistCronBody"></div></div></div></div>';
+          document.body.appendChild(div.firstChild);
+          modalEl = document.getElementById('modalHistorialCronograma');
+        }
+        document.getElementById('modalHistCronTitulo').innerText = titulo;
+        var body = document.getElementById('modalHistCronBody');
+        // Agrupar por NUCO+Ticket para mostrar conteo por servicio
+        var porClave = {};
+        todos.forEach(function(f){
+          var clave = (f.nuco||'—') + '_' + (f.ticket||'—');
+          if (!porClave[clave]) porClave[clave] = [];
+          porClave[clave].push(f);
+        });
+        if (!todos.length) { body.innerHTML = '<p class="text-muted text-center py-3">Sin registros.</p>'; }
+        else {
+          var html = '';
+          Object.keys(porClave).forEach(function(clave) {
+            var eventos = porClave[clave];
+            var f0 = eventos[0];
+            html += '<div style="background:#f8f8f8;border-radius:10px;padding:10px 12px;margin-bottom:10px;border-left:4px solid '+color+';">';
+            html += '<div class="d-flex justify-content-between align-items-center mb-1">';
+            html += '<span class="fw-bold" style="color:var(--azul);">🚗 '+(f0.nuco||'—')+' — '+(f0.marca||'')+' '+(f0.modelo||'')+'</span>';
+            html += '<span style="background:var(--azul);color:white;border-radius:20px;padding:1px 10px;font-size:0.75rem;font-weight:700;">'+eventos.length+'x</span>';
+            html += '</div>';
+            eventos.forEach(function(f) {
+              var fStr = JSON.stringify(f).replace(/"/g,'&quot;');
+              html += '<div style="background:'+color+';border-radius:7px;padding:7px 10px;margin-top:6px;">';
+              html += '<div class="d-flex justify-content-between align-items-center">';
+              html += '<div><span class="fw-bold small" style="color:var(--azul);">🎫 '+(f.ticket||'—')+'</span><span class="text-muted small ms-2">📅 '+(f.fecha||'')+'</span>';
+              html += '<div class="small text-muted mt-1">🔧 '+(f.tipoTrabajo||'—')+' &nbsp; 👷 '+(f.mecanico||'—')+'</div></div>';
+              if (_rolActual !== 'MECANICO') {
+                var btnReprog = tipo === 'nopresentado'
+                  ? '<button class="btn btn-sm fw-bold me-1" style="background:#6a8a7a;color:white;font-size:0.7rem;" onclick="event.stopPropagation();window._abrirModalReprogramar('+fStr+')">📅 Reprog.</button>'
+                  : '';
+                html += '<div class="d-flex gap-1">'+btnReprog+'<button class="btn btn-sm text-white fw-bold" style="background:var(--azul);font-size:0.7rem;" onclick="window._editarDesdeHistorial('+fStr+')">✏️ Editar</button></div>';
+              }
+              html += '</div></div>';
+            });
+            html += '</div>';
+          });
+          body.innerHTML = html;
+        }
+        new bootstrap.Modal(modalEl).show();
+      };
+
+      window._editarDesdeHistorial = function(f) {
+        var modalH = bootstrap.Modal.getInstance(document.getElementById('modalHistorialCronograma'));
+        if (modalH) modalH.hide();
+        setTimeout(function(){ window.abrirEditCronograma(f); }, 350);
+      };
+
+      window._abrirModalReprogramar = function(f) {
+        // Crear modal si no existe
+        var modalEl = document.getElementById('modalReprogramarCron');
+        if (!modalEl) {
+          var div = document.createElement('div');
+          div.innerHTML = [
+            '<div class="modal fade" id="modalReprogramarCron" tabindex="-1">',
+            '<div class="modal-dialog modal-sm">',
+            '<div class="modal-content">',
+            '<div class="modal-header py-2" style="background:var(--azul);">',
+            '<h6 class="modal-title text-white fw-bold">📅 Reprogramar Cita</h6>',
+            '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>',
+            '</div>',
+            '<div class="modal-body p-3">',
+            '<p class="mb-2 small fw-bold" id="reprogTituloInfo" style="color:var(--azul);"></p>',
+            '<label class="fw-bold small mb-1">Nueva Fecha de Cita *</label>',
+            '<input type="date" id="reprogNuevaFecha" class="form-control mb-2">',
+            '<div id="reprogMsj" class="text-center small fw-bold mt-2"></div>',
+            '</div>',
+            '<div class="modal-footer py-2">',
+            '<button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>',
+            '<button class="btn btn-sm fw-bold text-white" style="background:var(--azul);" onclick="window._confirmarReprogramar()">Confirmar Reprogramación</button>',
+            '</div>',
+            '</div></div></div>'
+          ].join('');
+          document.body.appendChild(div.firstChild);
+          modalEl = document.getElementById('modalReprogramarCron');
+        }
+        // Guardar el registro actual en el modal para usarlo al confirmar
+        modalEl.dataset.regId    = f.id    || '';
+        modalEl.dataset.regNuco  = f.nuco  || '';
+        modalEl.dataset.regTicket= f.ticket|| '';
+        var info = document.getElementById('reprogTituloInfo');
+        if (info) info.innerText = '🎫 Ticket ' + (f.ticket||'—') + ' | 🚗 ' + (f.nuco||'') + ' — ' + (f.marca||'') + ' ' + (f.modelo||'');
+        var inp = document.getElementById('reprogNuevaFecha');
+        if (inp) { var hoy = new Date(); inp.value = hoy.toISOString().slice(0,10); inp.min = hoy.toISOString().slice(0,10); }
+        var msj = document.getElementById('reprogMsj'); if (msj) msj.innerText = '';
+        // Cerrar el panel de historial primero
+        var modalH = bootstrap.Modal.getInstance(document.getElementById('modalHistorialCronograma'));
+        if (modalH) { modalH.hide(); setTimeout(function(){ new bootstrap.Modal(modalEl).show(); }, 350); }
+        else new bootstrap.Modal(modalEl).show();
+      };
+
+      window._confirmarReprogramar = function() {
+        var modalEl = document.getElementById('modalReprogramarCron');
+        if (!modalEl) return;
+        var id = modalEl.dataset.regId;
+        var inp = document.getElementById('reprogNuevaFecha');
+        var msj = document.getElementById('reprogMsj');
+        if (!inp || !inp.value) { if(msj) msj.innerHTML='<span class="text-danger">Selecciona una fecha.</span>'; return; }
+        // Convertir YYYY-MM-DD → DD/MM/YYYY
+        var partes = inp.value.split('-');
+        var fechaDDMMYYYY = partes[2]+'/'+partes[1]+'/'+partes[0];
+        if(msj) msj.innerHTML = '<span class="text-muted">Guardando...</span>';
+        google.script.run
+          .withSuccessHandler(function(r) {
+            if (r.exito) {
+              if(msj) msj.innerHTML = '<span class="text-success">✔ ' + r.msj + '</span>';
+              setTimeout(function() {
+                var m = bootstrap.Modal.getInstance(modalEl);
+                if (m) m.hide();
+                window.cargarDatosCronograma();
+              }, 1800);
+            } else {
+              if(msj) msj.innerHTML = '<span class="text-danger">✖ ' + (r.error||'Error') + '</span>';
+            }
+          })
+          .withFailureHandler(function(e){ if(msj) msj.innerHTML='<span class="text-danger">✖ '+e.message+'</span>'; })
+          .reprogramarNoPresentado(id, fechaDDMMYYYY);
+      };
+
+      window._reprogramarHoy = function(f) {
+        var hoy = new Date();
+        var dd = String(hoy.getDate()).padStart(2,'0');
+        var mm = String(hoy.getMonth()+1).padStart(2,'0');
+        var yyyy = hoy.getFullYear();
+        var fechaHoyStr = dd+'/'+mm+'/'+yyyy;
+        window.mostrarConfirmacion('¿Reprogramar la unidad '+f.ticket+' ('+f.nuco+') a hoy '+fechaHoyStr+' como EN REPARACION?', function() {
+          google.script.run
+            .withSuccessHandler(function(r) {
+              var modalH = bootstrap.Modal.getInstance(document.getElementById('modalHistorialCronograma'));
+              if (modalH) modalH.hide();
+              window.mostrarAlerta(r.msj || 'Reprogramado.');
+              setTimeout(function(){ window.cargarDatosCronograma(); }, 1500);
+            })
+            .withFailureHandler(function(e){ window.mostrarAlerta('Error: '+e.message); })
+            .actualizarEstatusCronogramaBackend({ id: f.id, estatus: 'EN REPARACION', _fechaForzada: fechaHoyStr });
+        });
       };
 
       window.guardarCronograma = function() {
@@ -2493,7 +2852,7 @@
         var nuco    = document.getElementById('cron_nuco')    ? document.getElementById('cron_nuco').value.trim()    : '';
         var fecha   = document.getElementById('cron_fecha')   ? document.getElementById('cron_fecha').value          : '';
         var horario = document.getElementById('cron_horario') ? document.getElementById('cron_horario').value        : '';
-        if (!window.validarCampos(['cron_ticket', 'cron_nuco', 'cron_fecha', 'cron_horario'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
+        if (!window.validarCampos(['cron_ticket', 'cron_nuco', 'cron_fecha', 'cron_tipotrabajo', 'cron_horario', 'cron_sede'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         if (!nuco)    { return; }
         if (!ticket)  { return; }
         if (!fecha)   { return; }
@@ -2526,6 +2885,17 @@
             window.mostrarAlerta('Error: ' + e.message);
           })
           .guardarCronograma(d);
+      };
+
+      window._eliminarDesdeModalCron = function() {
+        var id = document.getElementById('editCronId') ? document.getElementById('editCronId').value : '';
+        var ticket = document.getElementById('editCronTicket') ? document.getElementById('editCronTicket').value : '';
+        if (!id) return;
+        window.mostrarConfirmacion('¿Eliminar el registro del cronograma (Ticket ' + ticket + ')? Esta acción no se puede deshacer.', function() {
+          var modal = bootstrap.Modal.getInstance(document.getElementById('modalEditCronograma'));
+          if (modal) modal.hide();
+          window.ejecutarEliminarCron(id);
+        });
       };
 
       window.ejecutarEliminarCron = function(id) {
@@ -2561,9 +2931,13 @@
         var panelGer  = document.getElementById('panelGerenteCron');
         var panelEjec = document.getElementById('panelEjecutivoCron');
 
-        // Panel estatus+archivos: MECÁNICO y GERENTE
+        // Botón eliminar: solo GERENTE y ADMIN
+        var btnElimModal = document.getElementById('btnEliminarEditCron');
+        if (btnElimModal) btnElimModal.style.setProperty('display', (_rolActual === 'GERENTE' || _rolActual === 'ADMIN') ? 'inline-block' : 'none', 'important');
+
+        // Panel estatus+archivos: MECÁNICO, GERENTE, ADMIN (no EJECUTIVO)
         if (panelGer)  panelGer.style.display  = (_rolActual !== 'EJECUTIVO') ? 'block' : 'none';
-        // Panel campos editables: EJECUTIVO y GERENTE
+        // Panel campos editables (fecha, tipo, sede, horario): EJECUTIVO y GERENTE
         if (panelEjec) panelEjec.style.display = puedeEditar ? 'block' : 'none';
 
         if (puedeEditar) {
@@ -2575,7 +2949,17 @@
             fechaEl.value = partes.length === 3 ? partes[2]+'-'+partes[1]+'-'+partes[0] : '';
           } else if (fechaEl) { fechaEl.value = ''; }
           var hor = document.getElementById('edCronHorario');
-          if (hor) hor.value = reg.horario || '';
+          if (hor) {
+            var horVal = (reg.horario || '').toString().trim();
+            // Quitar AM/PM si viene en ese formato
+            horVal = horVal.replace(/\s*(AM|PM)$/i, '');
+            // Extraer HH:MM de cualquier formato (H:MM, HH:MM, H:MM:SS, HH:MM:SS)
+            var mHor = horVal.match(/^(\d{1,2}):(\d{2})/);
+            if (mHor) horVal = mHor[1].padStart(2,'0') + ':' + mHor[2];
+            hor.value = horVal;
+            // Si el valor no existe en las opciones del catálogo, dejar vacío
+            if (hor.value !== horVal) hor.value = '';
+          }
           var infoEl = document.getElementById('edCronInfo');
           if (infoEl) infoEl.value = reg.info || '';
           // Botón dupla: si ya tiene mec2, mostrar como ya asignado y desactivar
@@ -2601,7 +2985,48 @@
         if (_rolActual !== 'EJECUTIVO') {
           // Panel estatus + archivos
           var selEst = document.getElementById('editCronEstatus');
-          if (selEst) selEst.value = reg.estatusUnidad || 'EN REPARACION';
+          if (selEst) {
+            selEst.value = reg.estatusUnidad || 'EN REPARACION';
+            // Populate reagendarHorario from edCronHorario catalog options
+            var rHor = document.getElementById('reagendarHorario');
+            var srcHor = document.getElementById('edCronHorario');
+            if (rHor && srcHor && srcHor.options.length > 1) {
+              rHor.innerHTML = '<option value="">— Mismo horario —</option>';
+              for (var oi = 0; oi < srcHor.options.length; oi++) {
+                var o = document.createElement('option');
+                o.value = srcHor.options[oi].value;
+                o.text  = srcHor.options[oi].text;
+                rHor.appendChild(o);
+              }
+            }
+            // Setup onchange to show/hide reagendar panel
+            selEst.onchange = function() {
+              var v = selEst.value;
+              var panel = document.getElementById('panelReagendar');
+              var fechaWrap = document.getElementById('reagendarFechaWrap');
+              var label = document.getElementById('reagendarLabel');
+              var hint = document.getElementById('reagendarHint');
+              var reagFecha = document.getElementById('reagendarFecha');
+              if (!panel) return;
+              if (v === 'SERVICIO POSPUESTO POR SV') {
+                panel.style.display = '';
+                if (fechaWrap) fechaWrap.style.display = 'none';
+                if (label) label.innerText = '⏰ Horario para el siguiente día hábil';
+                if (hint) hint.innerText = 'Deja en blanco para conservar el mismo horario. La fecha será el siguiente día hábil.';
+                if (reagFecha) reagFecha.value = '';
+              } else if (v === 'UNIDAD NO PRESENTADA A LA CITA') {
+                panel.style.display = '';
+                if (fechaWrap) fechaWrap.style.display = '';
+                if (label) label.innerText = '📅 Reagendar la cita';
+                if (hint) hint.innerText = 'Selecciona fecha y horario para la nueva cita. Si no seleccionas fecha, se agendará al siguiente día hábil.';
+              } else {
+                panel.style.display = 'none';
+                if (reagFecha) reagFecha.value = '';
+              }
+            };
+            // Trigger once to set initial state
+            selEst.onchange();
+          }
           _pilaArchivos = { pilaEvidencias: [], pilaFormatos: [] };
           var pe = document.getElementById('pilaEvidencias'); if(pe) pe.innerHTML = '';
           var pf = document.getElementById('pilaFormatos');   if(pf) pf.innerHTML = '';
@@ -2639,7 +3064,7 @@
           if(!r.exito){ msj.innerText = '✖ '+(r.error||'Error'); return; }
           bootstrap.Modal.getInstance(document.getElementById('modalEditCronograma')).hide();
           // Posponer: highlight row with message, then reload after delay
-          var esPosponer = r.msj && r.msj.indexOf('Pospuesto al') !== -1;
+          var esPosponer = r.msj && (r.msj.indexOf('Pospuesto') !== -1 || r.msj.indexOf('No presentado') !== -1);
           if (esPosponer) {
             var tbody2 = document.getElementById('cuerpoTablaCronograma');
             if(tbody2) {
@@ -2681,7 +3106,7 @@
         function _fail(e){ if(btn){ btn.disabled=false; btn.innerText='Guardar Cambios'; } msj.innerText='✖ Error: '+e.message; }
 
         if(puedeEditar && !esGer) {
-          // Solo Ejecutivo: actualiza campos editables
+          // Ejecutivo: actualiza campos editables Y estatus
           var tipo  = document.getElementById('edCronTipo')    ? document.getElementById('edCronTipo').value    : '';
           var sede  = document.getElementById('edCronSede')    ? document.getElementById('edCronSede').value    : '';
           var fecha = document.getElementById('edCronFecha')   ? document.getElementById('edCronFecha').value   : '';
@@ -2689,7 +3114,6 @@
           var info  = document.getElementById('edCronInfo')    ? document.getElementById('edCronInfo').value    : '';
           var duplaBtn = document.getElementById('btnDuplaEdit');
           var solicitarDuplaFlag = duplaBtn ? (duplaBtn.dataset.activo === 'si' && !duplaBtn.disabled) : false;
-          // Si se solicitó dupla, crear solicitud de autorización al Gerente antes de guardar
           if (solicitarDuplaFlag) {
             var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
             if(duplaBtn) { duplaBtn.disabled = true; duplaBtn.innerHTML = '✅ Dupla Enviada'; duplaBtn.style.backgroundColor = '#6c757d'; }
@@ -2717,6 +3141,8 @@
           var filesEv = (_pilaArchivos['pilaEvidencias'] || []).filter(Boolean);
           var filesFo = (_pilaArchivos['pilaFormatos']   || []).filter(Boolean);
 
+          var _reagHorGer   = document.getElementById('reagendarHorario') ? document.getElementById('reagendarHorario').value : '';
+          var _reagFechaGer = document.getElementById('reagendarFecha')   ? document.getElementById('reagendarFecha').value   : '';
           function _actualizarEstatusGer(urlsNuevasEv, urlsNuevasFo) {
             var existEv = window._cronEvidenciasExistentes || [];
             var existFo = window._cronFormatosExistentes   || [];
@@ -2724,7 +3150,7 @@
             var finalFo = existFo.concat((urlsNuevasFo||'').split(' | ').filter(Boolean)).join(' | ');
             google.script.run
               .withSuccessHandler(_done).withFailureHandler(_fail)
-              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: finalEv, urlFormato: finalFo });
+              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: finalEv, urlFormato: finalFo, horarioNuevo: _reagHorGer, fechaNueva: _reagFechaGer });
           }
 
           function leerArchivoG(file, callback) {
@@ -2767,6 +3193,8 @@
           var filesEv = (_pilaArchivos['pilaEvidencias'] || []).filter(Boolean);
           var filesFo = (_pilaArchivos['pilaFormatos']   || []).filter(Boolean);
 
+          var _reagHor   = document.getElementById('reagendarHorario') ? document.getElementById('reagendarHorario').value : '';
+          var _reagFecha = document.getElementById('reagendarFecha')   ? document.getElementById('reagendarFecha').value   : '';
           function _actualizarEstatus(urlsNuevasEv, urlsNuevasFo) {
             // Concatenar existentes + nuevas
             var existEv = window._cronEvidenciasExistentes || [];
@@ -2777,7 +3205,7 @@
             var finalFo = existFo.concat(nuevasFo).join(' | ');
             google.script.run
               .withSuccessHandler(_done).withFailureHandler(_fail)
-              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: finalEv, urlFormato: finalFo });
+              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: finalEv, urlFormato: finalFo, horarioNuevo: _reagHor, fechaNueva: _reagFecha });
           }
 
           function leerArchivo(file, callback) {
@@ -3651,6 +4079,64 @@
         return Object.keys(m).sort(function(a,b){return m[b]-m[a];}).map(function(k){return{l:k,v:m[k]};});
       };
 
+      // Genera datos de tendencia mensual: últimos 12 meses (o todos los meses disponibles)
+      window._dashTendencia = function(data, dateKey, valFn) {
+        var meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        var now = new Date(); var curY = now.getFullYear(); var curM = now.getMonth(); // 0-based
+        var buckets = [];
+        for (var i = 11; i >= 0; i--) {
+          var d = new Date(curY, curM - i, 1);
+          buckets.push({ y: d.getFullYear(), m: d.getMonth()+1, label: meses[d.getMonth()]+"'"+(d.getFullYear()%100), v: 0 });
+        }
+        data.forEach(function(f) {
+          var dt = window._dashParseDate(f[dateKey]||f.fecha||'');
+          if (!dt) return;
+          var fy = dt.getFullYear(), fm = dt.getMonth()+1;
+          buckets.forEach(function(b){ if(b.y===fy && b.m===fm) b.v += (valFn ? valFn(f) : 1); });
+        });
+        return buckets;
+      };
+
+      window._dashLinea = function(id, title, buckets, money) {
+        var el = document.getElementById(id); if (!el) return;
+        var vals = buckets.map(function(b){return b.v;});
+        var maxV = Math.max.apply(null, vals) || 1;
+        var W = 340, H = 90, PL = 38, PR = 10, PT = 10, PB = 28;
+        var cW = W - PL - PR, cH = H - PT - PB;
+        var n = buckets.length;
+        var xs = buckets.map(function(_, i){ return PL + (i/(n-1))*cW; });
+        var ys = vals.map(function(v){ return PT + cH - (v/maxV)*cH; });
+        // line path
+        var path = xs.map(function(x,i){ return (i===0?'M':'L')+x.toFixed(1)+','+ys[i].toFixed(1); }).join(' ');
+        // area path
+        var area = path + ' L'+xs[n-1].toFixed(1)+','+(PT+cH)+' L'+PL+','+(PT+cH)+' Z';
+        // gridlines
+        var grid = '';
+        [0, 0.5, 1].forEach(function(frac){
+          var y = (PT + cH*(1-frac)).toFixed(1);
+          var lbl = money ? window._dM(maxV*frac) : window._dN(maxV*frac);
+          grid += '<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#f0ebe0" stroke-width="1"/>';
+          grid += '<text x="'+(PL-4)+'" y="'+(parseFloat(y)+4)+'" text-anchor="end" font-size="7" fill="#ccc">'+lbl+'</text>';
+        });
+        // x labels (every 3)
+        var xlabels = '';
+        buckets.forEach(function(b,i){
+          if(i%3===0 || i===n-1) xlabels += '<text x="'+xs[i].toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle" font-size="7" fill="#aaa">'+b.label+'</text>';
+        });
+        // dots + tooltips
+        var dots = xs.map(function(x,i){
+          var disp = money ? window._dM(vals[i]) : window._dN(vals[i]);
+          return '<circle cx="'+x.toFixed(1)+'" cy="'+ys[i].toFixed(1)+'" r="3" fill="var(--dorado)" stroke="white" stroke-width="1.5"><title>'+buckets[i].label+': '+disp+'</title></circle>';
+        }).join('');
+        var svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;">'
+          + grid
+          + '<defs><linearGradient id="lg_'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--dorado)" stop-opacity=".25"/><stop offset="100%" stop-color="var(--dorado)" stop-opacity=".02"/></linearGradient></defs>'
+          + '<path d="'+area+'" fill="url(#lg_'+id+')" stroke="none"/>'
+          + '<path d="'+path+'" fill="none" stroke="var(--azul)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+          + dots + xlabels + '</svg>';
+        el.innerHTML = '<div class="dash-chart-title">'+title+'</div>' + svg;
+      };
+
       window._dashPeriodLabel = function() {
         var mEl=document.getElementById('dashMesFiltro'), yEl=document.getElementById('dashAnoFiltro');
         var mes=mEl?mEl.options[mEl.selectedIndex].text:''; var ano=yEl?yEl.value:'';
@@ -3689,6 +4175,8 @@
           window._dashGroupK(d,function(f){var n=(f.nuco||'').trim();return f.linea||_mapaVehiculos[n]||f.modelo||n||'Sin línea';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
         window._dashBars('dBar_tallerSedes','Servicios por Sede',
           window._dashGroupK(d,function(f){return f.sede||'Sin sede';}),function(i){return _DP[i%_DP.length];},false);
+        window._dashLinea('dLinea_taller','Evolución mensual — Servicios de Taller (últimos 12 meses)',
+          window._dashTendencia(_tallerDatos||[],'fechaServicio'), false);
       };
 
       // ---- INVENTARIO ----
@@ -3718,6 +4206,8 @@
           function(i){return i%2===0?'var(--azul)':'var(--dorado)';},true);
         window._dashBars('dBar_invVehiculos','Top Vehículos por Refacciones (registros)',
           window._dashGroupK(d,function(f){var v=(f.vehiculo||'').trim();return _mapaVehiculos[v]||v||'Sin vehículo';}),function(i){return _DP[i%_DP.length];},false);
+        window._dashLinea('dLinea_inventario','Evolución mensual — Registros de Inventario (últimos 12 meses)',
+          window._dashTendencia(_inventarioDatos||[],'fecha'), false);
       };
 
       // ---- CONSUMOS ----
@@ -3747,6 +4237,8 @@
           window._dashGroupK(d,function(f){return f.quienRegistra||'Sin usuario';}),function(i){return _DP[i%_DP.length];},false);
         window._dashBars('dBar_conTickets','Top Tickets con más Consumos',
           window._dashGroupK(d,function(f){return f.ticketNuevo||'Sin ticket';}),function(i){return i%2===0?'#2d3a45':'#c8ae7e';},false);
+        window._dashLinea('dLinea_consumos','Evolución mensual — Consumos (últimos 12 meses)',
+          window._dashTendencia(_consumosDatos||[],'fecha'), false);
       };
 
       // ---- PROVEEDORES (sin filtro por mes, no tienen fecha clave) ----
@@ -3801,6 +4293,8 @@
           window._dashGroupK(d,function(f){return f.quienRegistro||'Sin usuario';}),function(i){return _DP[i%_DP.length];},false);
         window._dashBars('dBar_ocProveedores','Top Razones Sociales',
           window._dashGroupK(d,function(f){return f.razonSocial||'Sin proveedor';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+        window._dashLinea('dLinea_oc','Evolución mensual — Órdenes de Compra (últimos 12 meses)',
+          window._dashTendencia(_ocDatosGlobal||[],'fecha'), false);
       };
 
       // ---- HERRAMIENTAS ----
@@ -3833,6 +4327,8 @@
           window._dashGroupK(dAll,function(f){return f.tipo||'Sin tipo';}),function(i){return _DP[i%_DP.length];},false);
         window._dashBars('dBar_herrLugar','Por Ubicación',
           window._dashGroupK(dAll,function(f){return f.lugarActual||f.lugar||'Sin ubicación';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+        window._dashBars('dBar_herrMarca','Por Marca',
+          window._dashGroupK(dAll,function(f){return f.marca||'Sin marca';}),function(i){return _DP[i%_DP.length];},false);
       };
 
       // ---- CRONOGRAMA ----
@@ -3864,6 +4360,8 @@
           window._dashGroupK(df,function(f){return f.mecanico||'Sin mecánico';}),function(i){return _DP[i%_DP.length];},false);
         window._dashBars('dBar_cronSede','Servicios por Sede',
           window._dashGroupK(df,function(f){return f.sede||'Sin sede';}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+        window._dashLinea('dLinea_cronograma','Evolución mensual — Cronograma (últimos 12 meses)',
+          window._dashTendencia(_dashCronDatos||[],'fecha'), false);
       };
 
       // ---- EJECUTIVOS ----
@@ -3918,6 +4416,8 @@
         // Bars: costo gestionado por ejecutivo
         window._dashBars('dBar_execCosto','Costo Gestionado por Ejecutivo',
           execList.map(function(e){return{l:e.nombre,v:e.costoTotal};}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},true);
+        window._dashLinea('dLinea_ejecutivos','Evolución mensual — Actividad de Ejecutivos (últimos 12 meses)',
+          window._dashTendencia(_tallerDatos||[],'fechaServicio'), false);
         // Tabla resumen por ejecutivo
         var tabEl=document.getElementById('dTabla_ejecutivos');
         if(tabEl){
@@ -3981,6 +4481,8 @@
           mecList.map(function(e){return{l:e.nombre,v:e.servicios};}),function(i){return _DP[i%_DP.length];},false);
         window._dashBars('dBar_mecUnidades','Unidades Únicas Atendidas por Mecánico',
           mecList.map(function(e){return{l:e.nombre,v:e.nucos.size};}),function(i){return i%2===0?'var(--azul)':'var(--dorado)';},false);
+        window._dashLinea('dLinea_mecanicos','Evolución mensual — Cronograma (últimos 12 meses)',
+          window._dashTendencia(_dashCronDatos||[],'fecha'), false);
         // Tabla resumen por mecánico
         var tabEl=document.getElementById('dTabla_mecanicos');
         if(tabEl){

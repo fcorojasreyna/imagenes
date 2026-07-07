@@ -57,6 +57,9 @@
   <!-- ===== TALLER ===== -->
   <div id="dashPanel_taller">
     <div id="dKpi_taller"   style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div class="dash-chart-card" style="margin-bottom:1rem;">
+      <div id="dLinea_taller"></div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div id="dDonut_tallerTipo"    class="dash-chart-card"></div>
       <div id="dDonut_tallerEstatus" class="dash-chart-card"></div>
@@ -74,6 +77,9 @@
   <!-- ===== INVENTARIO ===== -->
   <div id="dashPanel_inventario" style="display:none;">
     <div id="dKpi_inventario"   style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div class="dash-chart-card" style="margin-bottom:1rem;">
+      <div id="dLinea_inventario"></div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div id="dDonut_invEstatus" class="dash-chart-card"></div>
       <div id="dBar_invMarcas"    class="dash-chart-card"></div>
@@ -87,6 +93,9 @@
   <!-- ===== CONSUMOS ===== -->
   <div id="dashPanel_consumos" style="display:none;">
     <div id="dKpi_consumos"     style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div class="dash-chart-card" style="margin-bottom:1rem;">
+      <div id="dLinea_consumos"></div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div id="dBar_conProductos"  class="dash-chart-card"></div>
       <div id="dBar_conVehiculos"  class="dash-chart-card"></div>
@@ -113,6 +122,9 @@
   <!-- ===== OC ===== -->
   <div id="dashPanel_oc" style="display:none;">
     <div id="dKpi_oc"           style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div class="dash-chart-card" style="margin-bottom:1rem;">
+      <div id="dLinea_oc"></div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div id="dDonut_ocNivel"      class="dash-chart-card"></div>
       <div id="dDonut_ocGerente"    class="dash-chart-card"></div>
@@ -130,15 +142,21 @@
       <div id="dDonut_herrEstatus" class="dash-chart-card"></div>
       <div id="dDonut_herrEstado"  class="dash-chart-card"></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div id="dBar_herrTipo"    class="dash-chart-card"></div>
       <div id="dBar_herrLugar"   class="dash-chart-card"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr;gap:1rem;">
+      <div id="dBar_herrMarca"   class="dash-chart-card"></div>
     </div>
   </div>
 
   <!-- ===== CRONOGRAMA ===== -->
   <div id="dashPanel_cronograma" style="display:none;">
     <div id="dKpi_cronograma"   style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div class="dash-chart-card" style="margin-bottom:1rem;">
+      <div id="dLinea_cronograma"></div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div id="dDonut_cronTipo"    class="dash-chart-card"></div>
       <div id="dDonut_cronEstatus" class="dash-chart-card"></div>
@@ -152,6 +170,9 @@
   <!-- ===== EJECUTIVOS ===== -->
   <div id="dashPanel_ejecutivos" style="display:none;">
     <div id="dKpi_ejecutivos"   style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div class="dash-chart-card" style="margin-bottom:1rem;">
+      <div id="dLinea_ejecutivos"></div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div id="dDonut_execDist"  class="dash-chart-card"></div>
       <div id="dDonut_execTipo"  class="dash-chart-card"></div>
@@ -185,6 +206,9 @@
   <!-- ===== MECÁNICOS ===== -->
   <div id="dashPanel_mecanicos" style="display:none;">
     <div id="dKpi_mecanicos"    style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.8rem;margin-bottom:1rem;"></div>
+    <div class="dash-chart-card" style="margin-bottom:1rem;">
+      <div id="dLinea_mecanicos"></div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div id="dDonut_mecDist"      class="dash-chart-card"></div>
       <div id="dDonut_mecTipo"      class="dash-chart-card"></div>
