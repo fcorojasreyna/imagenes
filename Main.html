@@ -2527,15 +2527,23 @@
           var registrosHoy = res.datos.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; });
           // Separated by status for badges
           // Pendientes (no reprogramados aún) — listado en el panel
-          window._cronRegPospuestos    = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO POSPUESTO POR SV'; });
-          window._cronRegNoPresentados = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'UNIDAD NO PRESENTADA A LA CITA'; });
+          // Pospuestos de hoy: ambos status (pendiente y ya reprogramado)
+          window._cronRegPospuestos    = registrosHoy.filter(function(f){
+            var k = _normK(f.estatusUnidad);
+            return k === 'SERVICIO POSPUESTO POR SV' || k.indexOf('POSPUESTO') !== -1;
+          });
+          // No presentados de hoy: ambos status
+          window._cronRegNoPresentados = registrosHoy.filter(function(f){
+            var k = _normK(f.estatusUnidad);
+            return k === 'UNIDAD NO PRESENTADA A LA CITA' || k.indexOf('NO PRESENTADA') !== -1;
+          });
           window._cronRegConcluidos    = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO CONCLUIDO'; });
-          // Ya reprogramados — incluir en panel marcados como atendidos
+          // Historial completo para panel (incluye otras fechas)
           window._cronPospReprog  = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'POSPUESTO REPROGRAMADO'; });
           window._cronNoPReprog   = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'NO PRESENTADA REPROGRAMADA'; });
-          // Total badge = pendientes + ya atendidos (conteo histórico del día)
-          var totalPosp = window._cronRegPospuestos.length + window._cronPospReprog.length;
-          var totalNoP  = window._cronRegNoPresentados.length + window._cronNoPReprog.length;
+          // Badge = total de hoy (pendientes + reprogramados del día)
+          var totalPosp = window._cronRegPospuestos.length;
+          var totalNoP  = window._cronRegNoPresentados.length;
           // Active = solo EN REPARACION para la tabla
           var registrosActivos = registrosHoy.filter(function(f){
             var k = _normK(f.estatusUnidad);
@@ -2657,7 +2665,11 @@
           columnas.forEach(function(c){
             if (c.key && _normKey(c.key) === k) { grupos[c.key].push(f); found = true; }
           });
-          if (!found) { var enRep = columnas.find(function(c){ return c.key === 'EN REPARACION'; }); if(enRep) grupos['EN REPARACION'].push(f); }
+          if (!found) {
+            if (k.indexOf('POSPUESTO') !== -1) { grupos['SERVICIO POSPUESTO POR SV'].push(f); }
+            else if (k.indexOf('NO PRESENTADA') !== -1) { grupos['UNIDAD NO PRESENTADA A LA CITA'].push(f); }
+            else { grupos['EN REPARACION'].push(f); }
+          }
         });
 
         var puedeEditar = (_rolActual === 'GERENTE' || _rolActual === 'EJECUTIVO');
