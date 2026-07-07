@@ -1192,13 +1192,10 @@ function actualizarEstatusCronogramaBackend(d) {
         if (d._fechaForzada) hoja.getRange(f, 6).setValue(d._fechaForzada);
         let msjRetorno = "Registro actualizado.";
         if (d.estatus === "SERVICIO POSPUESTO POR SV") {
-          // Mantener fecha de hoy con POSPUESTO (visible en kanban de hoy)
-          // y crear nuevo registro para el siguiente día hábil como EN REPARACION
           const fila = datos[i];
+          const horarioNorm = d.horarioNuevo ? _normHorario(d.horarioNuevo) : _normHorario(fila[4]);
           const fechaSiguiente = _siguienteDiaHabil(_rawToDate(fila[5]));
           const fechaSigStr = formatoDDMMYYYY(fechaSiguiente);
-          // Validar cupo en el día destino antes de crear el registro
-          const horarioNorm = _normHorario(fila[4]);
           const datosActuales = hoja.getDataRange().getDisplayValues();
           let contCupo = 0;
           for (let j = 1; j < datosActuales.length; j++) {
@@ -1208,7 +1205,6 @@ function actualizarEstatusCronogramaBackend(d) {
             }
           }
           if (contCupo >= 2) {
-            // Marcar original de todas formas pero avisar del cupo lleno
             hoja.getRange(f, 15).setValue("POSPUESTO REPROGRAMADO");
             _actualizarResumenNuco(SpreadsheetApp.getActiveSpreadsheet(), fila[7], fila[6], fila[8], fila[9], formatoDDMMYYYY(_rawToDate(fila[5])), horarioNorm, 'pospuesto');
             SpreadsheetApp.flush();
@@ -1216,32 +1212,49 @@ function actualizarEstatusCronogramaBackend(d) {
           }
           const idNuevo = generarIdIncremental("Cronograma", "CRON");
           hoja.appendRow([
-            idNuevo,          // A: ID
-            fila[1],          // B: TIPO DE TRABAJO
-            fila[2],          // C: EJECUTIVO
-            fila[3],          // D: SEDE
-            horarioNorm,      // E: HORARIO normalizado
-            fechaSigStr,      // F: FECHA (siguiente día hábil)
-            fila[6],          // G: TICKET
-            fila[7],          // H: NUCO
-            fila[8],          // I: MARCA
-            fila[9],          // J: MODELO
-            fila[10],         // K: PLACAS
-            fila[11],         // L: MECANICO
-            fila[12],         // M: MECANICO 2
-            fila[13],         // N: INFO
-            "EN REPARACION",  // O: ESTATUS
-            "",               // P: EVIDENCIA
-            "",               // Q: FORMATO
-            fila[17],         // R: QUIEN REGISTRA
-            "",               // S
-            ""                // T
+            idNuevo, fila[1], fila[2], fila[3], horarioNorm, fechaSigStr,
+            fila[6], fila[7], fila[8], fila[9], fila[10], fila[11], fila[12], fila[13],
+            "EN REPARACION", "", "", fila[17], "", ""
           ]);
           hoja.getRange(hoja.getLastRow(), 5).setNumberFormat('@').setValue(horarioNorm);
-          // Marcar original y registrar en Resumen
           hoja.getRange(f, 15).setValue("POSPUESTO REPROGRAMADO");
           _actualizarResumenNuco(SpreadsheetApp.getActiveSpreadsheet(), fila[7], fila[6], fila[8], fila[9], formatoDDMMYYYY(_rawToDate(fila[5])), horarioNorm, 'pospuesto');
-          msjRetorno = "Pospuesto. Hoy aparece como POSPUESTO y mañana (" + fechaSigStr + ") como EN REPARACION.";
+          msjRetorno = "Pospuesto. Hoy aparece como POSPUESTO y " + fechaSigStr + " como EN REPARACION" + (d.horarioNuevo ? " a las " + horarioNorm : "") + ".";
+        } else if (d.estatus === "UNIDAD NO PRESENTADA A LA CITA") {
+          const fila = datos[i];
+          const horarioNorm = d.horarioNuevo ? _normHorario(d.horarioNuevo) : _normHorario(fila[4]);
+          // Determinar fecha destino: fecha elegida por usuario o siguiente día hábil
+          let fechaNuevaStr;
+          if (d.fechaNueva && d.fechaNueva.trim() !== '') {
+            const partes = d.fechaNueva.split('-');
+            fechaNuevaStr = partes.length === 3 ? partes[2]+'/'+partes[1]+'/'+partes[0] : d.fechaNueva;
+          } else {
+            fechaNuevaStr = formatoDDMMYYYY(_siguienteDiaHabil(_rawToDate(fila[5])));
+          }
+          const datosActuales = hoja.getDataRange().getDisplayValues();
+          let contCupo = 0;
+          for (let j = 1; j < datosActuales.length; j++) {
+            if ((datosActuales[j][4]||'').toString().trim() === horarioNorm &&
+                (datosActuales[j][5]||'').toString().trim() === fechaNuevaStr) {
+              contCupo++;
+            }
+          }
+          if (contCupo >= 2) {
+            hoja.getRange(f, 15).setValue("NO PRESENTADA REPROGRAMADA");
+            _actualizarResumenNuco(SpreadsheetApp.getActiveSpreadsheet(), fila[7], fila[6], fila[8], fila[9], formatoDDMMYYYY(_rawToDate(fila[5])), horarioNorm, 'nopresentado');
+            SpreadsheetApp.flush();
+            return { exito: true, msj: "No presentado. ⚠️ El horario " + horarioNorm + " del " + fechaNuevaStr + " ya tiene 2 unidades. Asigna manualmente el horario desde el módulo del día siguiente.", horarioOcupado: true };
+          }
+          const idNuevoNP = generarIdIncremental("Cronograma", "CRON");
+          hoja.appendRow([
+            idNuevoNP, fila[1], fila[2], fila[3], horarioNorm, fechaNuevaStr,
+            fila[6], fila[7], fila[8], fila[9], fila[10], fila[11], fila[12], fila[13],
+            "EN REPARACION", "", "", fila[17], "", ""
+          ]);
+          hoja.getRange(hoja.getLastRow(), 5).setNumberFormat('@').setValue(horarioNorm);
+          hoja.getRange(f, 15).setValue("NO PRESENTADA REPROGRAMADA");
+          _actualizarResumenNuco(SpreadsheetApp.getActiveSpreadsheet(), fila[7], fila[6], fila[8], fila[9], formatoDDMMYYYY(_rawToDate(fila[5])), horarioNorm, 'nopresentado');
+          msjRetorno = "No presentado. Nueva cita agendada para " + fechaNuevaStr + (d.horarioNuevo ? " a las " + horarioNorm : "") + " como EN REPARACION.";
         }
         SpreadsheetApp.flush();
         return { exito: true, msj: msjRetorno };

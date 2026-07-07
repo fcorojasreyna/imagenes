@@ -2528,7 +2528,10 @@
           var registrosHoy = res.datos.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; });
           // Historial completo para panel y kanban
           window._cronPospReprog  = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'POSPUESTO REPROGRAMADO'; });
-          window._cronNoPReprog   = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'NO PRESENTADA REPROGRAMADA'; });
+          window._cronNoPReprog   = res.datos.filter(function(f){
+            var k = _normK(f.estatusUnidad);
+            return k === 'NO PRESENTADA REPROGRAMADA' || k === 'UNIDAD NO PRESENTADA A LA CITA';
+          });
           window._cronRegConcluidos = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO CONCLUIDO'; });
           // Badge = solo los de HOY
           var totalPosp = window._cronPospReprog.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; }).length;
@@ -2558,7 +2561,7 @@
           _setBadge('badgeConcluidos',       window._cronRegConcluidos.length,  '✅ Concluidos hoy', 'concluido');
           _setBadge('badgeNoPresentados',    totalNoP,                          '🚫 No Presentados', 'nopresentado');
           if (registrosHoy.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No hay actividades programadas para hoy.</td></tr>'; window._renderKanbanCronograma([], window._cronRegPospuestos.length); return;
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No hay actividades programadas para hoy.</td></tr>'; window._renderKanbanCronograma([], totalPosp); return;
           }
           registrosActivos.sort(function(a,b){
             var toMin = function(h){ var p=(h||'').split(':'); return (parseInt(p[0])||0)*60+(parseInt(p[1])||0); };
@@ -2610,7 +2613,7 @@
             tbody.appendChild(tr);
           });
           window._iniciarPaginacion('cuerpoTablaCronograma');
-          window._renderKanbanCronograma(registrosHoy, window._cronRegPospuestos.length);
+          window._renderKanbanCronograma(registrosHoy, totalPosp);
         }).withFailureHandler(function(e) {
           var tbody = document.getElementById('cuerpoTablaCronograma');
           if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">'+e.message+'</td></tr>';
@@ -2982,7 +2985,48 @@
         if (_rolActual !== 'EJECUTIVO') {
           // Panel estatus + archivos
           var selEst = document.getElementById('editCronEstatus');
-          if (selEst) selEst.value = reg.estatusUnidad || 'EN REPARACION';
+          if (selEst) {
+            selEst.value = reg.estatusUnidad || 'EN REPARACION';
+            // Populate reagendarHorario from edCronHorario catalog options
+            var rHor = document.getElementById('reagendarHorario');
+            var srcHor = document.getElementById('edCronHorario');
+            if (rHor && srcHor && srcHor.options.length > 1) {
+              rHor.innerHTML = '<option value="">— Mismo horario —</option>';
+              for (var oi = 0; oi < srcHor.options.length; oi++) {
+                var o = document.createElement('option');
+                o.value = srcHor.options[oi].value;
+                o.text  = srcHor.options[oi].text;
+                rHor.appendChild(o);
+              }
+            }
+            // Setup onchange to show/hide reagendar panel
+            selEst.onchange = function() {
+              var v = selEst.value;
+              var panel = document.getElementById('panelReagendar');
+              var fechaWrap = document.getElementById('reagendarFechaWrap');
+              var label = document.getElementById('reagendarLabel');
+              var hint = document.getElementById('reagendarHint');
+              var reagFecha = document.getElementById('reagendarFecha');
+              if (!panel) return;
+              if (v === 'SERVICIO POSPUESTO POR SV') {
+                panel.style.display = '';
+                if (fechaWrap) fechaWrap.style.display = 'none';
+                if (label) label.innerText = '⏰ Horario para el siguiente día hábil';
+                if (hint) hint.innerText = 'Deja en blanco para conservar el mismo horario. La fecha será el siguiente día hábil.';
+                if (reagFecha) reagFecha.value = '';
+              } else if (v === 'UNIDAD NO PRESENTADA A LA CITA') {
+                panel.style.display = '';
+                if (fechaWrap) fechaWrap.style.display = '';
+                if (label) label.innerText = '📅 Reagendar la cita';
+                if (hint) hint.innerText = 'Selecciona fecha y horario para la nueva cita. Si no seleccionas fecha, se agendará al siguiente día hábil.';
+              } else {
+                panel.style.display = 'none';
+                if (reagFecha) reagFecha.value = '';
+              }
+            };
+            // Trigger once to set initial state
+            selEst.onchange();
+          }
           _pilaArchivos = { pilaEvidencias: [], pilaFormatos: [] };
           var pe = document.getElementById('pilaEvidencias'); if(pe) pe.innerHTML = '';
           var pf = document.getElementById('pilaFormatos');   if(pf) pf.innerHTML = '';
@@ -3020,7 +3064,7 @@
           if(!r.exito){ msj.innerText = '✖ '+(r.error||'Error'); return; }
           bootstrap.Modal.getInstance(document.getElementById('modalEditCronograma')).hide();
           // Posponer: highlight row with message, then reload after delay
-          var esPosponer = r.msj && r.msj.indexOf('Pospuesto al') !== -1;
+          var esPosponer = r.msj && (r.msj.indexOf('Pospuesto') !== -1 || r.msj.indexOf('No presentado') !== -1);
           if (esPosponer) {
             var tbody2 = document.getElementById('cuerpoTablaCronograma');
             if(tbody2) {
@@ -3097,6 +3141,8 @@
           var filesEv = (_pilaArchivos['pilaEvidencias'] || []).filter(Boolean);
           var filesFo = (_pilaArchivos['pilaFormatos']   || []).filter(Boolean);
 
+          var _reagHorGer   = document.getElementById('reagendarHorario') ? document.getElementById('reagendarHorario').value : '';
+          var _reagFechaGer = document.getElementById('reagendarFecha')   ? document.getElementById('reagendarFecha').value   : '';
           function _actualizarEstatusGer(urlsNuevasEv, urlsNuevasFo) {
             var existEv = window._cronEvidenciasExistentes || [];
             var existFo = window._cronFormatosExistentes   || [];
@@ -3104,7 +3150,7 @@
             var finalFo = existFo.concat((urlsNuevasFo||'').split(' | ').filter(Boolean)).join(' | ');
             google.script.run
               .withSuccessHandler(_done).withFailureHandler(_fail)
-              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: finalEv, urlFormato: finalFo });
+              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: finalEv, urlFormato: finalFo, horarioNuevo: _reagHorGer, fechaNueva: _reagFechaGer });
           }
 
           function leerArchivoG(file, callback) {
@@ -3147,6 +3193,8 @@
           var filesEv = (_pilaArchivos['pilaEvidencias'] || []).filter(Boolean);
           var filesFo = (_pilaArchivos['pilaFormatos']   || []).filter(Boolean);
 
+          var _reagHor   = document.getElementById('reagendarHorario') ? document.getElementById('reagendarHorario').value : '';
+          var _reagFecha = document.getElementById('reagendarFecha')   ? document.getElementById('reagendarFecha').value   : '';
           function _actualizarEstatus(urlsNuevasEv, urlsNuevasFo) {
             // Concatenar existentes + nuevas
             var existEv = window._cronEvidenciasExistentes || [];
@@ -3157,7 +3205,7 @@
             var finalFo = existFo.concat(nuevasFo).join(' | ');
             google.script.run
               .withSuccessHandler(_done).withFailureHandler(_fail)
-              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: finalEv, urlFormato: finalFo });
+              .actualizarEstatusCronogramaBackend({ id: id, estatus: estatus, urlEvidencia: finalEv, urlFormato: finalFo, horarioNuevo: _reagHor, fechaNueva: _reagFecha });
           }
 
           function leerArchivo(file, callback) {

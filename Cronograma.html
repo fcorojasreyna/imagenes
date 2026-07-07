@@ -229,7 +229,24 @@
               <option value="SERVICIO POSPUESTO POR SV">🟠 SERVICIO POSPUESTO POR SV</option>
               <option value="SERVICIO CONCLUIDO">🟢 SERVICIO CONCLUIDO</option>
             </select>
-            <small class="text-muted d-block mt-1">Si seleccionas <strong>Pospuesto</strong>, la cita se moverá automáticamente al siguiente día hábil.</small>
+            <small class="text-muted d-block mt-1">Si seleccionas <strong>Pospuesto</strong> o <strong>No Presentado</strong>, puedes elegir la nueva fecha y horario.</small>
+          </div>
+          <!-- Panel reagendar: aparece al seleccionar POSPUESTO o NO PRESENTADA -->
+          <div id="panelReagendar" style="display:none;background:#fff8f0;border-radius:8px;padding:10px 14px;margin-bottom:12px;border-left:3px solid var(--dorado);">
+            <p class="fw-bold mb-2" style="color:var(--azul);font-size:0.83rem;" id="reagendarLabel">Opciones de reagenda</p>
+            <div class="row g-2">
+              <div class="col-6" id="reagendarFechaWrap">
+                <label class="fw-bold" style="color:var(--azul);font-size:0.82rem;">📅 Nueva fecha</label>
+                <input type="date" id="reagendarFecha" class="form-control form-control-sm mt-1">
+              </div>
+              <div class="col-6">
+                <label class="fw-bold" style="color:var(--azul);font-size:0.82rem;">⏰ Nuevo horario</label>
+                <select id="reagendarHorario" class="form-select form-select-sm mt-1">
+                  <option value="">— Mismo horario —</option>
+                </select>
+              </div>
+            </div>
+            <small class="text-muted d-block mt-1" id="reagendarHint"></small>
           </div>
           <div class="mb-3">
             <label class="fw-bold" style="color: var(--azul); font-size: 0.85rem;">📎 Evidencia (foto / PDF)</label>
