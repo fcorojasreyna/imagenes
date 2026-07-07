@@ -1628,3 +1628,46 @@ function actualizarProveedorCompleto(d) {
     return { exito: false, error: "Registro no localizado." };
   } catch(e) { return { exito: false, error: "Fallo al actualizar." }; }
 }
+
+function eliminarCronograma(id) {
+  return _eliminarRegistro("Cronograma", id);
+}
+
+function reprogramarNoPresentado(id, nuevaFechaStr) {
+  try {
+    const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cronograma");
+    if (!hoja) return { exito: false, error: "Hoja Cronograma no encontrada." };
+    const datos = hoja.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][0].toString().trim() === id.toString().trim()) {
+        const fila = datos[i];
+        const idNuevo = generarIdIncremental("Cronograma", "CRON");
+        hoja.appendRow([
+          idNuevo,           // A: ID
+          fila[1],           // B: TIPO DE TRABAJO
+          fila[2],           // C: EJECUTIVO
+          fila[3],           // D: SEDE
+          fila[4],           // E: HORARIO
+          nuevaFechaStr,     // F: FECHA (nueva)
+          fila[6],           // G: TICKET
+          fila[7],           // H: NUCO
+          fila[8],           // I: MARCA
+          fila[9],           // J: MODELO
+          fila[10],          // K: PLACAS
+          fila[11],          // L: MECANICO
+          fila[12],          // M: MECANICO 2
+          fila[13],          // N: INFO
+          "EN REPARACION",   // O: ESTATUS
+          "",                // P: EVIDENCIA
+          "",                // Q: FORMATO
+          fila[17],          // R: QUIEN REGISTRA
+          "",                // S
+          ""                 // T
+        ]);
+        SpreadsheetApp.flush();
+        return { exito: true, msj: "Cita reprogramada para el " + nuevaFechaStr + ". Nuevo registro creado como EN REPARACION." };
+      }
+    }
+    return { exito: false, error: "Registro no encontrado." };
+  } catch(e) { return { exito: false, error: e.message }; }
+}
