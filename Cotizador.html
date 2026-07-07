@@ -1,7 +1,10 @@
 <div id="vistaTablaOC" class="container-fluid p-0">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="fw-bold m-0" style="color: var(--azul);">📄 Historial de Cotizaciones y Órdenes de Compra</h4>
-    <button class="btn btn-sm fw-bold text-white" style="background:var(--azul);" onclick="window.cargarDatosHistorialOC()">↻ Actualizar</button>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm fw-bold text-white" style="background:var(--azul);" onclick="window.cargarDatosHistorialOC()">↻ Actualizar</button>
+      <button class="btn btn-sm fw-bold" style="background-color:#1D6F42; color:white;" onclick="window.exportarExcelOC()">📥 Descargar Excel</button>
+    </div>
   </div>
 
   <div class="card shadow-sm border-0">

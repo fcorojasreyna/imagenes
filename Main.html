@@ -962,6 +962,15 @@
         _descargarCSV('Proveedores_' + new Date().toISOString().slice(0,10) + '.csv', h, filas);
       };
 
+      window.exportarExcelOC = function() {
+        if (!_ocDatosGlobal || !_ocDatosGlobal.length) { window.mostrarAlerta('No hay datos cargados.'); return; }
+        var h = ['Folio','Ticket','NUCO','Razón Social','Quien Registró','Estatus','Dec. Gerente','Dec. Subdirectora','Dec. Directora','Fecha'];
+        var filas = _ocDatosGlobal.map(function(f) {
+          return [f.folio,f.ticket,f.nuco,f.razonSocial,f.quienRegistro,f.nivelActual,f.decGerente,f.decSub,f.decDir,f.fecha];
+        });
+        _descargarCSV('OC_' + new Date().toISOString().slice(0,10) + '.csv', h, filas);
+      };
+
       window.exportarExcelHerramientas = function() {
         if (!_herramientasDatos.length) { window.mostrarAlerta('No hay datos cargados.'); return; }
         var h = ['ID','Tipo','Tipo Unidad','Nombre','Marca','Estado','Lugar','Estatus','Existencia','Fecha','Quien Registra'];
