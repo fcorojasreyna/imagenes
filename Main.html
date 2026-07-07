@@ -2786,6 +2786,17 @@
           .guardarCronograma(d);
       };
 
+      window._eliminarDesdeModalCron = function() {
+        var id = document.getElementById('editCronId') ? document.getElementById('editCronId').value : '';
+        var ticket = document.getElementById('editCronTicket') ? document.getElementById('editCronTicket').value : '';
+        if (!id) return;
+        window.mostrarConfirmacion('¿Eliminar el registro del cronograma (Ticket ' + ticket + ')? Esta acción no se puede deshacer.', function() {
+          var modal = bootstrap.Modal.getInstance(document.getElementById('modalEditCronograma'));
+          if (modal) modal.hide();
+          window.ejecutarEliminarCron(id);
+        });
+      };
+
       window.ejecutarEliminarCron = function(id) {
         google.script.run.withSuccessHandler(function(r) {
           window.mostrarAlerta(r.msj || r); window.cargarDatosCronograma();
@@ -2818,6 +2829,10 @@
         var puedeEditar = (_rolActual === 'EJECUTIVO' || _rolActual === 'GERENTE');
         var panelGer  = document.getElementById('panelGerenteCron');
         var panelEjec = document.getElementById('panelEjecutivoCron');
+
+        // Botón eliminar: solo GERENTE y ADMIN
+        var btnElimModal = document.getElementById('btnEliminarEditCron');
+        if (btnElimModal) btnElimModal.style.setProperty('display', (_rolActual === 'GERENTE' || _rolActual === 'ADMIN') ? 'inline-block' : 'none', 'important');
 
         // Panel estatus+archivos: MECÁNICO y GERENTE
         if (panelGer)  panelGer.style.display  = (_rolActual !== 'EJECUTIVO') ? 'block' : 'none';
