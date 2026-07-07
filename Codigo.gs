@@ -1174,6 +1174,8 @@ function actualizarEstatusCronogramaBackend(d) {
             "",               // S
             ""                // T
           ]);
+          // Marcar original como ya reprogramado para que no siga apareciendo en el badge
+          hoja.getRange(f, 15).setValue("POSPUESTO REPROGRAMADO");
           msjRetorno = "Pospuesto. Hoy aparece como POSPUESTO y mañana (" + fechaSigStr + ") como EN REPARACION.";
         }
         SpreadsheetApp.flush();
@@ -1664,6 +1666,8 @@ function reprogramarNoPresentado(id, nuevaFechaStr) {
           "",                // S
           ""                 // T
         ]);
+        // Marcar original como ya reprogramada para que no siga apareciendo en el badge
+        hoja.getRange(i + 1, 15).setValue("NO PRESENTADA REPROGRAMADA");
         SpreadsheetApp.flush();
         return { exito: true, msj: "Cita reprogramada para el " + nuevaFechaStr + ". Nuevo registro creado como EN REPARACION." };
       }

@@ -2528,7 +2528,7 @@
           // Separated by status for badges
           window._cronRegPospuestos    = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO POSPUESTO POR SV'; });
           window._cronRegConcluidos    = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO CONCLUIDO'; });
-          window._cronRegNoPresentados = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'UNIDAD NO PRESENTADA A LA CITA'; });
+          window._cronRegNoPresentados = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'UNIDAD NO PRESENTADA A LA CITA'; });
           // Active = only EN REPARACION (or no status) for the table
           var registrosActivos = registrosHoy.filter(function(f){
             var k = _normK(f.estatusUnidad);
