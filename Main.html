@@ -2526,10 +2526,17 @@
           var _normK = function(v){ return (v||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim(); };
           var registrosHoy = res.datos.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; });
           // Separated by status for badges
+          // Pendientes (no reprogramados aún) — listado en el panel
           window._cronRegPospuestos    = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO POSPUESTO POR SV'; });
-          window._cronRegConcluidos    = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO CONCLUIDO'; });
           window._cronRegNoPresentados = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'UNIDAD NO PRESENTADA A LA CITA'; });
-          // Active = only EN REPARACION (or no status) for the table
+          window._cronRegConcluidos    = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO CONCLUIDO'; });
+          // Ya reprogramados — incluir en panel marcados como atendidos
+          window._cronPospReprog  = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'POSPUESTO REPROGRAMADO'; });
+          window._cronNoPReprog   = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'NO PRESENTADA REPROGRAMADA'; });
+          // Total badge = pendientes + ya atendidos (conteo histórico del día)
+          var totalPosp = window._cronRegPospuestos.length + window._cronPospReprog.length;
+          var totalNoP  = window._cronRegNoPresentados.length + window._cronNoPReprog.length;
+          // Active = solo EN REPARACION para la tabla
           var registrosActivos = registrosHoy.filter(function(f){
             var k = _normK(f.estatusUnidad);
             return k !== 'SERVICIO CONCLUIDO'
@@ -2550,9 +2557,9 @@
               el.title = 'Clic para ver detalle';
             } else { el.style.display = 'none'; }
           };
-          _setBadge('badgePospuestosTabla',    window._cronRegPospuestos.length,    '📌 Pospuestos',     'pospuesto');
-          _setBadge('badgeConcluidos',          window._cronRegConcluidos.length,    '✅ Concluidos hoy', 'concluido');
-          _setBadge('badgeNoPresentados',       window._cronRegNoPresentados.length, '🚫 No Presentados', 'nopresentado');
+          _setBadge('badgePospuestosTabla', totalPosp,                         '📌 Pospuestos',     'pospuesto');
+          _setBadge('badgeConcluidos',       window._cronRegConcluidos.length,  '✅ Concluidos hoy', 'concluido');
+          _setBadge('badgeNoPresentados',    totalNoP,                          '🚫 No Presentados', 'nopresentado');
           if (registrosHoy.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No hay actividades programadas para hoy.</td></tr>'; window._renderKanbanCronograma([], window._cronRegPospuestos.length); return;
           }
@@ -2701,31 +2708,41 @@
         }
         document.getElementById('modalHistCronTitulo').innerText = titulo;
         var body = document.getElementById('modalHistCronBody');
-        if (!registros.length) { body.innerHTML = '<p class="text-muted text-center py-3">Sin registros.</p>'; }
+        // Combinar pendientes + ya atendidos para mostrar historial completo
+        var reprogramados = tipo === 'pospuesto' ? (window._cronPospReprog||[]) : tipo === 'nopresentado' ? (window._cronNoPReprog||[]) : [];
+        var todos = registros.concat(reprogramados);
+        // Agrupar por NUCO para mostrar conteo por unidad
+        var porNuco = {};
+        todos.forEach(function(f){ var n = f.nuco||'—'; if(!porNuco[n]) porNuco[n]=[]; porNuco[n].push(f); });
+        if (!todos.length) { body.innerHTML = '<p class="text-muted text-center py-3">Sin registros.</p>'; }
         else {
-          var html = '<div class="list-group">';
-          registros.forEach(function(f) {
-            html += '<div class="list-group-item list-group-item-action p-2 mb-1" style="background:'+color+';border-radius:8px;border:none;cursor:pointer;" onclick="window._editarDesdeHistorial('+JSON.stringify(f).replace(/"/g,'&quot;')+')">';
-            html += '<div class="d-flex justify-content-between align-items-center">';
-            html += '<div>';
-            html += '<span class="fw-bold" style="color:var(--azul);">🎫 '+(f.ticket||'—')+'</span>';
-            html += ' &nbsp; <span class="text-muted small">📅 '+(f.fecha||'')+'</span>';
-            html += '<div class="small mt-1">🚗 <b>'+(f.nuco||'')+'</b> — '+(f.marca||'')+' '+(f.modelo||'')+'</div>';
-            html += '<div class="small text-muted">🔧 '+(f.tipoTrabajo||'—')+' &nbsp; 👷 '+(f.mecanico||'—')+'</div>';
+          var html = '';
+          Object.keys(porNuco).forEach(function(nuco) {
+            var eventos = porNuco[nuco];
+            var f0 = eventos[0];
+            html += '<div style="background:#f8f8f8;border-radius:10px;padding:10px 12px;margin-bottom:10px;border-left:4px solid '+color+';">';
+            html += '<div class="d-flex justify-content-between align-items-center mb-1">';
+            html += '<span class="fw-bold" style="color:var(--azul);">🚗 '+nuco+' — '+(f0.marca||'')+' '+(f0.modelo||'')+'</span>';
+            html += '<span style="background:var(--azul);color:white;border-radius:20px;padding:1px 10px;font-size:0.75rem;font-weight:700;">'+eventos.length+'x</span>';
             html += '</div>';
-            var btnExtra = '';
-            if (_rolActual !== 'MECANICO') {
-              if (tipo === 'pospuesto') {
-                btnExtra = '<button class="btn btn-sm fw-bold me-1" style="background:var(--dorado);color:var(--azul);font-size:0.72rem;" onclick="event.stopPropagation();window._reprogramarHoy('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Hoy</button>';
-              } else if (tipo === 'nopresentado') {
-                btnExtra = '<button class="btn btn-sm fw-bold me-1" style="background:#6a8a7a;color:white;font-size:0.72rem;" onclick="event.stopPropagation();window._abrirModalReprogramar('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Reprogramar</button>';
+            eventos.forEach(function(f) {
+              var yaAtendido = (f.estatusUnidad||'').indexOf('REPROGRAMAD') !== -1;
+              var bgCard = yaAtendido ? '#e8e8e8' : color;
+              var tag = yaAtendido ? '<span style="font-size:0.68rem;background:#6c757d;color:white;border-radius:10px;padding:1px 7px;margin-left:6px;">✔ Reprogramado</span>' : '';
+              html += '<div style="background:'+bgCard+';border-radius:7px;padding:7px 10px;margin-top:6px;opacity:'+(yaAtendido?'0.75':'1')+'">';
+              html += '<div class="d-flex justify-content-between align-items-center">';
+              html += '<div><span class="fw-bold small" style="color:var(--azul);">🎫 '+(f.ticket||'—')+'</span>'+tag+'<span class="text-muted small ms-2">📅 '+(f.fecha||'')+'</span>';
+              html += '<div class="small text-muted mt-1">🔧 '+(f.tipoTrabajo||'—')+' &nbsp; 👷 '+(f.mecanico||'—')+'</div></div>';
+              if (!yaAtendido && _rolActual !== 'MECANICO') {
+                var btnEx = tipo === 'pospuesto'
+                  ? '<button class="btn btn-sm fw-bold me-1" style="background:var(--dorado);color:var(--azul);font-size:0.7rem;" onclick="event.stopPropagation();window._reprogramarHoy('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Hoy</button>'
+                  : '<button class="btn btn-sm fw-bold me-1" style="background:#6a8a7a;color:white;font-size:0.7rem;" onclick="event.stopPropagation();window._abrirModalReprogramar('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Reprog.</button>';
+                html += '<div>'+btnEx+'<span class="btn btn-sm text-white fw-bold" style="background:var(--azul);font-size:0.7rem;" onclick="window._editarDesdeHistorial('+JSON.stringify(f).replace(/"/g,'&quot;')+')">✏️</span></div>';
               }
-            }
-            var btnEditar = _rolActual !== 'MECANICO' ? '<span class="btn btn-sm text-white fw-bold" style="background:var(--azul);font-size:0.75rem;">✏️ Editar</span>' : '';
-            html += btnExtra + btnEditar;
-            html += '</div></div>';
+              html += '</div></div>';
+            });
+            html += '</div>';
           });
-          html += '</div>';
           body.innerHTML = html;
         }
         new bootstrap.Modal(modalEl).show();
