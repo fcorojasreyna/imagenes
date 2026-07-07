@@ -2525,25 +2525,13 @@
           }
           var _normK = function(v){ return (v||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim(); };
           var registrosHoy = res.datos.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; });
-          // Separated by status for badges
-          // Pendientes (no reprogramados aún) — listado en el panel
-          // Pospuestos de hoy: ambos status (pendiente y ya reprogramado)
-          window._cronRegPospuestos    = registrosHoy.filter(function(f){
-            var k = _normK(f.estatusUnidad);
-            return k === 'SERVICIO POSPUESTO POR SV' || k.indexOf('POSPUESTO') !== -1;
-          });
-          // No presentados de hoy: ambos status
-          window._cronRegNoPresentados = registrosHoy.filter(function(f){
-            var k = _normK(f.estatusUnidad);
-            return k === 'UNIDAD NO PRESENTADA A LA CITA' || k.indexOf('NO PRESENTADA') !== -1;
-          });
-          window._cronRegConcluidos    = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO CONCLUIDO'; });
-          // Historial completo para panel (incluye otras fechas)
+          // Historial completo para panel y kanban
           window._cronPospReprog  = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'POSPUESTO REPROGRAMADO'; });
           window._cronNoPReprog   = res.datos.filter(function(f){ return _normK(f.estatusUnidad) === 'NO PRESENTADA REPROGRAMADA'; });
-          // Badge = total de hoy (pendientes + reprogramados del día)
-          var totalPosp = window._cronRegPospuestos.length;
-          var totalNoP  = window._cronRegNoPresentados.length;
+          window._cronRegConcluidos = registrosHoy.filter(function(f){ return _normK(f.estatusUnidad) === 'SERVICIO CONCLUIDO'; });
+          // Badge = solo los de HOY
+          var totalPosp = window._cronPospReprog.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; }).length;
+          var totalNoP  = window._cronNoPReprog.filter(function(f){ return (f.fecha||'').trim() === fechaHoyStr; }).length;
           // Active = solo EN REPARACION para la tabla
           var registrosActivos = registrosHoy.filter(function(f){
             var k = _normK(f.estatusUnidad);
@@ -2703,12 +2691,12 @@
       };
 
       window._abrirPanelHistorialCron = function(tipo) {
-        var registros = tipo === 'pospuesto' ? (window._cronRegPospuestos||[])
-                      : tipo === 'concluido'  ? (window._cronRegConcluidos||[])
-                      : (window._cronRegNoPresentados||[]);
-        var titulo = tipo === 'pospuesto' ? '📌 Unidades Pospuestas'
-                   : tipo === 'concluido'  ? '✅ Unidades Concluidas Hoy'
-                   : '🚫 Unidades No Presentadas Hoy';
+        var todos = tipo === 'pospuesto'    ? (window._cronPospReprog||[])
+                  : tipo === 'concluido'    ? (window._cronRegConcluidos||[])
+                  : (window._cronNoPReprog||[]);
+        var titulo = tipo === 'pospuesto'   ? '📌 Unidades Pospuestas'
+                   : tipo === 'concluido'   ? '✅ Unidades Concluidas Hoy'
+                   : '🚫 Unidades No Presentadas';
         var colores = { pospuesto: '#ffe0b2', concluido: '#d4edda', nopresentado: '#f8d7da' };
         var color = colores[tipo] || '#f0f0f0';
         var modalEl = document.getElementById('modalHistorialCronograma');
@@ -2720,36 +2708,35 @@
         }
         document.getElementById('modalHistCronTitulo').innerText = titulo;
         var body = document.getElementById('modalHistCronBody');
-        // Combinar pendientes + ya atendidos para mostrar historial completo
-        var reprogramados = tipo === 'pospuesto' ? (window._cronPospReprog||[]) : tipo === 'nopresentado' ? (window._cronNoPReprog||[]) : [];
-        var todos = registros.concat(reprogramados);
-        // Agrupar por NUCO para mostrar conteo por unidad
-        var porNuco = {};
-        todos.forEach(function(f){ var n = f.nuco||'—'; if(!porNuco[n]) porNuco[n]=[]; porNuco[n].push(f); });
+        // Agrupar por NUCO+Ticket para mostrar conteo por servicio
+        var porClave = {};
+        todos.forEach(function(f){
+          var clave = (f.nuco||'—') + '_' + (f.ticket||'—');
+          if (!porClave[clave]) porClave[clave] = [];
+          porClave[clave].push(f);
+        });
         if (!todos.length) { body.innerHTML = '<p class="text-muted text-center py-3">Sin registros.</p>'; }
         else {
           var html = '';
-          Object.keys(porNuco).forEach(function(nuco) {
-            var eventos = porNuco[nuco];
+          Object.keys(porClave).forEach(function(clave) {
+            var eventos = porClave[clave];
             var f0 = eventos[0];
             html += '<div style="background:#f8f8f8;border-radius:10px;padding:10px 12px;margin-bottom:10px;border-left:4px solid '+color+';">';
             html += '<div class="d-flex justify-content-between align-items-center mb-1">';
-            html += '<span class="fw-bold" style="color:var(--azul);">🚗 '+nuco+' — '+(f0.marca||'')+' '+(f0.modelo||'')+'</span>';
+            html += '<span class="fw-bold" style="color:var(--azul);">🚗 '+(f0.nuco||'—')+' — '+(f0.marca||'')+' '+(f0.modelo||'')+'</span>';
             html += '<span style="background:var(--azul);color:white;border-radius:20px;padding:1px 10px;font-size:0.75rem;font-weight:700;">'+eventos.length+'x</span>';
             html += '</div>';
             eventos.forEach(function(f) {
-              var yaAtendido = (f.estatusUnidad||'').indexOf('REPROGRAMAD') !== -1;
-              var bgCard = yaAtendido ? '#e8e8e8' : color;
-              var tag = yaAtendido ? '<span style="font-size:0.68rem;background:#6c757d;color:white;border-radius:10px;padding:1px 7px;margin-left:6px;">✔ Reprogramado</span>' : '';
-              html += '<div style="background:'+bgCard+';border-radius:7px;padding:7px 10px;margin-top:6px;opacity:'+(yaAtendido?'0.75':'1')+'">';
+              var fStr = JSON.stringify(f).replace(/"/g,'&quot;');
+              html += '<div style="background:'+color+';border-radius:7px;padding:7px 10px;margin-top:6px;">';
               html += '<div class="d-flex justify-content-between align-items-center">';
-              html += '<div><span class="fw-bold small" style="color:var(--azul);">🎫 '+(f.ticket||'—')+'</span>'+tag+'<span class="text-muted small ms-2">📅 '+(f.fecha||'')+'</span>';
+              html += '<div><span class="fw-bold small" style="color:var(--azul);">🎫 '+(f.ticket||'—')+'</span><span class="text-muted small ms-2">📅 '+(f.fecha||'')+'</span>';
               html += '<div class="small text-muted mt-1">🔧 '+(f.tipoTrabajo||'—')+' &nbsp; 👷 '+(f.mecanico||'—')+'</div></div>';
-              if (!yaAtendido && _rolActual !== 'MECANICO') {
-                var btnEx = tipo === 'pospuesto'
-                  ? '<button class="btn btn-sm fw-bold me-1" style="background:var(--dorado);color:var(--azul);font-size:0.7rem;" onclick="event.stopPropagation();window._reprogramarHoy('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Hoy</button>'
-                  : '<button class="btn btn-sm fw-bold me-1" style="background:#6a8a7a;color:white;font-size:0.7rem;" onclick="event.stopPropagation();window._abrirModalReprogramar('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Reprog.</button>';
-                html += '<div>'+btnEx+'<span class="btn btn-sm text-white fw-bold" style="background:var(--azul);font-size:0.7rem;" onclick="window._editarDesdeHistorial('+JSON.stringify(f).replace(/"/g,'&quot;')+')">✏️</span></div>';
+              if (_rolActual !== 'MECANICO') {
+                var btnReprog = tipo === 'nopresentado'
+                  ? '<button class="btn btn-sm fw-bold me-1" style="background:#6a8a7a;color:white;font-size:0.7rem;" onclick="event.stopPropagation();window._abrirModalReprogramar('+fStr+')">📅 Reprog.</button>'
+                  : '';
+                html += '<div class="d-flex gap-1">'+btnReprog+'<button class="btn btn-sm text-white fw-bold" style="background:var(--azul);font-size:0.7rem;" onclick="window._editarDesdeHistorial('+fStr+')">✏️ Editar</button></div>';
               }
               html += '</div></div>';
             });
@@ -2944,9 +2931,9 @@
         var btnElimModal = document.getElementById('btnEliminarEditCron');
         if (btnElimModal) btnElimModal.style.setProperty('display', (_rolActual === 'GERENTE' || _rolActual === 'ADMIN') ? 'inline-block' : 'none', 'important');
 
-        // Panel estatus+archivos: MECÁNICO y GERENTE
-        if (panelGer)  panelGer.style.display  = (_rolActual !== 'EJECUTIVO') ? 'block' : 'none';
-        // Panel campos editables: EJECUTIVO y GERENTE
+        // Panel estatus+archivos: todos los roles ven el estatus
+        if (panelGer)  panelGer.style.display  = 'block';
+        // Panel campos editables (fecha, tipo, sede, horario): EJECUTIVO y GERENTE
         if (panelEjec) panelEjec.style.display = puedeEditar ? 'block' : 'none';
 
         if (puedeEditar) {
@@ -3069,15 +3056,15 @@
         function _fail(e){ if(btn){ btn.disabled=false; btn.innerText='Guardar Cambios'; } msj.innerText='✖ Error: '+e.message; }
 
         if(puedeEditar && !esGer) {
-          // Solo Ejecutivo: actualiza campos editables
+          // Ejecutivo: actualiza campos editables Y estatus
           var tipo  = document.getElementById('edCronTipo')    ? document.getElementById('edCronTipo').value    : '';
           var sede  = document.getElementById('edCronSede')    ? document.getElementById('edCronSede').value    : '';
           var fecha = document.getElementById('edCronFecha')   ? document.getElementById('edCronFecha').value   : '';
           var hor   = document.getElementById('edCronHorario') ? document.getElementById('edCronHorario').value : '';
           var info  = document.getElementById('edCronInfo')    ? document.getElementById('edCronInfo').value    : '';
+          var estatusEjec = document.getElementById('editCronEstatus') ? document.getElementById('editCronEstatus').value : '';
           var duplaBtn = document.getElementById('btnDuplaEdit');
           var solicitarDuplaFlag = duplaBtn ? (duplaBtn.dataset.activo === 'si' && !duplaBtn.disabled) : false;
-          // Si se solicitó dupla, crear solicitud de autorización al Gerente antes de guardar
           if (solicitarDuplaFlag) {
             var quien = document.getElementById('quienRegistraGlobal') ? document.getElementById('quienRegistraGlobal').value : '';
             if(duplaBtn) { duplaBtn.disabled = true; duplaBtn.innerHTML = '✅ Dupla Enviada'; duplaBtn.style.backgroundColor = '#6c757d'; }
@@ -3089,8 +3076,15 @@
               })
               .crearSolicitudAutorizacion({ tipo: 'DUPLA', ticket: ticket, nuco: '', descripcion: 'Solicitud de segundo mecánico para ticket ' + ticket, solicitante: quien, datoExtra: '' });
           }
+          // Primero campos, luego estatus
           google.script.run
-            .withSuccessHandler(_done).withFailureHandler(_fail)
+            .withSuccessHandler(function(r2) {
+              if (!r2.exito) { _fail({ message: r2.error || 'Error al actualizar campos.' }); return; }
+              google.script.run
+                .withSuccessHandler(_done).withFailureHandler(_fail)
+                .actualizarEstatusCronogramaBackend({ id: id, estatus: estatusEjec, urlEvidencia: null, urlFormato: null });
+            })
+            .withFailureHandler(_fail)
             .actualizarCamposEjecutivoCronograma({ id: id, tipoTrabajo: tipo, sede: sede, fecha: fecha, horario: hor, info: info });
         } else if (esGer) {
           // Gerente: actualiza campos editables Y después estatus + archivos
