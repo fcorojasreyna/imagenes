@@ -2833,7 +2833,12 @@
             fechaEl.value = partes.length === 3 ? partes[2]+'-'+partes[1]+'-'+partes[0] : '';
           } else if (fechaEl) { fechaEl.value = ''; }
           var hor = document.getElementById('edCronHorario');
-          if (hor) hor.value = reg.horario || '';
+          if (hor) {
+            var horVal = (reg.horario || '').toString().trim();
+            // Normalizar HH:MM:SS → HH:MM por si Sheets agrega segundos
+            if (/^\d{1,2}:\d{2}:\d{2}$/.test(horVal)) horVal = horVal.slice(0, 5);
+            hor.value = horVal;
+          }
           var infoEl = document.getElementById('edCronInfo');
           if (infoEl) infoEl.value = reg.info || '';
           // Botón dupla: si ya tiene mec2, mostrar como ya asignado y desactivar
