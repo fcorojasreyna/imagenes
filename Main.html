@@ -443,7 +443,8 @@
               }
             } else {
               el.style.border = '2px solid red';
-              el.addEventListener('input', function limpiar() { el.style.border = ''; el.removeEventListener('input', limpiar); }, { once: true });
+              var evLimpiar = (el.type === 'date') ? 'change' : 'input';
+              el.addEventListener(evLimpiar, function limpiar() { el.style.border = ''; el.removeEventListener(evLimpiar, limpiar); }, { once: true });
             }
             ok = false;
           }
@@ -2848,7 +2849,7 @@
         var nuco    = document.getElementById('cron_nuco')    ? document.getElementById('cron_nuco').value.trim()    : '';
         var fecha   = document.getElementById('cron_fecha')   ? document.getElementById('cron_fecha').value          : '';
         var horario = document.getElementById('cron_horario') ? document.getElementById('cron_horario').value        : '';
-        if (!window.validarCampos(['cron_ticket', 'cron_nuco', 'cron_fecha', 'cron_horario'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
+        if (!window.validarCampos(['cron_ticket', 'cron_nuco', 'cron_fecha', 'cron_tipotrabajo', 'cron_horario', 'cron_sede'])) { window.mostrarAlerta('Completa los campos obligatorios marcados en rojo.'); return; }
         if (!nuco)    { return; }
         if (!ticket)  { return; }
         if (!fecha)   { return; }
