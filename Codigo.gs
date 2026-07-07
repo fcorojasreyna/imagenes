@@ -24,6 +24,14 @@ function FORZAR_PERMISOS_DRIVE() {
   } catch(e) { Logger.log("Permisos validados."); }
 }
 
+function _normHorario(v) {
+  // "9:00:00" o "09:00:00" → "09:00" | "9:00" → "09:00"
+  var s = (v || '').toString().trim();
+  var m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return s;
+  return m[1].padStart(2,'0') + ':' + m[2];
+}
+
 function generarIdIncremental(nombreHoja, prefijo) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nombreHoja);
   const lastRow = sheet.getLastRow();
@@ -1153,12 +1161,12 @@ function actualizarEstatusCronogramaBackend(d) {
           const fechaSigStr = formatoDDMMYYYY(fechaSiguiente);
           const idNuevo = generarIdIncremental("Cronograma", "CRON");
           hoja.appendRow([
-            idNuevo,          // A: ID
-            fila[1],          // B: TIPO DE TRABAJO
-            fila[2],          // C: EJECUTIVO
-            fila[3],          // D: SEDE
-            fila[4],          // E: HORARIO
-            fechaSigStr,      // F: FECHA (siguiente día hábil)
+            idNuevo,                    // A: ID
+            fila[1],                    // B: TIPO DE TRABAJO
+            fila[2],                    // C: EJECUTIVO
+            fila[3],                    // D: SEDE
+            _normHorario(fila[4]),      // E: HORARIO normalizado
+            fechaSigStr,                // F: FECHA (siguiente día hábil)
             fila[6],          // G: TICKET
             fila[7],          // H: NUCO
             fila[8],          // I: MARCA
@@ -1649,17 +1657,17 @@ function reprogramarNoPresentado(id, nuevaFechaStr) {
           fila[1],           // B: TIPO DE TRABAJO
           fila[2],           // C: EJECUTIVO
           fila[3],           // D: SEDE
-          fila[4],           // E: HORARIO
+          _normHorario(fila[4]), // E: HORARIO normalizado
           nuevaFechaStr,     // F: FECHA (nueva)
           fila[6],           // G: TICKET
-          fila[7],           // H: NUCO
-          fila[8],           // I: MARCA
-          fila[9],           // J: MODELO
-          fila[10],          // K: PLACAS
-          fila[11],          // L: MECANICO
-          fila[12],          // M: MECANICO 2
-          fila[13],          // N: INFO
-          "EN REPARACION",   // O: ESTATUS
+          fila[7],                    // H: NUCO
+          fila[8],                    // I: MARCA
+          fila[9],                    // J: MODELO
+          fila[10],                   // K: PLACAS
+          fila[11],                   // L: MECANICO
+          fila[12],                   // M: MECANICO 2
+          fila[13],                   // N: INFO
+          "EN REPARACION",            // O: ESTATUS
           "",                // P: EVIDENCIA
           "",                // Q: FORMATO
           fila[17],          // R: QUIEN REGISTRA
