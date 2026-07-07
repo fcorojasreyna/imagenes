@@ -1139,6 +1139,31 @@ function _rawToDate(val) {
   return parseFechaToDate(val.toString());
 }
 
+function _actualizarResumenNuco(ss, nuco, marca, modelo, campo) {
+  var hoja = ss.getSheetByName("Resumen Cronograma");
+  if (!hoja) {
+    hoja = ss.insertSheet("Resumen Cronograma");
+    hoja.appendRow(["NUCO","Marca","Modelo","Veces Pospuesto","Veces No Presentado","Ultima Actualizacion"]);
+    hoja.getRange(1,1,1,6).setFontWeight("bold");
+  }
+  var datos = hoja.getDataRange().getValues();
+  var hoy = formatoDDMMYYYY(new Date());
+  for (var i = 1; i < datos.length; i++) {
+    if (datos[i][0].toString().trim() === nuco.toString().trim()) {
+      var colIdx = campo === 'pospuesto' ? 4 : 5;
+      hoja.getRange(i+1, colIdx).setValue((Number(datos[i][colIdx-1])||0) + 1);
+      hoja.getRange(i+1, 6).setValue(hoy);
+      return;
+    }
+  }
+  hoja.appendRow([
+    nuco, marca, modelo,
+    campo === 'pospuesto' ? 1 : 0,
+    campo === 'nopresentado' ? 1 : 0,
+    hoy
+  ]);
+}
+
 function actualizarEstatusCronogramaBackend(d) {
   // Columnas (1-based): O=ESTATUS(15), P=EVIDENCIA(16), Q=FORMATO(17), F=FECHA(6)
   try {
@@ -1184,6 +1209,7 @@ function actualizarEstatusCronogramaBackend(d) {
           ]);
           // Marcar original como ya reprogramado para que no siga apareciendo en el badge
           hoja.getRange(f, 15).setValue("POSPUESTO REPROGRAMADO");
+          _actualizarResumenNuco(SpreadsheetApp.getActiveSpreadsheet(), fila[7], fila[8], fila[9], 'pospuesto');
           msjRetorno = "Pospuesto. Hoy aparece como POSPUESTO y mañana (" + fechaSigStr + ") como EN REPARACION.";
         }
         SpreadsheetApp.flush();
@@ -1676,6 +1702,7 @@ function reprogramarNoPresentado(id, nuevaFechaStr) {
         ]);
         // Marcar original como ya reprogramada para que no siga apareciendo en el badge
         hoja.getRange(i + 1, 15).setValue("NO PRESENTADA REPROGRAMADA");
+        _actualizarResumenNuco(SpreadsheetApp.getActiveSpreadsheet(), fila[7], fila[8], fila[9], 'nopresentado');
         SpreadsheetApp.flush();
         return { exito: true, msj: "Cita reprogramada para el " + nuevaFechaStr + ". Nuevo registro creado como EN REPARACION." };
       }
