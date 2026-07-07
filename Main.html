@@ -2532,7 +2532,11 @@
           // Active = only EN REPARACION (or no status) for the table
           var registrosActivos = registrosHoy.filter(function(f){
             var k = _normK(f.estatusUnidad);
-            return k !== 'SERVICIO CONCLUIDO' && k !== 'SERVICIO POSPUESTO POR SV' && k !== 'UNIDAD NO PRESENTADA A LA CITA';
+            return k !== 'SERVICIO CONCLUIDO'
+                && k !== 'SERVICIO POSPUESTO POR SV'
+                && k !== 'UNIDAD NO PRESENTADA A LA CITA'
+                && k.indexOf('POSPUESTO') === -1
+                && k.indexOf('NO PRESENTADA') === -1;
           });
           // Update badges
           var _setBadge = function(elId, count, label, tipo) {
