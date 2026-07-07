@@ -1146,12 +1146,35 @@ function actualizarEstatusCronogramaBackend(d) {
         if (d._fechaForzada) hoja.getRange(f, 6).setValue(d._fechaForzada);
         let msjRetorno = "Registro actualizado.";
         if (d.estatus === "SERVICIO POSPUESTO POR SV") {
-          // Mover al siguiente día hábil manteniendo estatus POSPUESTO
-          // (el estatus EN REPARACION se asignará manualmente cuando se reprograme)
-          const fechaSiguiente = _siguienteDiaHabil(_rawToDate(datos[i][5]));
+          // Mantener fecha de hoy con POSPUESTO (visible en kanban de hoy)
+          // y crear nuevo registro para el siguiente día hábil como EN REPARACION
+          const fila = datos[i];
+          const fechaSiguiente = _siguienteDiaHabil(_rawToDate(fila[5]));
           const fechaSigStr = formatoDDMMYYYY(fechaSiguiente);
-          hoja.getRange(f, 6).setValue(fechaSigStr);
-          msjRetorno = "Pospuesto al " + fechaSigStr + ". Aparecerá en el Kanban de ese día como POSPUESTO.";
+          const idNuevo = generarIdIncremental("Cronograma", "CRON");
+          hoja.appendRow([
+            idNuevo,          // A: ID
+            fila[1],          // B: TIPO DE TRABAJO
+            fila[2],          // C: EJECUTIVO
+            fila[3],          // D: SEDE
+            fila[4],          // E: HORARIO
+            fechaSigStr,      // F: FECHA (siguiente día hábil)
+            fila[6],          // G: TICKET
+            fila[7],          // H: NUCO
+            fila[8],          // I: MARCA
+            fila[9],          // J: MODELO
+            fila[10],         // K: PLACAS
+            fila[11],         // L: MECANICO
+            fila[12],         // M: MECANICO 2
+            fila[13],         // N: INFO
+            "EN REPARACION",  // O: ESTATUS
+            "",               // P: EVIDENCIA
+            "",               // Q: FORMATO
+            fila[17],         // R: QUIEN REGISTRA
+            "",               // S
+            ""                // T
+          ]);
+          msjRetorno = "Pospuesto. Hoy aparece como POSPUESTO y mañana (" + fechaSigStr + ") como EN REPARACION.";
         }
         SpreadsheetApp.flush();
         return { exito: true, msj: msjRetorno };
