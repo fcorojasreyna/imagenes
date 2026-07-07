@@ -2709,7 +2709,10 @@
             html += '<div class="small mt-1">🚗 <b>'+(f.nuco||'')+'</b> — '+(f.marca||'')+' '+(f.modelo||'')+'</div>';
             html += '<div class="small text-muted">🔧 '+(f.tipoTrabajo||'—')+' &nbsp; 👷 '+(f.mecanico||'—')+'</div>';
             html += '</div>';
-            html += '<span class="btn btn-sm text-white fw-bold" style="background:var(--azul);font-size:0.75rem;">✏️ Editar</span>';
+            var btnExtra = tipo === 'pospuesto'
+              ? '<button class="btn btn-sm fw-bold me-1" style="background:var(--dorado);color:var(--azul);font-size:0.72rem;" onclick="event.stopPropagation();window._reprogramarHoy('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Hoy</button>'
+              : '';
+            html += btnExtra + '<span class="btn btn-sm text-white fw-bold" style="background:var(--azul);font-size:0.75rem;">✏️ Editar</span>';
             html += '</div></div>';
           });
           html += '</div>';
@@ -2722,6 +2725,25 @@
         var modalH = bootstrap.Modal.getInstance(document.getElementById('modalHistorialCronograma'));
         if (modalH) modalH.hide();
         setTimeout(function(){ window.abrirEditCronograma(f); }, 350);
+      };
+
+      window._reprogramarHoy = function(f) {
+        var hoy = new Date();
+        var dd = String(hoy.getDate()).padStart(2,'0');
+        var mm = String(hoy.getMonth()+1).padStart(2,'0');
+        var yyyy = hoy.getFullYear();
+        var fechaHoyStr = dd+'/'+mm+'/'+yyyy;
+        window.mostrarConfirmacion('¿Reprogramar la unidad '+f.ticket+' ('+f.nuco+') a hoy '+fechaHoyStr+' como EN REPARACION?', function() {
+          google.script.run
+            .withSuccessHandler(function(r) {
+              var modalH = bootstrap.Modal.getInstance(document.getElementById('modalHistorialCronograma'));
+              if (modalH) modalH.hide();
+              window.mostrarAlerta(r.msj || 'Reprogramado.');
+              setTimeout(function(){ window.cargarDatosCronograma(); }, 1500);
+            })
+            .withFailureHandler(function(e){ window.mostrarAlerta('Error: '+e.message); })
+            .actualizarEstatusCronogramaBackend({ id: f.id, estatus: 'EN REPARACION', _fechaForzada: fechaHoyStr });
+        });
       };
 
       window.guardarCronograma = function() {

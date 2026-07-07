@@ -1143,14 +1143,15 @@ function actualizarEstatusCronogramaBackend(d) {
         if (d.estatus) hoja.getRange(f, 15).setValue(d.estatus);
         if (d.urlEvidencia !== undefined && d.urlEvidencia !== null) hoja.getRange(f, 16).setValue(d.urlEvidencia);
         if (d.urlFormato   !== undefined && d.urlFormato   !== null) hoja.getRange(f, 17).setValue(d.urlFormato);
+        if (d._fechaForzada) hoja.getRange(f, 6).setValue(d._fechaForzada);
         let msjRetorno = "Registro actualizado.";
         if (d.estatus === "SERVICIO POSPUESTO POR SV") {
-          // Mover al siguiente día hábil y resetear estatus a EN REPARACION para ese día
+          // Mover al siguiente día hábil manteniendo estatus POSPUESTO
+          // (el estatus EN REPARACION se asignará manualmente cuando se reprograme)
           const fechaSiguiente = _siguienteDiaHabil(_rawToDate(datos[i][5]));
           const fechaSigStr = formatoDDMMYYYY(fechaSiguiente);
           hoja.getRange(f, 6).setValue(fechaSigStr);
-          hoja.getRange(f, 15).setValue("EN REPARACION");
-          msjRetorno = "Pospuesto al " + fechaSigStr + ". Aparecerá como EN REPARACIÓN ese día con los mismos mecánicos.";
+          msjRetorno = "Pospuesto al " + fechaSigStr + ". Aparecerá en el Kanban de ese día como POSPUESTO.";
         }
         SpreadsheetApp.flush();
         return { exito: true, msj: msjRetorno };
