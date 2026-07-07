@@ -2710,12 +2710,15 @@
             html += '<div class="small text-muted">🔧 '+(f.tipoTrabajo||'—')+' &nbsp; 👷 '+(f.mecanico||'—')+'</div>';
             html += '</div>';
             var btnExtra = '';
-            if (tipo === 'pospuesto') {
-              btnExtra = '<button class="btn btn-sm fw-bold me-1" style="background:var(--dorado);color:var(--azul);font-size:0.72rem;" onclick="event.stopPropagation();window._reprogramarHoy('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Hoy</button>';
-            } else if (tipo === 'nopresentado') {
-              btnExtra = '<button class="btn btn-sm fw-bold me-1" style="background:#6a8a7a;color:white;font-size:0.72rem;" onclick="event.stopPropagation();window._abrirModalReprogramar('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Reprogramar</button>';
+            if (_rolActual !== 'MECANICO') {
+              if (tipo === 'pospuesto') {
+                btnExtra = '<button class="btn btn-sm fw-bold me-1" style="background:var(--dorado);color:var(--azul);font-size:0.72rem;" onclick="event.stopPropagation();window._reprogramarHoy('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Hoy</button>';
+              } else if (tipo === 'nopresentado') {
+                btnExtra = '<button class="btn btn-sm fw-bold me-1" style="background:#6a8a7a;color:white;font-size:0.72rem;" onclick="event.stopPropagation();window._abrirModalReprogramar('+JSON.stringify(f).replace(/"/g,'&quot;')+')">📅 Reprogramar</button>';
+              }
             }
-            html += btnExtra + '<span class="btn btn-sm text-white fw-bold" style="background:var(--azul);font-size:0.75rem;">✏️ Editar</span>';
+            var btnEditar = _rolActual !== 'MECANICO' ? '<span class="btn btn-sm text-white fw-bold" style="background:var(--azul);font-size:0.75rem;">✏️ Editar</span>' : '';
+            html += btnExtra + btnEditar;
             html += '</div></div>';
           });
           html += '</div>';
